@@ -1,1 +1,1 @@
-export default function GroupWritePage() {}
+export default function BoardWritePage() {}
