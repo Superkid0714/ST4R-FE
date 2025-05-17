@@ -24,16 +24,12 @@ import GroupWritePage from '../pages/group/GroupWritePage';
 
 // 기타 페이지
 import NotFoundPage from '../pages/NotFoundPage';
-import TestNavBar from '../pages/TestNavBar'; // 테스트 페이지
 
 // 라우트 가드
 import AuthGuard from '../guards/AuthGuard';
 
 const router = createBrowserRouter([
   //<모바일 레이아웃이 없는 경로>-네비바가 필요없는 페이지
-
-  // 네비게이션 테스트 페이지 (직접 접근 가능하도록)
-  { path: '/test-nav', element: <TestNavBar /> },
 
   // 로그인 페이지
   { path: 'login', element: <LoginPage /> },
@@ -94,8 +90,9 @@ const router = createBrowserRouter([
       // 홈/게시판 관련 라우트
       {
         path: 'home',
-        element: <BoardPage />,
         children: [
+          // 홈 기본 경로를 boards로 리다이렉트
+          { index: true, element: <Navigate to="/home/boards" replace /> },
           // 게시판 조회 페이지
           {
             path: 'boards',
