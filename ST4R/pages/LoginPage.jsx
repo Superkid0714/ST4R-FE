@@ -7,7 +7,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div clasName="relative">
+    <div>
       <div className="absolute left-[12px] inline-flex justify-start items-center gap-[12px]">
         <div className="p-2 bg-[#1D1D1D] rounded-[60px]">
           <img src="../public/icon/west.svg" className="w-6 h-6" />
@@ -45,7 +45,7 @@ export default function LoginPage() {
         <span className="text-[#8F8F8F] text-base font-bold font-['Pretendard'] underline ">
           한번에 로그인
         </span>
-        <span class="text-[#8F8F8F] text-base font-normal font-['Pretendard'] ">
+        <span className="text-[#8F8F8F] text-base font-normal font-['Pretendard'] ">
           하세요!
         </span>
       </div>
