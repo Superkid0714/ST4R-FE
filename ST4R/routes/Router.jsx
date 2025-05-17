@@ -12,7 +12,7 @@ import LoginPage from './pages/LoginPage';
 
 // 게시판 관련 페이지
 import BoardPage from './pages/board/BoardPage';
-import BoardDetailPage from './pages/board/BoardDeatilPage';
+import BoardDetailPage from './pages/board/BoardDetailPage';
 import BoardEditPage from './pages/board/BoardEditPage';
 import BoardWritePage from './pages/board/BoardWritePage';
 
@@ -35,7 +35,7 @@ const router = createBrowserRouter([
     errorElement: <NotFoundPage />,
     children: [
       // 기본 경로를 홈/게시판으로 리다이렉트트
-      { index: 'true', element: <Navigate to="/home/board" replace /> },
+      { index: true, element: <Navigate to="/home/boards" replace /> },
 
       // 로그인 페이지
       { path: 'login', element: <LoginPage /> },
@@ -43,17 +43,17 @@ const router = createBrowserRouter([
       // 홈/게시판 관련 라우트
       {
         path: 'home',
-        childern: [
+        children: [
           // 홈 경로도 게시판으로 리다이렉트
-          { index: true, element: <Navigate to="/home/board" replace /> },
+          { index: true, element: <Navigate to="/home/boards" replace /> },
 
           // 게시판 라우트
           {
-            path: 'board',
+            path: 'boards',
             element: <BoardPage />,
           },
           {
-            path: 'board/write',
+            path: 'boards/write',
             element: (
               <AuthGuard>
                 <BoardWritePage />
@@ -61,7 +61,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'board/edit/:id',
+            path: 'boards/edit/:id',
             element: (
               <AuthGuard>
                 <BoardEditPage />
@@ -69,18 +69,18 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'board/:id',
+            path: 'boards/:id',
             element: <BoardDetailPage />,
           },
         ],
       },
       // 모임 관련 라우트
       {
-        path: 'group',
+        path: 'groups',
         element: <GroupPage />,
       },
       {
-        path: 'group/write',
+        path: 'groups/write',
         element: (
           <AuthGuard>
             <GroupWritePage />
@@ -88,15 +88,15 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'group/edit/:id',
-        elment: (
+        path: 'groups/edit/:id',
+        element: (
           <AuthGuard>
             <GroupEditPage />
           </AuthGuard>
         ),
       },
       {
-        path: 'group/:id',
+        path: 'groups/:id',
         element: <GroupDetailPage />,
       },
     ],
