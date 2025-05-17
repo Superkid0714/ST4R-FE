@@ -1,15 +1,14 @@
 // components/mobile/mobileNavBar.jsx
 import { useLocation, Link } from 'react-router-dom';
 
-// SVG 파일을 URL로 import
-import homeSvg from '../../src/assets/icons/home.svg';
-import groupSvg from '../../src/assets/icons/group.svg';
-import writeSvg from '../../src/assets/icons/write.svg';
-import chatSvg from '../../src/assets/icons/chat.svg';
-import profileSvg from '../../src/assets/icons/profile.svg';
+// SVG 파일을 절대 경로로 import
+import homeSvg from '/src/assets/icons/home.svg';
+import groupSvg from '/src/assets/icons/group.svg';
+import writeSvg from '/src/assets/icons/write.svg';
+import chatSvg from '/src/assets/icons/chat.svg';
+import profileSvg from '/src/assets/icons/profile.svg';
 
 function MobileNavBar() {
-  // 코드는 그대로 유지...
   const location = useLocation();
 
   // 현재 활성화된 탭 확인

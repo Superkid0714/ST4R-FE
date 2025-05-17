@@ -90,6 +90,7 @@ const router = createBrowserRouter([
       // 홈/게시판 관련 라우트
       {
         path: 'home',
+        element: <BoardPage />,
         children: [
           // 게시판 조회 페이지
           {
