@@ -1,4 +1,11 @@
 export default function LoginPage() {
+
+  const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
+
+  const kakaologinbutton =()=>{
+    window.location.href = loginUrl; // 카카오 로그인 창으로 이동
+  }
+
   return (
     <div clasName="relative">
       <div className="absolute left-[12px] inline-flex justify-start items-center gap-[12px]">
@@ -44,8 +51,8 @@ export default function LoginPage() {
       </div>
 
       {/* 카카오톡 로그인 버튼 */}
-      <div className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]">
-        <div onClick={()=>{kakaologin}} className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']">
+      <div onClick={kakaologinbutton} className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]">
+        <div onClick={kakaologinbutton} className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']">
           <img
             src="../public/icon/kakaotalk.svg"
             className="w-6 h-6 inline-block"

@@ -10,6 +10,9 @@ import MobileLayout from '../layouts/MobileLayout';
 // 페이지 컴포넌트
 import LoginPage from '../pages/LoginPage';
 
+// 로비 페이지
+import HomePage from '../pages/HomePage';
+
 // 게시판 관련 페이지
 import BoardPage from '../pages/board/BoardPage';
 import BoardDetailPage from '../pages/board/BoardDetailPage';
@@ -90,6 +93,7 @@ const router = createBrowserRouter([
       // 홈/게시판 관련 라우트
       {
         path: 'home',
+        element: <HomePage/>,
         children: [
           // 게시판 조회 페이지
           {
