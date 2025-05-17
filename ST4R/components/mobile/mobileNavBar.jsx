@@ -1,7 +1,6 @@
-// components/mobile/mobileNavBar.jsx - 상대 경로 사용
 import { useLocation, Link } from 'react-router-dom';
 
-// SVG 파일을 상대 경로로 import
+// SVG 파일을  import
 import homeSvg from '../../src/assets/icons/home.svg';
 import groupSvg from '../../src/assets/icons/group.svg';
 import writeSvg from '../../src/assets/icons/write.svg';
@@ -10,7 +9,6 @@ import profileSvg from '../../src/assets/icons/profile.svg';
 
 function MobileNavBar() {
   const location = useLocation();
-  console.log('현재 경로:', location.pathname); // 디버깅용 로그 추가
 
   // 현재 활성화된 탭 확인
   const isActive = (path) => {
@@ -62,7 +60,6 @@ function MobileNavBar() {
             style={isActive('/home') ? getActiveStyle : getInactiveStyle}
           />
         </Link>
-
         {/* 그룹/모임 탭 */}
         <Link to="/groups" className="flex items-center justify-center">
           <img
@@ -72,7 +69,7 @@ function MobileNavBar() {
             style={isActive('/groups') ? getActiveStyle : getInactiveStyle}
           />
         </Link>
-
+        {/*글쓰기 탭 같은 경우는 모임글을 쓸 것인지 아니면   */}
         {/* 글쓰기 탭 */}
         <Link to="/boards/write" className="flex items-center justify-center">
           <img
@@ -84,7 +81,6 @@ function MobileNavBar() {
             }
           />
         </Link>
-
         {/* 채팅/메시지 탭 - 향후 개발 예정 */}
         <Link to="#" className="flex items-center justify-center">
           <img
@@ -94,7 +90,6 @@ function MobileNavBar() {
             style={getInactiveStyle}
           />
         </Link>
-
         {/* 프로필 탭 - 향후 개발 예정 */}
         <Link to="#" className="flex items-center justify-center">
           <img
