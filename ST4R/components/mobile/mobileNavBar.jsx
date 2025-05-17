@@ -1,15 +1,16 @@
-// components/mobile/mobileNavBar.jsx
+// components/mobile/mobileNavBar.jsx - 상대 경로 사용
 import { useLocation, Link } from 'react-router-dom';
 
-// SVG 파일을 절대 경로로 import
-import homeSvg from '/src/assets/icons/home.svg';
-import groupSvg from '/src/assets/icons/group.svg';
-import writeSvg from '/src/assets/icons/write.svg';
-import chatSvg from '/src/assets/icons/chat.svg';
-import profileSvg from '/src/assets/icons/profile.svg';
+// SVG 파일을 상대 경로로 import
+import homeSvg from '../../src/assets/icons/home.svg';
+import groupSvg from '../../src/assets/icons/group.svg';
+import writeSvg from '../../src/assets/icons/write.svg';
+import chatSvg from '../../src/assets/icons/chat.svg';
+import profileSvg from '../../src/assets/icons/profile.svg';
 
 function MobileNavBar() {
   const location = useLocation();
+  console.log('현재 경로:', location.pathname); // 디버깅용 로그 추가
 
   // 현재 활성화된 탭 확인
   const isActive = (path) => {
