@@ -15,7 +15,7 @@ body,
   font-weight: 400;
   color-scheme: light dark;
   color: rgba(33, 37, 41, 0.87);
-  background-color: #ffffff;
+  background-color: #000000; /*고정 배경 색*/
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
