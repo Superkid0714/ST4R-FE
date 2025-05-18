@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 
+/* 기본 리셋 및 레이아웃 */
 html,
 body,
 #root {
@@ -9,65 +10,59 @@ body,
   padding: 0;
 }
 
+/* 기본 폰트 및 텍스트 스타일 */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: light dark;
-  color: rgba(33, 37, 41, 0.87);
-  background-color: #ffffff;
+  color-scheme: dark;
+  color: #e0e0e0;
+  background-color: #000000;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #3b82f6; /* Tailwind blue-500 */
+/* 네비게이션 링크 스타일 */
+nav a {
+  color: inherit;
   text-decoration: none;
 }
-a:hover {
-  color: #2563eb; /* Tailwind blue-600 */
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar {
+  width: 5px;
 }
 
-h1 {
-  font-size: 2.25rem; /* Tailwind text-3xl */
-  line-height: 1.1;
-  font-weight: 700;
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
 }
 
-button {
-  border-radius: 0.5rem; /* Tailwind rounded */
-  border: none;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  font-weight: 500;
-  background-color: #3b82f6; /* Tailwind blue-500 */
-  color: white;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-button:hover {
-  background-color: #2563eb; /* Tailwind blue-600 */
-}
-button:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 5px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #e0e0e0;
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* 모바일 뷰 시뮬레이션 (데스크톱에서만 적용) */
+@media (min-width: 768px) {
+  body {
     background-color: #121212;
+    padding: 20px 0;
   }
 
-  button {
-    background-color: #1e40af; /* Tailwind blue-800 */
-  }
-
-  button:hover {
-    background-color: #1e3a8a; /* Tailwind blue-900 */
+  .max-w-md {
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    height: calc(100vh - 40px);
+    max-height: 800px;
   }
 }

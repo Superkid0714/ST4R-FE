@@ -1,15 +1,19 @@
+// layouts/MobileLayout.jsx
 import { Outlet } from 'react-router-dom';
+import MobileNavBar from '../components/mobile/mobileNavBar';
 
 export default function MobileLayout() {
   return (
-    <div>
-      {/* 공통 레이아웃 */}
-      <header>공통 헤더(미정)</header>
+    <div className="flex flex-col min-h-screen bg-black text-white">
+      {/* 컨텐츠 영역 (스크롤 가능) */}
+      <main className="flex-1 overflow-y-auto pb-16">
+        <div className="container mx-auto px-4 py-3">
+          <Outlet />
+        </div>
+      </main>
 
-      {/* 라우트 페이지가 여기에 보여짐 */}
-      <Outlet />
-
-      <footer>공통 푸터(네비바)</footer>
+      {/* 하단 네비게이션 바 (고정) */}
+      <MobileNavBar />
     </div>
   );
 }

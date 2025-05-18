@@ -91,6 +91,8 @@ const router = createBrowserRouter([
       {
         path: 'home',
         children: [
+          // 홈 기본 경로를 boards로 리다이렉트
+          { index: true, element: <Navigate to="/home/boards" replace /> },
           // 게시판 조회 페이지
           {
             path: 'boards',
