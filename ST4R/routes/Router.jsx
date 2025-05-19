@@ -6,9 +6,9 @@ import {
 
 // 레이아웃
 import MobileLayout from '../layouts/MobileLayout';
-
+                             
 // 페이지 컴포넌트
-import LoginPage from '../pages/LoginPage';
+import LoginPage from '../pages/login/LoginPage';
 
 // 로비 페이지
 import HomePage from '../pages/HomePage';
