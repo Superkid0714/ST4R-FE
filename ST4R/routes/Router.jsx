@@ -6,9 +6,13 @@ import {
 
 // 레이아웃
 import MobileLayout from '../layouts/MobileLayout';
-
+                             
 // 페이지 컴포넌트
-import LoginPage from '../pages/LoginPage';
+import LoginPage from '../pages/login/LoginPage';
+import LoginAlertPage from '../pages/login/LoginAlertPage';
+
+// 로비 페이지
+import HomePage from '../pages/HomePage';
 
 // 게시판 관련 페이지
 import BoardPage from '../pages/board/BoardPage';
@@ -33,6 +37,7 @@ const router = createBrowserRouter([
 
   // 로그인 페이지
   { path: 'login', element: <LoginPage /> },
+  { path:'login-alert', element: <LoginAlertPage/> },
 
   //게시판 관련 페이지
   {
@@ -90,7 +95,10 @@ const router = createBrowserRouter([
       // 홈/게시판 관련 라우트
       {
         path: 'home',
+        element: <HomePage/>,
         children: [
+          // 홈 기본 경로를 boards로 리다이렉트
+          { index: true, element: <Navigate to="/home/boards" replace /> },
           // 게시판 조회 페이지
           {
             path: 'boards',

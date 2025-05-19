@@ -1,3 +1,4 @@
+/* index.css */
 @import 'tailwindcss';
 
 html,
@@ -15,7 +16,7 @@ body,
   font-weight: 400;
   color-scheme: light dark;
   color: rgba(33, 37, 41, 0.87);
-  background-color: #ffffff;
+  background-color: #000000;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,32 +26,32 @@ body,
 
 a {
   font-weight: 500;
-  color: #3b82f6; /* Tailwind blue-500 */
+  color: #3b82f6;
   text-decoration: none;
 }
 a:hover {
-  color: #2563eb; /* Tailwind blue-600 */
+  color: #2563eb;
 }
 
 h1 {
-  font-size: 2.25rem; /* Tailwind text-3xl */
+  font-size: 2.25rem;
   line-height: 1.1;
   font-weight: 700;
 }
 
 button {
-  border-radius: 0.5rem; /* Tailwind rounded */
+  border-radius: 0.5rem;
   border: none;
   padding: 0.5rem 1rem;
   font-size: 1rem;
   font-weight: 500;
-  background-color: #3b82f6; /* Tailwind blue-500 */
+  background-color: #3b82f6;
   color: white;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 button:hover {
-  background-color: #2563eb; /* Tailwind blue-600 */
+  background-color: #2563eb;
 }
 button:focus {
   outline: 2px solid #2563eb;
@@ -64,10 +65,10 @@ button:focus {
   }
 
   button {
-    background-color: #1e40af; /* Tailwind blue-800 */
+    background-color: #1e40af;
   }
 
   button:hover {
-    background-color: #1e3a8a; /* Tailwind blue-900 */
+    background-color: #1e3a8a;
   }
 }
