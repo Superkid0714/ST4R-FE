@@ -1,16 +1,18 @@
-export default function LoginPage() {
+import kakaotalk from '../../src/assets/kakaotalk.svg';
+import west from '../../src/assets/west.svg';
 
+export default function LoginPage() {
   const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
 
-  const kakaologinbutton =()=>{
+  const kakaologinbutton = () => {
     window.location.href = loginUrl; // 카카오 로그인 창으로 이동
-  }
+  };
 
   return (
     <div>
       <div className="absolute left-[12px] inline-flex justify-start items-center gap-[12px]">
         <div className="p-2 bg-[#1D1D1D] rounded-[60px]">
-          <img src="../public/icon/west.svg" className="w-6 h-6" />
+          <img src={west} alt="화살표" className="w-6 h-6" />
         </div>
         <div className="text-[#8F8F8F] text-3xl font-normal font-['Pretendard'] leading-loose">
           로그인
@@ -51,10 +53,17 @@ export default function LoginPage() {
       </div>
 
       {/* 카카오톡 로그인 버튼 */}
-      <div onClick={kakaologinbutton} className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]">
-        <div onClick={kakaologinbutton} className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']">
+      <div
+        onClick={kakaologinbutton}
+        className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]"
+      >
+        <div
+          onClick={kakaologinbutton}
+          className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']"
+        >
           <img
-            src="../public/icon/kakaotalk.svg"
+            src={kakaotalk}
+            alt="카카오톡 아이콘"
             className="w-6 h-6 inline-block"
           />
           <span>카카오톡으로 로그인</span>

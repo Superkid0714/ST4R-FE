@@ -1,3 +1,7 @@
+import kakaotalk from '../../src/assets/kakaotalk.svg';
+import error from '../../src/assets/error.svg';
+import west from '../../src/assets/west.svg';
+
 export default function LoginAlertPage() {
   const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
 
@@ -9,12 +13,12 @@ export default function LoginAlertPage() {
     <div>
       <div className="absolute left-[12px] inline-flex justify-start items-center gap-[12px]">
         <div className="p-2 bg-[#1D1D1D] rounded-[60px]">
-          <img src="../public/icon/west.svg" className="w-6 h-6" />
+          <img src={west} className="w-6 h-6" />
         </div>
       </div>
 
       <div className="absolute w-full top-1/5 left-1/2 transform -translate-x-1/2 flex flex-col justify-center items-center gap-5">
-        <img src="../public/icon/error.svg" alt="error" className="" />
+        <img src={error} alt="error" />
         <div className="flex flex-col justify-start items-center gap-3">
           <div className="self-stretch text-center justify-start text-[#FFFFFF] text-2xl font-bold font-['Pretendard'] leading-7">
             로그인이 되어있지 않아요!
@@ -57,7 +61,8 @@ export default function LoginAlertPage() {
           className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']"
         >
           <img
-            src="../public/icon/kakaotalk.svg"
+            src={kakaotalk}
+            alt="카카오톡 아이콘"
             className="w-6 h-6 inline-block"
           />
           <span>카카오톡으로 로그인</span>
