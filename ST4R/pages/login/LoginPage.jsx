@@ -17,7 +17,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="absolute left-[12px] inset-0 flex flex-col justify-center">
+      <div className="absolute left-[12px] top-1/5 flex flex-col justify-center">
         <span className="text-[#FFFFFF] text-5xl font-extrabold font-['Shinier'] leading-[52px]">
           Star,
           <br />

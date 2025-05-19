@@ -9,6 +9,7 @@ import MobileLayout from '../layouts/MobileLayout';
                              
 // 페이지 컴포넌트
 import LoginPage from '../pages/login/LoginPage';
+import LoginAlertPage from '../pages/login/LoginAlertPage';
 
 // 로비 페이지
 import HomePage from '../pages/HomePage';
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
 
   // 로그인 페이지
   { path: 'login', element: <LoginPage /> },
+  { path:'login-alert', element: <LoginAlertPage/> },
 
   //게시판 관련 페이지
   {
