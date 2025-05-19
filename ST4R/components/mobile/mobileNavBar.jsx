@@ -69,7 +69,7 @@ function MobileNavBar() {
             style={isActive('/groups') ? getActiveStyle : getInactiveStyle}
           />
         </Link>
-        {/*글쓰기 탭 같은 경우는 모임글을 쓸 것인지 아니면   */}
+        {/*글쓰기 탭 같은 경우는 모임글을 쓸 것인지 아니면 커뮤니티 글을 적을지 선택지를 줘야하는 것과 연결해야 함  */}
         {/* 글쓰기 탭 */}
         <Link to="/boards/write" className="flex items-center justify-center">
           <img
