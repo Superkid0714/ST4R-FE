@@ -17,7 +17,7 @@ export default function LoginAlertPage() {
         </div>
       </div>
 
-      <div className="absolute w-full top-1/5 left-1/2 transform -translate-x-1/2 flex flex-col justify-center items-center gap-5">
+      <div className="absolute w-full top-[20%] left-1/2 transform -translate-x-1/2 flex flex-col justify-center items-center gap-5">
         <img src={error} alt="error" />
         <div className="flex flex-col justify-start items-center gap-3">
           <div className="self-stretch text-center justify-start text-[#FFFFFF] text-2xl font-bold font-['Pretendard'] leading-7">
@@ -57,7 +57,6 @@ export default function LoginAlertPage() {
         className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]"
       >
         <div
-          onClick={kakaologinbutton}
           className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']"
         >
           <img

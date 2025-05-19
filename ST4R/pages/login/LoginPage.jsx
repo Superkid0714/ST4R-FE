@@ -19,7 +19,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="absolute left-[12px] top-1/5 flex flex-col justify-center">
+      <div className="absolute left-[12px] top-[20%] flex flex-col justify-center">
         <span className="text-[#FFFFFF] text-5xl font-extrabold font-['Shinier'] leading-[52px]">
           Star,
           <br />
@@ -58,7 +58,6 @@ export default function LoginPage() {
         className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]"
       >
         <div
-          onClick={kakaologinbutton}
           className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']"
         >
           <img
