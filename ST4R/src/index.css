@@ -1,4 +1,6 @@
 /* index.css */
+@import 'tailwindcss';
+
 html,
 body,
 #root {

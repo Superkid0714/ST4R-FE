@@ -1,5 +1,5 @@
-import kakaotalk from '../../src/assets/kakaotalk.svg';
-import west from '../../src/assets/west.svg';
+import kakaotalk from '../../src/assets/icons/kakaotalk.svg';
+import west from '../../src/assets/icons/west.svg';
 
 export default function LoginPage() {
   const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
@@ -65,7 +65,7 @@ export default function LoginPage() {
             alt="카카오톡 아이콘"
             className="w-6 h-6 inline-block"
           />
-          <span>카카오톡으로 로그인</span>
+          <span className="text-[#000000]">카카오톡으로 로그인</span>
         </div>
       </div>
     </div>

@@ -29,12 +29,12 @@ export default function HomePage() {
       {/* 테스트 로그아웃 버튼 */}
       <div
         onClick={()=>{logout.mutate()}}
-        className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]"
+        className="absolute left-[12px] right-[12px] bottom-[80px] h-[60px] bg-[#FFBB02] rounded-[10px]"
       >
         <div
           className="absolute left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']"
         >
-          <span>로그아웃</span>
+          <span className="text-[#000000]">로그아웃</span>
         </div>
       </div>
 

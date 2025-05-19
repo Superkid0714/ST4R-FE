@@ -1,6 +1,6 @@
-import kakaotalk from '../../src/assets/kakaotalk.svg';
-import error from '../../src/assets/error.svg';
-import west from '../../src/assets/west.svg';
+import kakaotalk from '../../src/assets/icons/kakaotalk.svg';
+import error from '../../src/assets/icons/error.svg';
+import west from '../../src/assets/icons/west.svg';
 
 export default function LoginAlertPage() {
   const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
@@ -56,15 +56,13 @@ export default function LoginAlertPage() {
         onClick={kakaologinbutton}
         className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]"
       >
-        <div
-          className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']"
-        >
+        <div className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']">
           <img
             src={kakaotalk}
             alt="카카오톡 아이콘"
             className="w-6 h-6 inline-block"
           />
-          <span>카카오톡으로 로그인</span>
+          <span className="text-[#000000]">카카오톡으로 로그인</span>
         </div>
       </div>
     </div>
