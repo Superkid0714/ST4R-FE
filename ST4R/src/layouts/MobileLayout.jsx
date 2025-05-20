@@ -1,6 +1,6 @@
 // layouts/MobileLayout.jsx
 import { Outlet } from 'react-router-dom';
-import MobileNavBar from '../components/mobile/mobileNavBar';
+import MobileNavBar from './components/mobile/mobileNavBar';
 
 export default function MobileLayout() {
   return (

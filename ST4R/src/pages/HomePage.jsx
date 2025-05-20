@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { logoutmutation } from '../src/api/auth';
+import { logoutmutation } from '../api/auth';
 
 export default function HomePage() {
   const navigate = useNavigate();

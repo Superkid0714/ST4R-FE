@@ -1,5 +1,5 @@
-import kakaotalk from '../../src/assets/icons/kakaotalk.svg';
-import west from '../../src/assets/icons/west.svg';
+import kakaotalk from '../../assets/icons/kakaotalk.svg';
+import west from '../../assets/icons/west.svg';
 
 export default function LoginPage() {
   const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
