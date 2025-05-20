@@ -5,32 +5,32 @@ import {
 } from 'react-router-dom';
 
 // 레이아웃
-import MobileLayout from './layouts/MobileLayout';
+import MobileLayout from '../layouts/MobileLayout';
                              
 // 페이지 컴포넌트
-import LoginPage from './pages/login/LoginPage';
-import LoginAlertPage from './pages/login/LoginAlertPage';
+import LoginPage from '../pages/login/LoginPage';
+import LoginAlertPage from '../pages/login/LoginAlertPage';
 
 // 로비 페이지
-import HomePage from './pages/HomePage';
+import HomePage from '../pages/HomePage';
 
 // 게시판 관련 페이지
-import BoardPage from './pages/board/BoardPage';
-import BoardDetailPage from './pages/board/BoardDetailPage';
-import BoardEditPage from './pages/board/BoardEditPage';
-import BoardWritePage from './pages/board/BoardWritePage';
+import BoardPage from '../pages/board/BoardPage';
+import BoardDetailPage from '../pages/board/BoardDetailPage';
+import BoardEditPage from '../pages/board/BoardEditPage';
+import BoardWritePage from '../pages/board/BoardWritePage';
 
 // 모임 관련 페이지
-import GroupPage from './pages/group/GroupPage';
-import GroupDetailPage from './pages/group/GroupDetailPage';
-import GroupEditPage from './pages/group/GroupEditPage';
-import GroupWritePage from './pages/group/GroupWritePage';
+import GroupPage from '../pages/group/GroupPage';
+import GroupDetailPage from '../pages/group/GroupDetailPage';
+import GroupEditPage from '../pages/group/GroupEditPage';
+import GroupWritePage from '../pages/group/GroupWritePage';
 
 // 기타 페이지
-import NotFoundPage from './pages/NotFoundPage';
+import NotFoundPage from '../pages/NotFoundPage';
 
 // 라우트 가드
-import AuthGuard from './guards/AuthGuard';
+import AuthGuard from '../guards/AuthGuard';
 
 const router = createBrowserRouter([
   //<모바일 레이아웃이 없는 경로>-네비바가 필요없는 페이지
