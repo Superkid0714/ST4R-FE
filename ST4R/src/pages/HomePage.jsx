@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useLogoutMutation } from '../api/auth'; // 함수명 변경
+import { useNavigate } from 'react-router-dom';
+import { useLogoutMutation } from '../api/auth';
 import SearchBar from '../components/common/SearchBar';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const logout = useLogoutMutation();
 
   useEffect(() => {
@@ -20,6 +19,10 @@ export default function HomePage() {
     }
   }, [navigate]);
 
+  const handleLogout = () => {
+    logout.mutate();
+  };
+
   return (
     <>
       {/* 검색바 컴포넌트 추가 */}
@@ -31,9 +34,7 @@ export default function HomePage() {
 
       {/* 테스트 로그아웃 버튼 */}
       <div
-        onClick={() => {
-          logout.mutate();
-        }}
+        onClick={handleLogout}
         className="absolute left-3 right-3 bottom-20 h-15 bg-star-yellow rounded-lg cursor-pointer"
       >
         <div className="absolute left-5 top-4 text-base font-extrabold">
