@@ -1,16 +1,26 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './index.css';
-import App from './App.jsx';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-const queryClient = new QueryClient();
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </StrictMode>
-);
+export const logoutmutation = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await axios.post(
+        'http://eridanus.econo.mooo.com:8080/oauth/kakao/logout',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    },
+    onError: (error) => {
+      console.error('로그아웃 실패', error);
+    },
+  });
+};
