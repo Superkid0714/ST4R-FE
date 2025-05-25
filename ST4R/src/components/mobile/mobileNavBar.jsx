@@ -1,11 +1,11 @@
 import { useLocation, Link } from 'react-router-dom';
 
 // SVG 파일을  import
-import homeSvg from '../../src/assets/icons/home.svg';
-import groupSvg from '../../src/assets/icons/group.svg';
-import writeSvg from '../../src/assets/icons/write.svg';
-import chatSvg from '../../src/assets/icons/chat.svg';
-import profileSvg from '../../src/assets/icons/profile.svg';
+import homeSvg from '../../assets/icons/home.svg';
+import groupSvg from '../../assets/icons/group.svg';
+import writeSvg from '../../assets/icons/write.svg';
+import chatSvg from '../../assets/icons/chat.svg';
+import profileSvg from '../../assets/icons/profile.svg';
 
 function MobileNavBar() {
   const location = useLocation();

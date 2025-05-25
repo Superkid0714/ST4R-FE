@@ -1,4 +1,3 @@
-// layouts/MobileLayout.jsx
 import { Outlet } from 'react-router-dom';
 import MobileNavBar from '../components/mobile/mobileNavBar';
 
