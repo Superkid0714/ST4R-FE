@@ -1,11 +1,15 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import HomeIcon from '../../assets/icons/home.svg?react';
 import GroupIcon from '../../assets/icons/group.svg?react';
-import WriteIcon from '../../assets/icons/write.svg?react';
+import WriteIcon from '../../assets/icons/writechoice.svg?react';
 import ProfileIcon from '../../assets/icons/profile.svg?react';
 
 function MobileNavBar() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const [highlight, setHighlight] = useState(false);
 
   const isActive = (path) => {
     const currentPath = location.pathname;
@@ -19,8 +23,8 @@ function MobileNavBar() {
     if (path === '/groups') {
       return currentPath.startsWith('/groups');
     }
-    if (path === '/boards/write') {
-      return currentPath === '/boards/write' || currentPath === '/groups/write';
+    if (path === '/writechoice') {
+      return currentPath === '/writechoice';
     }
     if (path === '/profile') {
       return currentPath.startsWith('/profile');
@@ -48,36 +52,65 @@ function MobileNavBar() {
     {
       key: 'write',
       label: '글 작성',
-      to: '/boards/write',
+      to: '/writechoice',
       Icon: WriteIcon,
-      path: '/boards/write',
+      path: '/writechoice',
       available: true,
     },
     {
       key: 'profile',
       label: '프로필',
-      to: '#',
+      to: '/profile',
       Icon: ProfileIcon,
       path: '/profile',
-      available: false,
+      available: true,
     },
   ];
 
-  // filter 값: 노란색 근사 (FFCE31 계열)
+  // 기존 active 노란색
   const yellowFilter =
     'invert(85%) sepia(99%) saturate(1000%) hue-rotate(1deg) brightness(101%) contrast(99%)';
-  // filter 값: 회색 근사
+  // 클릭 하이라이트: 더 밝은 노란색 (순수 노랑에 가깝게)
+  const flashYellowFilter =
+    'invert(94%) sepia(99%) saturate(1000%) hue-rotate(1deg) brightness(112%) contrast(105%)';
+  // 비활성 회색
   const grayFilter = 'grayscale(1) brightness(70%)';
-
-  // 컬러 값: 글자 색상(아이콘 filter에 맞춰서)
+  // 글자색
   const yellowText = '#FFCE31';
+  const flashYellowText = '#FFE600';
   const grayText = '#6B6B6B';
+
+  const handleWriteClick = (e) => {
+    e.preventDefault();
+    setHighlight(true);
+    setTimeout(() => {
+      setHighlight(false);
+      navigate('/writechoice');
+    }, 180); // 0.18초간 하이라이트
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full h-16 bg-[#101010] shadow-[0px_-20px_40px_0px_rgba(0,0,0,0.40)] z-10">
       <div className="grid grid-cols-4 h-full">
         {menu.map(({ key, label, to, Icon, path, available }) => {
           const active = isActive(path);
+          const isWrite = key === 'write';
+          const isFlash = isWrite && highlight;
+
+          const iconFilter = isFlash
+            ? flashYellowFilter
+            : active
+              ? yellowFilter
+              : grayFilter;
+
+          const textColor = isFlash
+            ? flashYellowText
+            : active
+              ? yellowText
+              : grayText;
+
+          const fontWeight = active || isFlash ? 700 : 400;
+
           return (
             <Link
               key={key}
@@ -85,25 +118,27 @@ function MobileNavBar() {
               className="flex flex-col items-center justify-center"
               tabIndex={available ? 0 : -1}
               aria-disabled={!available}
+              onClick={isWrite ? handleWriteClick : undefined}
               style={{
                 pointerEvents: available ? 'auto' : 'none',
                 opacity: available ? 1 : 0.5,
               }}
             >
               <Icon
-                className="w-7 h-7 mb-1 transition-colors duration-200"
+                className="w-7 h-7 mb-1 transition-all duration-200"
                 style={{
-                  filter: active ? yellowFilter : grayFilter,
+                  filter: iconFilter,
+                  transition: 'filter 0.15s',
                 }}
               />
               <span
                 style={{
-                  color: active ? yellowText : grayText,
+                  color: textColor,
                   fontSize: '13px',
                   lineHeight: 1,
-                  fontWeight: active ? 600 : 400,
+                  fontWeight: fontWeight,
                   marginTop: '2px',
-                  transition: 'color 0.2s',
+                  transition: 'color 0.15s, font-weight 0.15s',
                 }}
               >
                 {label}
