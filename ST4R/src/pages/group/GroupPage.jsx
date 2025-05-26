@@ -38,8 +38,8 @@ export default function GroupPage() {
             <div className="absolute left-[74px] sm:left-[100px] top-11 sm:top-[55px] justify-start text-[#8F8F8F] text-xs sm:text-base font-normal font-['Pretendard'] leading-none">
               김김김111: 저희 그럼 11시에 보도록 하죠
             </div>
-            <div className="absolute w-14 sm:w-20 h-9 sm:h-14 right-3 top-6 sm:top-6 bg-[#FFBB02] rounded-3xl ">
-              <div className="absolute left-4 sm:left-7 top-1.5 sm:top-3.5 text-center text-[#000000] text-base sm:text-lg font-semibold font-['Pretendard']">
+            <div className="absolute w-14 sm:w-18 h-9 sm:h-10 right-3 sm:right-5 top-6 sm:top-8 bg-[#FFBB02] rounded-3xl ">
+              <div className="absolute left-4 sm:left-4 top-1.5 text-center text-[#000000] text-base sm:text-lg font-semibold font-['Pretendard']">
                 99+
               </div>
             </div>
