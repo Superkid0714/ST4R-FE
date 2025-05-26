@@ -9,7 +9,7 @@ function MobileNavBar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [highlight, setHighlight] = useState(false);
+  const [highlight, setHighlight] = useState('');
 
   const isActive = (path) => {
     const currentPath = location.pathname;
@@ -36,7 +36,7 @@ function MobileNavBar() {
     {
       key: 'home',
       label: '홈',
-      to: '/home/boards',
+      to: '/home',
       Icon: HomeIcon,
       path: '/home',
       available: true,
@@ -67,26 +67,25 @@ function MobileNavBar() {
     },
   ];
 
-  // 기존 active 노란색
+  // 색상/필터 정의
   const yellowFilter =
     'invert(85%) sepia(99%) saturate(1000%) hue-rotate(1deg) brightness(101%) contrast(99%)';
-  // 클릭 하이라이트: 더 밝은 노란색 (순수 노랑에 가깝게)
   const flashYellowFilter =
     'invert(94%) sepia(99%) saturate(1000%) hue-rotate(1deg) brightness(112%) contrast(105%)';
-  // 비활성 회색
   const grayFilter = 'grayscale(1) brightness(70%)';
-  // 글자색
   const yellowText = '#FFCE31';
   const flashYellowText = '#FFE600';
   const grayText = '#6B6B6B';
 
-  const handleWriteClick = (e) => {
+  // 메뉴 클릭시 반짝 효과 + 이동
+  const handleMenuClick = (e, to, key, available) => {
+    if (!available) return;
     e.preventDefault();
-    setHighlight(true);
+    setHighlight(key);
     setTimeout(() => {
-      setHighlight(false);
-      navigate('/writechoice');
-    }, 180); // 0.18초간 하이라이트
+      setHighlight('');
+      navigate(to);
+    }, 180);
   };
 
   return (
@@ -94,8 +93,7 @@ function MobileNavBar() {
       <div className="grid grid-cols-4 h-full">
         {menu.map(({ key, label, to, Icon, path, available }) => {
           const active = isActive(path);
-          const isWrite = key === 'write';
-          const isFlash = isWrite && highlight;
+          const isFlash = highlight === key;
 
           const iconFilter = isFlash
             ? flashYellowFilter
@@ -118,7 +116,7 @@ function MobileNavBar() {
               className="flex flex-col items-center justify-center"
               tabIndex={available ? 0 : -1}
               aria-disabled={!available}
-              onClick={isWrite ? handleWriteClick : undefined}
+              onClick={(e) => handleMenuClick(e, to, key, available)}
               style={{
                 pointerEvents: available ? 'auto' : 'none',
                 opacity: available ? 1 : 0.5,
