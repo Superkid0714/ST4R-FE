@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../api/auth';
 import SearchBar from '../components/common/SearchBar';
+import Kakaomap from '../components/common/Kakaomap';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -32,13 +33,19 @@ export default function HomePage() {
 
       <span className="text-white">홈화면</span>
 
+      {/* 테스트 지도 화면 */}
+      
+      <Kakaomap />
+   
+
+
       {/* 테스트 로그아웃 버튼 */}
       <div
         onClick={handleLogout}
-        className="absolute left-3 right-3 bottom-20 h-15 bg-star-yellow rounded-lg cursor-pointer"
+        className="absolute left-3 right-3 bottom-20 h-12 bg-[#FFBB02] rounded-lg cursor-pointer "
       >
-        <div className="absolute left-5 top-4 text-base font-extrabold">
-          <span className="text-black">로그아웃</span>
+        <div className="absolute left-5 top-3 text-base font-extrabold font-['Pretendard']">
+          <span className='text-[#000000]'>로그아웃</span>
         </div>
       </div>
     </>
