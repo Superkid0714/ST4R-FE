@@ -14,10 +14,8 @@ export default function WriteChoicePage() {
   };
 
   const yellowHex = '#FFD600';
-
   const yellowFilter =
     'brightness(0) saturate(100%) invert(86%) sepia(79%) saturate(2317%) hue-rotate(2deg) brightness(104%) contrast(104%)';
-  const whiteFilter = 'brightness(0) invert(1)';
 
   // 선택된 타입에 따라 색상 동적으로 지정
   const getButtonStyle = (type) => {
@@ -29,7 +27,6 @@ export default function WriteChoicePage() {
         transition: '0.15s',
       };
     }
-
     return {
       border: 'none',
       boxShadow: 'none',
@@ -57,7 +54,7 @@ export default function WriteChoicePage() {
             <GroupIcon
               className="w-8 h-8 mr-4 transition-all duration-150"
               style={{
-                filter: selected === 'group' ? yellowFilter : whiteFilter,
+                filter: yellowFilter,
               }}
             />
             <div className="flex-1 text-left">
@@ -96,7 +93,7 @@ export default function WriteChoicePage() {
             <WriteIcon
               className="w-8 h-8 mr-4 transition-all duration-150"
               style={{
-                filter: selected === 'board' ? yellowFilter : whiteFilter,
+                filter: yellowFilter,
               }}
             />
             <div className="flex-1 text-left">
