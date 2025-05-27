@@ -13,13 +13,12 @@ function Kakaomap(props) {
   const [latlng, setLatlng] = useState(null); //클릭한 곳의 위도,경도
   const [address, setAddress] = useState(null); // 클릭한 곳의 주소 정보
   const [keyword, setKeyword] = useState(null); // 클릭한 곳의 주소 정보
-  const [selectedPlace, setSelectedPlace ] =useState(null);
-  const [placelist, setPlacelist ] =useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [placelist, setPlacelist] = useState([]);
 
-
+  console.log(address);
   //📌마커와 인포윈도우를 생성하는 함수
   const displayMarker = (locPosition, message = null) => {
-
     const map = mapRef.current;
     const infowindow = infowindowRef.current;
 
@@ -60,7 +59,6 @@ function Kakaomap(props) {
     mapRef.current = map;
     geocoderRef.current = geocoder;
     infowindowRef.current = infowindow;
-    
 
     // 📍 현재 위치 표시
     if (navigator.geolocation) {
@@ -110,9 +108,14 @@ function Kakaomap(props) {
             displayMarker(clickedlatlng, message);
 
             // state에 저장
-            setAddress({
-              road: road || null,
-              jibun: jibun || null,
+            // setAddress({
+            //   road: road || null,
+            //   jibun: jibun || null,
+            // });
+
+            setSelectedPlace({
+              name: null, // 장소명은 없으니까 null
+              address: road || jibun || null,
             });
 
             setLatlng({
@@ -121,8 +124,8 @@ function Kakaomap(props) {
             });
           }
         }
-      );});
-
+      );
+    });
   }, []);
 
   function searchPlaces() {
@@ -133,10 +136,10 @@ function Kakaomap(props) {
       if (status === kakao.maps.services.Status.OK) {
         // 정상적으로 검색이 완료됐으면
         // 검색 목록과 마커를 표출합니다
-        setPlacelist(data)
-
-      } else {setPlacelist([]);}
-      
+        setPlacelist(data);
+      } else {
+        setPlacelist([]);
+      }
     });
   }
 
@@ -146,45 +149,47 @@ function Kakaomap(props) {
     const locPosition = new window.kakao.maps.LatLng(lat, lng);
 
     displayMarker(locPosition);
-    // state에 저장
 
-    // setAddress({
-    //   road: road || null,
-    //   jibun: jibun || null,
-    // });
+    // state에 저장
 
     setLatlng({
       lat: lat,
       lng: lng,
     });
 
-    // setSelectedPlace({
-    //   name: place.place_name,
-    //   address: place.road_address_name || place.address_name,
-    // });
+    setSelectedPlace({
+      name: place.place_name,
+      address: place.road_address_name || place.address_name,
+    });
   };
 
   return (
     <div>
       <div className="flex flex-col gap-2">
-      {/* 검색창 */}
-      <div className="flex gap-2">
-        <input
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="장소를 검색하세요"
-          className="px-2 py-1 w-64 text-sm text-black"
-        />
-        <button onClick={()=>{searchPlaces()}} className="bg-blue-500 text-white px-3 py-1 text-sm">
-          검색
-        </button>
-      </div>
+        {/* 검색창 */}
+        <div className="flex gap-2">
+          <input
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="장소를 검색하세요"
+            onKeyDown={searchPlaces}
+            className="px-2 py-1 w-64 text-sm text-black"
+          />
+          <button
+            onClick={() => {
+              searchPlaces();
+            }}
+            className="bg-blue-500 text-white px-3 py-1 text-sm"
+          >
+            검색
+          </button>
+        </div>
 
-      <div
-        id="map"
-        ref={container}
-        style={{ width: '400px', height: '300px' }}
-      />
+        <div
+          id="map"
+          ref={container}
+          style={{ width: '400px', height: '300px' }}
+        />
       </div>
 
       {/* 검색 결과 리스트 */}
@@ -193,16 +198,35 @@ function Kakaomap(props) {
           {placelist.map((place) => (
             <li
               key={place.id}
-              onClick={() =>{handlePlaceClick(place)}}
+              onClick={() => {
+                handlePlaceClick(place);
+              }}
               className="cursor-pointer hover:bg-gray-100 p-1 border-b"
             >
               <div className="font-semibold text-black">{place.place_name}</div>
-              <div className="text-gray-500 text-xs">{place.road_address_name || place.address_name}</div>
+              <div className="text-gray-500 text-xs">
+                {place.road_address_name || place.address_name}
+              </div>
             </li>
           ))}
         </ul>
       )}
 
+      {selectedPlace && (
+        <div className="mt-4 text-sm text-black">
+          <div className="text-white">✅ 선택한 위치</div>
+          {selectedPlace.name && (
+            <div className="text-white">📍 {selectedPlace.name}</div>
+          )}
+          {selectedPlace.address && (
+            <div className="text-white">🗺️ {selectedPlace.address}</div>
+          )}
+        </div>
+)}
+
+     
+      
+      
     </div>
   );
 }
