@@ -1,11 +1,12 @@
 import west from '../../assets/icons/west.svg';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DateSelector,
   TimeSelector,
   combine,
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
+import { usegroupMutation } from '../../api/postgroup';
 
 export default function GroupWritePage() {
   const [name, setName] = useState(''); // 제목
@@ -17,6 +18,53 @@ export default function GroupWritePage() {
   const [maxParticipantCount, setMaxParticipantCount] = useState(''); //최대 인원 수
   const [password, setPassword] = useState(''); //비밀번호
   const [description, setDescription] = useState(''); //본문
+
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
+  const [address, setAddress] = useState(null);
+
+  const handleMapChange = ({ lat, lng, address }) => {
+    setLat(lat);
+    setLng(lng);
+    setAddress(address);
+  };
+
+  const postgroup = usegroupMutation();
+
+  const handlepost = () => {
+    if (!lat || !lng || !address) {
+      alert('지도에서 모임 위치를 선택해주세요.');
+      return;
+    }
+
+    console.log({
+      name,
+      whenToMeet,
+      maxParticipantCount,
+      password,
+      description,
+      lat,
+      lng,
+      address,
+    });
+
+    postgroup.mutate({
+      imageUrls: [],
+      name: name,
+      whenToMeet: whenToMeet,
+      maxParticipantCount: maxParticipantCount,
+      password: password,
+      description: description,
+      location: {
+        marker: {
+          latitude: lat,
+          longitude: lng,
+          title: address,
+        },
+        zoomLevel: 3,
+      },
+    });
+  };
 
   return (
     <div className="p-2 max-w-screen w-full">
@@ -129,12 +177,7 @@ export default function GroupWritePage() {
         {/* 모임 위치 칸 */}
         <div className="flex flex-col gap-2.5">
           <div className="text-lg font-['Pretendard']">모임 위치</div>
-          <Kakaomap></Kakaomap>
-          {/* <div className="h-12 relative bg-[#1D1D1D] rounded-[10px]">
-            <div className="left-3 top-3.5 absolute justify-start text-sm font-['Pretendard']">
-              서울 특별시 용산구
-            </div>
-          </div> */}
+          <Kakaomap onChange={handleMapChange}></Kakaomap>
         </div>
 
         {/* 모임 설명 칸 */}
@@ -151,7 +194,7 @@ export default function GroupWritePage() {
         </div>
 
         <div
-          // onClick={kakaologinbutton}
+          onClick={handlepost}
           className="h-[60px] leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >
           모임 등록하기

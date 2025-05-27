@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const { kakao } = window;
 
-function Kakaomap(props) {
+function Kakaomap({ onChange }) {
   const container = useRef(null); // 지도 컨테이너 접근
 
   const markerRef = useRef(null); // 전역 함수설정
@@ -118,6 +118,24 @@ function Kakaomap(props) {
               lat: clickedlatlng.getLat(),
               lng: clickedlatlng.getLng(),
             });
+
+            //부모에게 데이터 전달
+            const newPlace = {
+              name: null,
+              address: road || jibun || null,
+            };
+            const newLatlng = {
+              lat: clickedlatlng.getLat(),
+              lng: clickedlatlng.getLng(),
+            };
+
+            if (onChange) {
+              onChange({
+                address: newPlace.address,
+                lat: newLatlng.lat,
+                lng: newLatlng.lng,
+              });
+            }
           }
         }
       );
@@ -158,6 +176,23 @@ function Kakaomap(props) {
       lat: lat,
       lng: lng,
     });
+
+    const newPlace = {
+      name: null,
+      address: place.road_address_name || place.address_name,
+    };
+    const newLatlng = {
+      lat: lat,
+      lng: lng,
+    };
+
+    if (onChange) {
+      onChange({
+        address: newPlace.address,
+        lat: newLatlng.lat,
+        lng: newLatlng.lng,
+      });
+    }
   };
 
   return (
