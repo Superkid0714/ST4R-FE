@@ -21,7 +21,7 @@ export function DateSelector({ selected, onChange }) {
     <DatePicker
       selected={selected}
       shouldCloseOnSelect // 날짜를 선택하면 datepicker가 자동으로 닫힘
-      className="text-sm focus:outline-none h-12 font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656]"
+      className="flex-1 w-full text-sm focus:outline-none h-12 font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656] rounded-[10px]"
       minDate={today} // today 이전 날짜 선택 불가
       onChange={onChange}
       dateFormat="yyyy-MM-dd"
@@ -39,7 +39,7 @@ export function TimeSelector({ selected, onChange, selectedDate }) {
       showTimeSelectOnly //시간만 선택(showTimeSelect랑 같이 써야됨)
       timeIntervals={30} // 시간 간격
       shouldCloseOnSelect // 날짜를 선택하면 datepicker가 자동으로 닫힘
-      className="text-sm  focus:outline-none h-12 font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656]"
+      className="flex-1 w-full text-sm focus:outline-none h-12 font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656]"
       minTime={isToday(selectedDate) ? today : new Date(0, 0, 0, 0, 0)}
       maxTime={new Date(0, 0, 0, 23, 59)}
       onChange={onChange}

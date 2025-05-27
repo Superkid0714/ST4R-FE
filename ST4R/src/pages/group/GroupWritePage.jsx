@@ -5,6 +5,7 @@ import {
   TimeSelector,
   combine,
 } from '../../components/DatePicker';
+import Kakaomap from '../../components/common/Kakaomap';
 
 export default function GroupWritePage() {
   const [name, setName] = useState(''); // 제목
@@ -113,9 +114,10 @@ export default function GroupWritePage() {
                 type="text"
                 className="w-full h-12 pl-12 pr-3 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm font-['Pretendard']"
                 value={password}
-                maxLength={5}
+                maxLength={4}
                 onChange={(e) => {
-                  if (e.target.value.length <= 5) { //한국어는 자음+모음을 치는 중엔 한글자로 보기때문에 오류가능성ㅇ -> 한번더 검사
+                  if (e.target.value.length <= 4) {
+                    //한국어는 자음+모음을 치는 중엔 한글자로 보기때문에 오류가능성ㅇ -> 한번더 검사
                     setPassword(e.target.value);
                   }
                 }}
@@ -127,11 +129,12 @@ export default function GroupWritePage() {
         {/* 모임 위치 칸 */}
         <div className="flex flex-col gap-2.5">
           <div className="text-lg font-['Pretendard']">모임 위치</div>
-          <div className="h-12 relative bg-[#1D1D1D] rounded-[10px]">
+          <Kakaomap></Kakaomap>
+          {/* <div className="h-12 relative bg-[#1D1D1D] rounded-[10px]">
             <div className="left-3 top-3.5 absolute justify-start text-sm font-['Pretendard']">
               서울 특별시 용산구
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* 모임 설명 칸 */}
@@ -145,6 +148,13 @@ export default function GroupWritePage() {
             onChange={(e) => setDescription(e.target.value)}
             className="h-48 px-2 py-4 text-sm font-['Pretendard'] focus:outline-none bg-[#1D1D1D] rounded-[10px] placeholder:text-[#565656]"
           />
+        </div>
+
+        <div
+          // onClick={kakaologinbutton}
+          className="h-[60px] leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
+        >
+          모임 등록하기
         </div>
       </div>
     </div>

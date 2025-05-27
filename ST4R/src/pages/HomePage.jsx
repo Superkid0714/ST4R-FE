@@ -33,10 +33,6 @@ export default function HomePage() {
 
       <span className="text-white">홈화면</span>
 
-      {/* 테스트 지도 화면 */}
-      
-      <Kakaomap />
-   
 
 
       {/* 테스트 로그아웃 버튼 */}
