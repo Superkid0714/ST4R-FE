@@ -78,7 +78,7 @@ export const useGetPosts = (options = {}) => {
       params.append('sort', sort);
       params.append('direction', direction);
 
-      // 페이징 옵션
+      // 페이징 옵션 (1부터 시작)
       if (options.size && options.size > 0) {
         params.append('size', options.size);
       }
