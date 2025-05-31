@@ -50,7 +50,7 @@ export default function SearchBar({ onSearchResults, allPosts = [] }) {
   };
 
   return (
-    <div className="w-full px-4 py-3">
+    <div className="w-full py-3">
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center bg-[#1A1A1A] rounded-lg px-4 py-3">
           {/* 검색 아이콘 */}
