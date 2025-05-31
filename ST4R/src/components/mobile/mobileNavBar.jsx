@@ -67,15 +67,10 @@ function MobileNavBar() {
     },
   ];
 
-  // 색상/필터 정의
-  const yellowFilter =
-    'invert(85%) sepia(99%) saturate(1000%) hue-rotate(1deg) brightness(101%) contrast(99%)';
-  const flashYellowFilter =
-    'invert(94%) sepia(99%) saturate(1000%) hue-rotate(1deg) brightness(112%) contrast(105%)';
-  const grayFilter = 'grayscale(1) brightness(70%)';
-  const yellowText = '#FFCE31';
-  const flashYellowText = '#FFE600';
-  const grayText = '#6B6B6B';
+  // 색상 정의
+  const yellowColor = '#FFCE31';
+  const flashYellowColor = '#FFE600';
+  const grayColor = '#6B6B6B';
 
   // 메뉴 클릭시 반짝 효과 + 이동
   const handleMenuClick = (e, to, key, available) => {
@@ -95,17 +90,18 @@ function MobileNavBar() {
           const active = isActive(path);
           const isFlash = highlight === key;
 
-          const iconFilter = isFlash
-            ? flashYellowFilter
+          // 상태에 따른 색상 선택
+          const iconColor = isFlash
+            ? flashYellowColor
             : active
-              ? yellowFilter
-              : grayFilter;
+              ? yellowColor
+              : grayColor;
 
           const textColor = isFlash
-            ? flashYellowText
+            ? flashYellowColor
             : active
-              ? yellowText
-              : grayText;
+              ? yellowColor
+              : grayColor;
 
           const fontWeight = active || isFlash ? 700 : 400;
 
@@ -124,10 +120,7 @@ function MobileNavBar() {
             >
               <Icon
                 className="w-7 h-7 mb-1 transition-all duration-200"
-                style={{
-                  filter: iconFilter,
-                  transition: 'filter 0.15s',
-                }}
+                color={iconColor}
               />
               <span
                 style={{
