@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import HomeIcon from '../../assets/icons/home.svg?react';
-import GroupIcon from '../../assets/icons/group.svg?react';
-import WriteIcon from '../../assets/icons/writechoice.svg?react';
-import ProfileIcon from '../../assets/icons/profile.svg?react';
+import HomeIcon from '../../components/icons/HomeIcon';
+import GroupIcon from '../../components/icons/GroupIcon';
+import WriteIcon from '../../components/icons/WriteIcon';
+import ProfileIcon from '../../components/icons/ProfileIcon';
 
 function MobileNavBar() {
   const location = useLocation();
@@ -67,11 +67,6 @@ function MobileNavBar() {
     },
   ];
 
-  // 색상 정의
-  const yellowColor = '#FFCE31';
-  const flashYellowColor = '#FFE600';
-  const grayColor = '#6B6B6B';
-
   // 메뉴 클릭시 반짝 효과 + 이동
   const handleMenuClick = (e, to, key, available) => {
     if (!available) return;
@@ -90,18 +85,18 @@ function MobileNavBar() {
           const active = isActive(path);
           const isFlash = highlight === key;
 
-          // 상태에 따른 색상 선택
+          // 색상 결정
           const iconColor = isFlash
-            ? flashYellowColor
+            ? '#FFE600'
             : active
-              ? yellowColor
-              : grayColor;
+              ? '#FFCE31'
+              : '#6B6B6B';
 
           const textColor = isFlash
-            ? flashYellowColor
+            ? '#FFE600'
             : active
-              ? yellowColor
-              : grayColor;
+              ? '#FFCE31'
+              : '#6B6B6B';
 
           const fontWeight = active || isFlash ? 700 : 400;
 
