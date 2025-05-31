@@ -51,7 +51,7 @@ function MobileNavBar() {
     },
     {
       key: 'write',
-      label: '글 작성',
+      label: '만들기',
       to: '/writechoice',
       Icon: WriteIcon,
       path: '/writechoice',
