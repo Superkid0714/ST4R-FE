@@ -3,20 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useGetPosts } from '../api/search';
 import Header from '../layouts/Header';
 import PostCard from '../components/PostCard';
-import FilterBar from '../components/FilterBar'; // FilterBar 컴포넌트 import
+import FilterBar from '../components/FilterBar';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
 
-  // 새로운 백엔드 스펙에 맞춰 분리
+  // 백엔드 API에 전달할 옵션들
   const [currentSort, setCurrentSort] = useState('createdAt');
   const [currentDirection, setCurrentDirection] = useState('desc');
   const [currentPeriod, setCurrentPeriod] = useState('daily');
   const [currentCategory, setCurrentCategory] = useState('all');
 
-  // 기본 게시글 목록 조회 (새 API 스펙)
+  // 백엔드에서 필터링된 게시글 목록 조회
   const {
     data: postsData,
     isLoading: isPostsLoading,
@@ -25,12 +25,17 @@ export default function HomePage() {
     sort: currentSort,
     direction: currentDirection,
     period: currentPeriod,
+    category: currentCategory,
   });
+
+  // 표시할 게시글 목록 결정
+  const displayPosts = isSearchMode
+    ? searchResults
+    : postsData?.boardPeeks?.content || [];
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('accessToken');
-    console.log(token);
 
     if (token) {
       localStorage.setItem('token', token);
@@ -40,9 +45,9 @@ export default function HomePage() {
   }, [navigate]);
 
   // 검색 결과 처리
-  const handleSearchResults = (results) => {
+  const handleSearchResults = (results, searchQuery = '') => {
     setSearchResults(results);
-    setIsSearchMode(results.length > 0);
+    setIsSearchMode(searchQuery.trim().length > 0);
   };
 
   // 기간 변경
@@ -50,48 +55,28 @@ export default function HomePage() {
     setCurrentPeriod(periodValue);
   };
 
-  // 정렬/카테고리 변경 (통합)
+  // 정렬/카테고리 변경
   const handleSortFilterChange = (option) => {
     if (option.type === 'sort') {
       setCurrentSort(option.sort);
       setCurrentDirection(option.direction);
-      setCurrentCategory('all');
     } else if (option.type === 'category') {
       setCurrentCategory(option.value);
     }
   };
 
-  // 표시할 게시글 목록 결정 (카테고리 필터링 포함)
-  const allPosts = isSearchMode
-    ? searchResults
-    : postsData?.boardPeeks?.content || [];
-
-  // 디버깅용 로그
-  console.log('전체 게시글:', allPosts);
-  console.log('현재 카테고리 필터:', currentCategory);
-  console.log(
-    '게시글별 카테고리:',
-    allPosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      category: post.category,
-    }))
-  );
-
-  const displayPosts =
-    currentCategory === 'all'
-      ? allPosts
-      : allPosts.filter((post) => {
-          console.log(
-            `게시글 ${post.id}: ${post.category} === ${currentCategory}?`,
-            post.category === currentCategory
-          );
-          return post.category === currentCategory;
-        });
+  console.log('현재 필터 옵션:', {
+    sort: currentSort,
+    direction: currentDirection,
+    period: currentPeriod,
+    category: currentCategory,
+  });
+  console.log('표시할 게시글 개수:', displayPosts.length);
+  console.log('검색 모드:', isSearchMode);
 
   return (
     <div className="min-h-screen bg-black">
-      {/* 헤더 컴포넌트 - 전체 게시글 데이터 전달 */}
+      {/* 헤더 컴포넌트 */}
       <Header
         onSearchResults={handleSearchResults}
         allPosts={postsData?.boardPeeks?.content || []}
@@ -99,23 +84,22 @@ export default function HomePage() {
 
       {/* 메인 컨텐츠 영역 */}
       <div className="px-4 pt-2">
-        {/* 현재 인기글 헤더 */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <h2 className="text-white text-lg font-bold mr-2">현재 인기글</h2>
-            <span className="text-yellow-500 text-sm">😊</span>
+        {/* FilterBar */}
+        {!isSearchMode && (
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-yellow-500 text-lg">⭐</span>
+            <div className="flex-shrink-0">
+              <FilterBar
+                currentPeriod={currentPeriod}
+                currentSort={currentSort}
+                currentDirection={currentDirection}
+                currentCategory={currentCategory}
+                onPeriodChange={handlePeriodChange}
+                onSortFilterChange={handleSortFilterChange}
+              />
+            </div>
           </div>
-
-          {/* FilterBar 컴포넌트 사용 */}
-          <FilterBar
-            currentPeriod={currentPeriod}
-            currentSort={currentSort}
-            currentDirection={currentDirection}
-            currentCategory={currentCategory}
-            onPeriodChange={handlePeriodChange}
-            onSortFilterChange={handleSortFilterChange}
-          />
-        </div>
+        )}
 
         {/* 로딩 상태 */}
         {isPostsLoading && !isSearchMode && (
@@ -125,7 +109,7 @@ export default function HomePage() {
         )}
 
         {/* 에러 상태 */}
-        {postsError && !isSearchMode && (
+        {postsError && !isSearchMode && !isPostsLoading && (
           <div className="text-center py-8">
             <div className="text-red-400 mb-4">
               <svg
@@ -151,38 +135,23 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 게시글 목록 - PostCard 컴포넌트 사용 */}
-        <div className="space-y-6 mb-20">
-          {displayPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        {/* 게시글 목록 */}
+        {!postsError && !isPostsLoading && (
+          <div className="space-y-6 mb-20">
+            {displayPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
 
-        {/* 게시글이 없을 때 */}
-        {displayPosts.length === 0 && !isPostsLoading && (
+        {/* 게시글이 없을 때 (로딩도 아니고 에러도 아닌 경우에만) */}
+        {!postsError && !isPostsLoading && displayPosts.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <svg
-                className="w-16 h-16 mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
-            </div>
-            <p className="text-gray-400 text-lg">
-              {isSearchMode ? '검색 결과가 없습니다' : '아직 게시글이 없습니다'}
-            </p>
+            <p className="text-gray-400 text-lg">해당하는 내용이 없습니다</p>
             <p className="text-gray-500 text-sm mt-2">
               {isSearchMode
                 ? '다른 키워드로 검색해보세요'
-                : '첫 번째 게시글을 작성해보세요!'}
+                : '다른 조건으로 검색해보세요'}
             </p>
           </div>
         )}

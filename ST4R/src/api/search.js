@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
 
-// 게시글 검색 API (추후 백엔드에서 지원 시 활성화)
+// 게시글 검색 API (클라이언트 사이드 검색 - 백엔드 지원 시까지)
 export const useSearchPosts = (searchQuery, options = {}) => {
   return useQuery({
     queryKey: ['searchPosts', searchQuery, options],
@@ -23,6 +23,11 @@ export const useSearchPosts = (searchQuery, options = {}) => {
       const direction = options.direction || 'desc';
       params.append('sort', sort);
       params.append('direction', direction);
+
+      // 카테고리 옵션
+      if (options.category && options.category !== 'all') {
+        params.append('category', options.category);
+      }
 
       // 페이징 옵션 (1부터 시작)
       if (options.size && options.size > 0) {
@@ -77,6 +82,11 @@ export const useGetPosts = (options = {}) => {
       const direction = options.direction || 'desc';
       params.append('sort', sort);
       params.append('direction', direction);
+
+      // 카테고리 옵션 (백엔드에서 지원)
+      if (options.category && options.category !== 'all') {
+        params.append('category', options.category);
+      }
 
       // 페이징 옵션 (1부터 시작)
       if (options.size && options.size > 0) {

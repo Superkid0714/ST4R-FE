@@ -31,7 +31,7 @@ export default function Header({ onSearchResults, allPosts = [] }) {
       <div className="px-4">
         {/* 상단 타이틀과 알림 영역 */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Startlight</h1>
+          <h1 className="text-2xl font-bold text-white">Starlight</h1>
           <div className="flex items-center space-x-2">
             {/* 알림 아이콘 */}
             <button

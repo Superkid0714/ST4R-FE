@@ -24,14 +24,16 @@ export default function SearchBar({ onSearchResults, allPosts = [] }) {
     console.log(`검색어: "${searchQuery}", 결과: ${results.length}개`);
 
     if (onSearchResults) {
-      onSearchResults(results);
+      // 검색 결과와 검색어를 함께 전달
+      onSearchResults(results, searchQuery);
     }
   };
 
   const handleClear = () => {
     setSearchQuery('');
     if (onSearchResults) {
-      onSearchResults([]);
+      // 빈 결과와 빈 검색어를 전달하여 일반 모드로 전환
+      onSearchResults([], '');
     }
   };
 
@@ -42,7 +44,7 @@ export default function SearchBar({ onSearchResults, allPosts = [] }) {
     // 검색어가 비워지면 결과 초기화
     if (!value.trim()) {
       if (onSearchResults) {
-        onSearchResults([]);
+        onSearchResults([], '');
       }
     }
   };
