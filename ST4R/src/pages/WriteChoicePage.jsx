@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import GroupIcon from '../assets/icons/group.svg?react';
 import WriteIcon from '../assets/icons/write.svg?react';
+import BackButton from '../components/common/BackButton';
 
 export default function WriteChoicePage() {
   const [selected, setSelected] = useState(null);
@@ -14,8 +15,6 @@ export default function WriteChoicePage() {
   };
 
   const yellowHex = '#FFD600';
-  const yellowFilter =
-    'brightness(0) saturate(100%) invert(86%) sepia(79%) saturate(2317%) hue-rotate(2deg) brightness(104%) contrast(104%)';
 
   // 선택된 타입에 따라 색상 동적으로 지정
   const getButtonStyle = (type) => {
@@ -35,7 +34,10 @@ export default function WriteChoicePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-black px-4">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-black px-4 relative">
+      {/* 뒤로가기 버튼 */}
+      <BackButton className="absolute top-6 left-4" />
+
       <div className="w-full max-w-md">
         <h1 className="text-white text-2xl md:text-3xl font-bold text-center mb-2">
           무엇을 하실 계획이신가요?
@@ -53,9 +55,7 @@ export default function WriteChoicePage() {
           >
             <GroupIcon
               className="w-8 h-8 mr-4 transition-all duration-150"
-              style={{
-                filter: yellowFilter,
-              }}
+              style={{ color: yellowHex }}
             />
             <div className="flex-1 text-left">
               <div className="font-bold text-white text-base mb-1">
@@ -83,6 +83,7 @@ export default function WriteChoicePage() {
               />
             </svg>
           </button>
+
           {/* 게시글 작성하기 */}
           <button
             type="button"
@@ -92,9 +93,7 @@ export default function WriteChoicePage() {
           >
             <WriteIcon
               className="w-8 h-8 mr-4 transition-all duration-150"
-              style={{
-                filter: yellowFilter,
-              }}
+              style={{ color: yellowHex }}
             />
             <div className="flex-1 text-left">
               <div className="font-bold text-white text-base mb-1">
