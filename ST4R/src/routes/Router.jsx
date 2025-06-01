@@ -6,7 +6,7 @@ import {
 
 // 레이아웃
 import MobileLayout from '../layouts/MobileLayout';
-                             
+
 // 페이지 컴포넌트
 import LoginPage from '../pages/login/LoginPage';
 import LoginAlertPage from '../pages/login/LoginAlertPage';
@@ -15,7 +15,6 @@ import LoginAlertPage from '../pages/login/LoginAlertPage';
 import HomePage from '../pages/HomePage';
 
 // 게시판 관련 페이지
-import BoardPage from '../pages/board/BoardPage';
 import BoardDetailPage from '../pages/board/BoardDetailPage';
 import BoardEditPage from '../pages/board/BoardEditPage';
 import BoardWritePage from '../pages/board/BoardWritePage';
@@ -26,8 +25,14 @@ import GroupDetailPage from '../pages/group/GroupDetailPage';
 import GroupEditPage from '../pages/group/GroupEditPage';
 import GroupWritePage from '../pages/group/GroupWritePage';
 
-// 기타 페이지
+// 잘못된 경로 페이지
 import NotFoundPage from '../pages/NotFoundPage';
+
+// 글쓰기 선택 페이지
+import WriteChoicePage from '../pages/WriteChoicePage';
+
+// 프로필 관련 페이지
+import ProfilePage from '../pages/ProfilePage';
 
 // 라우트 가드
 import AuthGuard from '../guards/AuthGuard';
@@ -37,7 +42,7 @@ const router = createBrowserRouter([
 
   // 로그인 페이지
   { path: 'login', element: <LoginPage /> },
-  { path:'login-alert', element: <LoginAlertPage/> },
+  { path: 'login-alert', element: <LoginAlertPage /> },
 
   //게시판 관련 페이지
   {
@@ -82,6 +87,15 @@ const router = createBrowserRouter([
     path: 'groups/:id',
     element: <GroupDetailPage />,
   },
+  // 선택창 페이지
+  {
+    path: '/writechoice',
+    element: (
+      <AuthGuard>
+        <WriteChoicePage />
+      </AuthGuard>
+    ),
+  },
 
   // <모바일 레이아웃이 적용된 경로>-네비바 필요한 페이지
   {
@@ -95,14 +109,12 @@ const router = createBrowserRouter([
       // 홈/게시판 관련 라우트
       {
         path: 'home',
-        element: <HomePage/>,
+        element: <HomePage />,
         children: [
-          // 홈 기본 경로를 boards로 리다이렉트
-          { index: true, element: <Navigate to="/home/boards" replace /> },
-          // 게시판 조회 페이지
+          // *** /home/boards로 오면 /home으로 리다이렉트 ***
           {
             path: 'boards',
-            element: <BoardPage />,
+            element: <Navigate to="/home" replace />,
           },
         ],
       },
@@ -111,6 +123,16 @@ const router = createBrowserRouter([
       {
         path: 'groups',
         element: <GroupPage />,
+      },
+
+      // 프로필 조회 페이지
+      {
+        path: 'profile',
+        element: (
+          <AuthGuard>
+            <ProfilePage />
+          </AuthGuard>
+        ),
       },
     ],
   },
