@@ -1,5 +1,6 @@
 import west from '../../assets/icons/west.svg';
-import { useEffect, useState } from 'react';
+import camera from '../../assets/icons/camera.svg';
+import { useEffect, useState, useRef } from 'react';
 import {
   DateSelector,
   TimeSelector,
@@ -7,49 +8,113 @@ import {
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
 import { usegroupMutation } from '../../api/postgroup';
+import uploadImagesToS3 from '../../api/imgupload';
 
 export default function GroupWritePage() {
-  const [name, setName] = useState(''); // 제목
+  const imageInputRef = useRef(null); //이미지 input 태그 연결
+  const [images, setImages] = useState([]); // 이미지 배열
 
-  const [selectedDate, setSelectedDate] = useState(''); //날짜
-  const [selectedTime, setSelectedTime] = useState(''); //시간
+  const [name, setName] = useState(null); // 제목
+
+  const [selectedDate, setSelectedDate] = useState(null); //날짜
+  const [selectedTime, setSelectedTime] = useState(null); //시간
   const whenToMeet = combine(selectedDate, selectedTime); //ISO 8601 형식 + KST 시간대 오프셋(+09:00) / ex) 2025-05-16T15:56:00+09:00
 
-  const [maxParticipantCount, setMaxParticipantCount] = useState(''); //최대 인원 수
-  const [password, setPassword] = useState(''); //비밀번호
-  const [description, setDescription] = useState(''); //본문
+  const [maxParticipantCount, setMaxParticipantCount] = useState(null); //최대 인원 수
 
-  const [lat, setLat] = useState(null);
-  const [lng, setLng] = useState(null);
-  const [address, setAddress] = useState(null);
+  const [password, setPassword] = useState(null); //비밀번호
 
-  const handleMapChange = ({ lat, lng, address }) => {
+  const [description, setDescription] = useState(null); //본문
+
+  const [lat, setLat] = useState(null); //위도
+  const [lng, setLng] = useState(null); // 경도
+  const [locationName, setLocationName] = useState('장소명 미지정'); //장소명
+  const [roadAddress, setRoadAddress] = useState(null); // 도로명주소(or 지번주소)
+
+  //이번트 핸들러 함수들
+  const handleIconClick = () => {
+    imageInputRef.current.click(); //숨겨진 input 클릭
+  };
+
+  const handleImageChange = (e) => {
+    const newimages = Array.from(e.target.files); //새로 선택된 이미지들
+
+    setImages((prev) => {
+      if (prev.length + newimages.length > 10) {
+        alert('이미지는 최대 10장까지 업로드 가능합니다.');
+
+        //초과된 건 제외하고 업로드
+        const allowimgs = newimages.slice(0, 10 - prev.length);
+        const previews = allowimgs.map((img) => ({
+          img,
+          previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+        }));
+
+        return [...prev, ...previews];
+      }
+
+      // 제한 안넘으면 모두 업로드
+      const previews = newimages.map((img) => ({
+        img,
+        previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+      }));
+
+      return [...prev, ...previews];
+    });
+
+    e.target.value = null; //입력 초기화(같은 사진 올릴수있게)
+  };
+
+  const handleImageRemove = (idx) => {
+    setImages((prev) => {
+      URL.revokeObjectURL(prev[idx].previewUrl); //메모리 해제
+      return prev.filter((_, i) => i !== idx); //특정 idx 이미지만 삭제 후 새배열 만들어서 저장
+    });
+  };
+
+  const handleMapChange = ({ lat, lng, locationName, roadAddress }) => {
     setLat(lat);
     setLng(lng);
-    setAddress(address);
+    setLocationName(locationName);
+    setRoadAddress(roadAddress);
   };
 
   const postgroup = usegroupMutation();
+  const handlepost = async () => {
+    if (!name) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+    if (name.length < 2) {
+      alert('제목의 길이는 2자 이상이여야 합니다.');
+    }
+    if (!selectedDate || !selectedTime) {
+      alert('일정을 선택해주세요.');
+      return;
+    }
+    if (!maxParticipantCount) {
+      alert('모임 인원을 입력해주세요.');
+      return;
+    }
+    if (parseInt(maxParticipantCount, 10) > 30) {
+      alert('최대 30명까지 입력 가능합니다.');
+    }
+    if (password !== null && password !== '') {
+      if (0 < password.length && password.length < 4) {
+        alert('비빌번호는 4자 이상이여야 합니다.');
+      }
+    }
 
-  const handlepost = () => {
-    if (!lat || !lng || !address) {
+    if (!lat || !lng || !roadAddress) {
       alert('지도에서 모임 위치를 선택해주세요.');
       return;
     }
 
-    console.log({
-      name,
-      whenToMeet,
-      maxParticipantCount,
-      password,
-      description,
-      lat,
-      lng,
-      address,
-    });
+    const imageUrls = await uploadImagesToS3(images);
+    console.log(imageUrls);
 
     postgroup.mutate({
-      imageUrls: [],
+      imageUrls: imageUrls,
       name: name,
       whenToMeet: whenToMeet,
       maxParticipantCount: maxParticipantCount,
@@ -59,7 +124,8 @@ export default function GroupWritePage() {
         marker: {
           latitude: lat,
           longitude: lng,
-          title: address,
+          locationName: locationName,
+          roadAddress: roadAddress,
         },
         zoomLevel: 3,
       },
@@ -79,17 +145,34 @@ export default function GroupWritePage() {
 
       <div className="flex flex-col gap-8 ">
         <div></div>
-
         <div className="flex gap-2 justify-start">
-          <img src="../src/assets/icons/camera.svg" alt="사진" />
           <img
-            src="https://placehold.co/70x70"
-            className="w-18 h-auto rounded-xl"
+            src={camera}
+            alt="사진"
+            className="w-20 h-auto"
+            onClick={handleIconClick}
           />
-          <img
-            src="https://placehold.co/70x70"
-            className="w-18 h-auto rounded-xl"
+          <input
+            type="file"
+            accept="image/*"
+            ref={imageInputRef}
+            multiple
+            hidden
+            onChange={handleImageChange}
           />
+          {images.map((img, idx) => (
+            <div key={idx} className="relative">
+              <img src={img.previewUrl} className="w-20 h-20 rounded-xl" />
+              <button
+                className="absolute top-[-8px] right-[-8px] text-[#000000] text-xs w-5 h-5 bg-[#8F8F8F] rounded-full flex items-center justify-center"
+                onClick={() => {
+                  handleImageRemove(idx);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
 
         {/* 모임 제목 칸 */}
@@ -105,7 +188,6 @@ export default function GroupWritePage() {
             className="h-12 px-2 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm placeholder:text-[#565656] font-['Pretendard']"
           />
         </div>
-
         {/* 모임 일정 칸 */}
         <div className="flex flex-col gap-2.5">
           <div className="text-lg font-['Pretendard']">모임 일정</div>
@@ -129,7 +211,6 @@ export default function GroupWritePage() {
             </div>
           </div>
         </div>
-
         {/* 모임 인원/비밀번호 칸 */}
         <div className="flex flex-col gap-2.5">
           <div className="text-lg font-['Pretendard']">
@@ -145,7 +226,7 @@ export default function GroupWritePage() {
                 className="w-full h-12 pl-12 pr-3 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm font-['Pretendard']"
                 value={maxParticipantCount}
                 minLength={1}
-                maxLength={2} //99명까지
+                maxLength={2} //2자리수까지
                 onChange={(e) => {
                   //숫자만 입력 가능
                   if (/^\d*$/.test(e.target.value)) {
@@ -162,9 +243,9 @@ export default function GroupWritePage() {
                 type="text"
                 className="w-full h-12 pl-12 pr-3 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm font-['Pretendard']"
                 value={password}
-                maxLength={4}
+                maxLength={32}
                 onChange={(e) => {
-                  if (e.target.value.length <= 4) {
+                  if (e.target.value.length <= 32) {
                     //한국어는 자음+모음을 치는 중엔 한글자로 보기때문에 오류가능성ㅇ -> 한번더 검사
                     setPassword(e.target.value);
                   }
@@ -173,13 +254,11 @@ export default function GroupWritePage() {
             </div>
           </div>
         </div>
-
         {/* 모임 위치 칸 */}
         <div className="flex flex-col gap-2.5">
           <div className="text-lg font-['Pretendard']">모임 위치</div>
           <Kakaomap onChange={handleMapChange}></Kakaomap>
         </div>
-
         {/* 모임 설명 칸 */}
         <div className="flex flex-col gap-2.5">
           <div className="text-lg font-['Pretendard']">모임 설명</div>
@@ -192,7 +271,6 @@ export default function GroupWritePage() {
             className="h-48 px-2 py-4 text-sm font-['Pretendard'] focus:outline-none bg-[#1D1D1D] rounded-[10px] placeholder:text-[#565656]"
           />
         </div>
-
         <div
           onClick={handlepost}
           className="h-[60px] leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"

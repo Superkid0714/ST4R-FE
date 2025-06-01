@@ -81,7 +81,7 @@ function Kakaomap({ onChange }) {
         127.37915975896176 // 기본 지도 초기화면을 전남대로 설정함
       );
       const message =
-        '<div style="padding:5px; color:black;">현재위치를 가져올 수 없어요</div>';
+        '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
 
       displayMarker(locPosition, message);
     }
@@ -101,9 +101,7 @@ function Kakaomap({ onChange }) {
             const addressText = road || jibun || '주소 정보 없음';
 
             const message = `
-              <div class="flex flex-col items-start gap-1 p-2 w-full whitespace-nowrap">
-                ${selectedPlace ? `<div class="text-sm text-[#000000]">주소: ${addressText}</div>` : ''}
-              </div>
+              <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>)
             `;
 
             displayMarker(clickedlatlng, message);
@@ -131,7 +129,8 @@ function Kakaomap({ onChange }) {
 
             if (onChange) {
               onChange({
-                address: newPlace.address,
+                locationName:newPlace.name,
+                roadAddress: newPlace.address,
                 lat: newLatlng.lat,
                 lng: newLatlng.lng,
               });
@@ -178,7 +177,7 @@ function Kakaomap({ onChange }) {
     });
 
     const newPlace = {
-      name: null,
+      name: place.place_name,
       address: place.road_address_name || place.address_name,
     };
     const newLatlng = {
@@ -188,7 +187,8 @@ function Kakaomap({ onChange }) {
 
     if (onChange) {
       onChange({
-        address: newPlace.address,
+        locationName:newPlace.name,
+        roadAddress: newPlace.address,
         lat: newLatlng.lat,
         lng: newLatlng.lng,
       });
