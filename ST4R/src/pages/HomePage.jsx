@@ -83,7 +83,7 @@ export default function HomePage() {
       />
 
       {/* 메인 컨텐츠 영역 */}
-      <div className="px-4 pt-2">
+      <div className="px-2 pt-2">
         {/* FilterBar */}
         {!isSearchMode && (
           <div className="flex items-center justify-between mb-4">

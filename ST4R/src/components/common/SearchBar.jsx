@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function SearchBar({ onSearchResults, allPosts = [] }) {
+export default function SearchBar({ onSearchResults, allPosts = [], placeholder }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // 클라이언트 사이드 검색 함수
@@ -50,7 +50,7 @@ export default function SearchBar({ onSearchResults, allPosts = [] }) {
   };
 
   return (
-    <div className="w-full py-3">
+    <div className="w-full">
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center bg-[#1A1A1A] rounded-lg px-4 py-3">
           {/* 검색 아이콘 */}
@@ -74,8 +74,8 @@ export default function SearchBar({ onSearchResults, allPosts = [] }) {
           {/* 입력 필드 */}
           <input 
             type="text"
-            placeholder={props.placeholder}
-            className="bg-transparent font-['Pretendard'] text-gray-300 placeholder-gray-500 w-full font-light focus:outline-none text-sm"
+            placeholder={placeholder}
+            className="bg-transparent font-['Pretendard'] text-gray-300 placeholder-gray-500 w-full focus:outline-none text-sm"
             value={searchQuery}
             onChange={handleInputChange}
           />

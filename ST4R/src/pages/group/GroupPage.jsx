@@ -2,7 +2,7 @@ import SearchBar from '../../components/common/SearchBar';
 
 export default function GroupPage() {
   return (
-    <>
+    <div>
       <div className="h-16 relative">
         <div className="absolute justify-start text-3xl font-normal font-['Pretendard'] leading-normal">
           모임
@@ -102,6 +102,6 @@ export default function GroupPage() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
