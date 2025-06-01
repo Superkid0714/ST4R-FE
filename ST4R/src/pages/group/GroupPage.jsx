@@ -1,15 +1,17 @@
 import SearchBar from '../../components/common/SearchBar';
+import { useNavigate } from 'react-router-dom';
 
 export default function GroupPage() {
+  const navigate = useNavigate();
   return (
     <div>
       <div className="h-16 relative">
         <div className="absolute justify-start text-3xl font-normal font-['Pretendard'] leading-normal">
           모임
         </div>
-        <div className="right-0 top-0.5 absolute px-2.5 py-1 bg-[#1D1D1D] rounded-[60px] flex items-center gap-1.5 ">
+        <div className="right-0 top-0.5 hover:bg-[#2A2A2A] absolute px-2.5 py-1 bg-[#1D1D1D] rounded-[60px] flex items-center gap-1.5 ">
           <img src="src/assets/icons/add_circle.svg" alt="모임 만들기" />
-          <div className="text-[#8F8F8F] text-lg font-normal font-['Pretendard']">
+          <div className="text-[#8F8F8F] hover:cursor-pointer text-lg font-normal font-['Pretendard']" onClick={()=>{navigate("/groups/write")}}>
             모임 만들기
           </div>
         </div>

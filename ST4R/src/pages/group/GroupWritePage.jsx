@@ -1,5 +1,5 @@
-import west from '../../assets/icons/west.svg';
 import camera from '../../assets/icons/camera.svg';
+import BackButton from '../../components/common/BackButton';
 import { useEffect, useState, useRef } from 'react';
 import {
   DateSelector,
@@ -133,12 +133,10 @@ export default function GroupWritePage() {
   };
 
   return (
-    <div className="p-2 max-w-screen w-full">
+    <div className="px-3 py-2 max-w-screen w-full">
       <div className="inline-flex justify-start items-center gap-3">
-        <div className="p-1.5 bg-[#1D1D1D] rounded-[60px]">
-          <img src={west} alt="화살표" className="w-6 h-6" />
-        </div>
-        <div className="text-[#8F8F8F] text-2xl font-normal font-['Pretendard'] leading-loose">
+        <BackButton className="mt-2 hover:cursor-pointer" />
+        <div className="text-[#8F8F8F] pt-1 text-2xl font-normal font-['Pretendard'] leading-loose">
           모임 만들기
         </div>
       </div>
@@ -149,7 +147,7 @@ export default function GroupWritePage() {
           <img
             src={camera}
             alt="사진"
-            className="w-20 h-auto"
+            className="w-20 h-auto hover:cursor-pointer"
             onClick={handleIconClick}
           />
           <input
@@ -273,7 +271,7 @@ export default function GroupWritePage() {
         </div>
         <div
           onClick={handlepost}
-          className="h-[60px] leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
+          className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >
           모임 등록하기
         </div>
