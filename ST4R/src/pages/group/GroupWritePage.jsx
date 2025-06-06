@@ -1,77 +1,77 @@
+import { useState, useRef } from 'react';
 import camera from '../../assets/icons/camera.svg';
+import dropDown from '../../assets/icons/drop_down.svg';
 import BackButton from '../../components/common/BackButton';
-import { useEffect, useState, useRef } from 'react';
-import {
-  DateSelector,
-  TimeSelector,
-  combine,
-} from '../../components/DatePicker';
-import Kakaomap from '../../components/common/Kakaomap';
-import { usegroupMutation } from '../../api/postgroup';
 import uploadImagesToS3 from '../../api/imgupload';
+import { useCreateBoardMutation } from '../../api/postboard';
+import Kakaomap from '../../components/common/Kakaomap';
 
-export default function GroupWritePage() {
-  const imageInputRef = useRef(null); //이미지 input 태그 연결
-  const [images, setImages] = useState([]); // 이미지 배열
+export default function BoardWritePage() {
+  const imageInputRef = useRef(null);
 
-  const [name, setName] = useState(null); // 제목
+  // 상태 관리
+  const [images, setImages] = useState([]);
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('GENERAL'); // 기본값: 자유글
+  const [content, setContent] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
-  const [selectedDate, setSelectedDate] = useState(null); //날짜
-  const [selectedTime, setSelectedTime] = useState(null); //시간
-  const whenToMeet = combine(selectedDate, selectedTime); //ISO 8601 형식 + KST 시간대 오프셋(+09:00) / ex) 2025-05-16T15:56:00+09:00
+  // 지도 관련 상태
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
+  const [locationName, setLocationName] = useState(null);
+  const [roadAddress, setRoadAddress] = useState(null);
 
-  const [maxParticipantCount, setMaxParticipantCount] = useState(null); //최대 인원 수
+  // 카테고리 옵션
+  const categoryOptions = [
+    { value: 'GENERAL', label: '자유글' },
+    { value: 'SPOT', label: '스팟공유글' },
+    { value: 'PROMOTION', label: '홍보글' },
+  ];
 
-  const [password, setPassword] = useState(null); //비밀번호
-
-  const [description, setDescription] = useState(null); //본문
-
-  const [lat, setLat] = useState(null); //위도
-  const [lng, setLng] = useState(null); // 경도
-  const [locationName, setLocationName] = useState('장소명 미지정'); //장소명
-  const [roadAddress, setRoadAddress] = useState(null); // 도로명주소(or 지번주소)
-
-  //이번트 핸들러 함수들
+  // 이미지 관련 핸들러
   const handleIconClick = () => {
-    imageInputRef.current.click(); //숨겨진 input 클릭
+    imageInputRef.current.click();
   };
 
   const handleImageChange = (e) => {
-    const newimages = Array.from(e.target.files); //새로 선택된 이미지들
+    const newImages = Array.from(e.target.files);
 
     setImages((prev) => {
-      if (prev.length + newimages.length > 10) {
+      if (prev.length + newImages.length > 10) {
         alert('이미지는 최대 10장까지 업로드 가능합니다.');
-
-        //초과된 건 제외하고 업로드
-        const allowimgs = newimages.slice(0, 10 - prev.length);
-        const previews = allowimgs.map((img) => ({
+        const allowedImages = newImages.slice(0, 10 - prev.length);
+        const previews = allowedImages.map((img) => ({
           img,
-          previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+          previewUrl: URL.createObjectURL(img),
         }));
-
         return [...prev, ...previews];
       }
 
-      // 제한 안넘으면 모두 업로드
-      const previews = newimages.map((img) => ({
+      const previews = newImages.map((img) => ({
         img,
-        previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+        previewUrl: URL.createObjectURL(img),
       }));
-
       return [...prev, ...previews];
     });
 
-    e.target.value = null; //입력 초기화(같은 사진 올릴수있게)
+    e.target.value = null;
   };
 
   const handleImageRemove = (idx) => {
     setImages((prev) => {
-      URL.revokeObjectURL(prev[idx].previewUrl); //메모리 해제
-      return prev.filter((_, i) => i !== idx); //특정 idx 이미지만 삭제 후 새배열 만들어서 저장
+      URL.revokeObjectURL(prev[idx].previewUrl);
+      return prev.filter((_, i) => i !== idx);
     });
   };
 
+  // 카테고리 선택 핸들러
+  const handleCategorySelect = (categoryValue) => {
+    setCategory(categoryValue);
+    setShowCategoryDropdown(false);
+  };
+
+  // 지도 변경 핸들러
   const handleMapChange = ({ lat, lng, locationName, roadAddress }) => {
     setLat(lat);
     setLng(lng);
@@ -79,70 +79,82 @@ export default function GroupWritePage() {
     setRoadAddress(roadAddress);
   };
 
-  const postgroup = usegroupMutation();
-  const handlepost = async () => {
-    if (!name) {
-      alert('제목을 입력해주세요.');
+  const postBoard = useCreateBoardMutation();
+
+  // 글 등록 핸들러
+  const handleSubmit = async () => {
+    // 유효성 검사
+    if (!title.trim()) {
+      alert('글 제목을 입력해주세요.');
       return;
     }
-    if (name.length < 2) {
-      alert('제목의 길이는 2자 이상이여야 합니다.');
-    }
-    if (!selectedDate || !selectedTime) {
-      alert('일정을 선택해주세요.');
+
+    if (title.trim().length < 2) {
+      alert('제목은 2자 이상 입력해주세요.');
       return;
     }
-    if (!maxParticipantCount) {
-      alert('모임 인원을 입력해주세요.');
+
+    if (!content.trim()) {
+      alert('글 내용을 입력해주세요.');
       return;
     }
-    if (parseInt(maxParticipantCount, 10) > 30) {
-      alert('최대 30명까지 입력 가능합니다.');
+
+    if (content.trim().length < 10) {
+      alert('내용은 10자 이상 입력해주세요.');
+      return;
     }
-    if (password !== null && password !== '') {
-      if (0 < password.length && password.length < 4) {
-        alert('비빌번호는 4자 이상이여야 합니다.');
+
+    try {
+      // 이미지 업로드
+      const imageUrls = images.length > 0 ? await uploadImagesToS3(images) : [];
+
+      // 게시글 데이터 준비 및 API 호출
+      const postData = {
+        title: title.trim(),
+        content: content.trim(),
+        category: category,
+        imageUrls: imageUrls,
+      };
+
+      // 위치 정보가 있으면 추가
+      if (lat && lng && roadAddress) {
+        postData.location = {
+          marker: {
+            latitude: lat,
+            longitude: lng,
+            locationName: locationName || '위치 정보 없음',
+            roadAddress: roadAddress,
+          },
+          zoomLevel: 3,
+        };
       }
+
+      postBoard.mutate(postData);
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
     }
+  };
 
-    if (!lat || !lng || !roadAddress) {
-      alert('지도에서 모임 위치를 선택해주세요.');
-      return;
-    }
-
-    const imageUrls = await uploadImagesToS3(images);
-    console.log(imageUrls);
-
-    postgroup.mutate({
-      imageUrls: imageUrls,
-      name: name,
-      whenToMeet: whenToMeet,
-      maxParticipantCount: maxParticipantCount,
-      password: password,
-      description: description,
-      location: {
-        marker: {
-          latitude: lat,
-          longitude: lng,
-          locationName: locationName,
-          roadAddress: roadAddress,
-        },
-        zoomLevel: 3,
-      },
-    });
+  const getCurrentCategoryLabel = () => {
+    return (
+      categoryOptions.find((option) => option.value === category)?.label ||
+      '자유글'
+    );
   };
 
   return (
-    <div className="px-3 py-2 max-w-screen w-full">
-      <div className="inline-flex justify-start items-center gap-3">
+    <div className="px-3 py-2 max-w-screen w-full min-h-screen bg-black">
+      {/* 헤더 */}
+      <div className="inline-flex justify-start items-center gap-3 mb-8">
         <BackButton className="mt-2 hover:cursor-pointer" />
         <div className="text-[#8F8F8F] pt-1 text-2xl font-normal font-['Pretendard'] leading-loose">
-          모임 만들기
+          글 작성
         </div>
       </div>
 
-      <div className="flex flex-col gap-8 ">
-        <div></div>
+      <div className="flex flex-col gap-8">
+        {/* 이미지 업로드 섹션 */}
         <div className="flex gap-2 justify-start">
           <img
             src={camera}
@@ -160,12 +172,13 @@ export default function GroupWritePage() {
           />
           {images.map((img, idx) => (
             <div key={idx} className="relative">
-              <img src={img.previewUrl} className="w-20 h-20 rounded-xl" />
+              <img
+                src={img.previewUrl}
+                className="w-20 h-20 rounded-xl object-cover"
+              />
               <button
                 className="absolute top-[-8px] right-[-8px] text-[#000000] text-xs w-5 h-5 bg-[#8F8F8F] rounded-full flex items-center justify-center"
-                onClick={() => {
-                  handleImageRemove(idx);
-                }}
+                onClick={() => handleImageRemove(idx)}
               >
                 ✕
               </button>
@@ -173,108 +186,89 @@ export default function GroupWritePage() {
           ))}
         </div>
 
-        {/* 모임 제목 칸 */}
+        {/* 글 제목 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 제목</div>
+          <div className="text-lg font-['Pretendard'] text-white">글 제목</div>
           <input
             type="text"
-            placeholder="모임의 제목을 작성해보세요."
-            value={name}
-            minLength={2}
-            maxLength={30}
-            onChange={(e) => setName(e.target.value)}
-            className="h-12 px-2 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm placeholder:text-[#565656] font-['Pretendard']"
+            placeholder="제목을 작성해주세요"
+            value={title}
+            maxLength={100}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-12 px-3 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm placeholder:text-[#565656] font-['Pretendard'] text-white"
           />
         </div>
-        {/* 모임 일정 칸 */}
+
+        {/* 카테고리 선택 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 일정</div>
-          <div className="flex gap-2">
-            <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
-              <DateSelector
-                selected={selectedDate}
-                onChange={(date) => {
-                  setSelectedDate(date);
-                }}
-              ></DateSelector>
-            </div>
-            <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
-              <TimeSelector
-                selected={selectedTime}
-                onChange={(time) => {
-                  setSelectedTime(time);
-                }}
-                selectedDate={selectedDate}
-              ></TimeSelector>
-            </div>
-          </div>
-        </div>
-        {/* 모임 인원/비밀번호 칸 */}
-        <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">
-            모임 인원 / 입장 비밀번호
-          </div>
-          <div className="flex gap-2">
-            <div className="relative flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
-              <div className="left-3 top-3.5 absolute justify-start text-sm font-['Pretendard']">
-                최대:
-              </div>
-              <input
-                type="text"
-                className="w-full h-12 pl-12 pr-3 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm font-['Pretendard']"
-                value={maxParticipantCount}
-                minLength={1}
-                maxLength={2} //2자리수까지
-                onChange={(e) => {
-                  //숫자만 입력 가능
-                  if (/^\d*$/.test(e.target.value)) {
-                    setMaxParticipantCount(e.target.value);
-                  }
-                }}
+          <div className="text-lg font-['Pretendard'] text-white">카테고리</div>
+          <div className="relative">
+            <button
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="w-full h-12 px-3 bg-[#1D1D1D] rounded-[10px] flex items-center justify-between text-sm font-['Pretendard'] text-white"
+            >
+              <span>{getCurrentCategoryLabel()}</span>
+              <img
+                src={dropDown}
+                alt="dropdown"
+                className={`w-6 h-6 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
               />
-            </div>
-            <div className="relative flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
-              <div className="left-3 top-3.5 absolute justify-start text-sm font-['Pretendard']">
-                PW:
+            </button>
+
+            {showCategoryDropdown && (
+              <div className="absolute top-14 left-0 w-full bg-[#1D1D1D] border border-[#333] rounded-[10px] z-10 overflow-hidden">
+                {categoryOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    onClick={() => handleCategorySelect(option.value)}
+                    className="px-3 py-3 text-sm font-['Pretendard'] text-white hover:bg-[#2A2A2A] cursor-pointer"
+                  >
+                    {option.label}
+                  </div>
+                ))}
               </div>
-              <input
-                type="text"
-                className="w-full h-12 pl-12 pr-3 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm font-['Pretendard']"
-                value={password}
-                maxLength={32}
-                onChange={(e) => {
-                  if (e.target.value.length <= 32) {
-                    //한국어는 자음+모음을 치는 중엔 한글자로 보기때문에 오류가능성ㅇ -> 한번더 검사
-                    setPassword(e.target.value);
-                  }
-                }}
-              />
-            </div>
+            )}
           </div>
         </div>
-        {/* 모임 위치 칸 */}
+
+        {/* 위치 선택 (선택사항) */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 위치</div>
-          <Kakaomap onChange={handleMapChange}></Kakaomap>
+          <div className="text-lg font-['Pretendard'] text-white">
+            위치 선택 <span className="text-sm text-[#8F8F8F]">(선택사항)</span>
+          </div>
+          <Kakaomap onChange={handleMapChange} />
         </div>
-        {/* 모임 설명 칸 */}
+
+        {/* 글 내용 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 설명</div>
+          <div className="text-lg font-['Pretendard'] text-white">글 내용</div>
           <textarea
-            type="text"
-            placeholder={`모임 설명에 들어갈 내용을 자유롭게 작성해주세요\n(1000자 이내까지 작성 가능)`}
-            value={description}
-            maxLength={1000} // 최대 1000자
-            onChange={(e) => setDescription(e.target.value)}
-            className="h-48 px-2 py-4 text-sm font-['Pretendard'] focus:outline-none bg-[#1D1D1D] rounded-[10px] placeholder:text-[#565656]"
+            placeholder={`자신의 경험이나 질문을 자유롭게 작성해주세요\n(5000자 이내까지 작성 가능)`}
+            value={content}
+            maxLength={5000}
+            onChange={(e) => setContent(e.target.value)}
+            className="h-64 px-3 py-4 text-sm font-['Pretendard'] focus:outline-none bg-[#1D1D1D] rounded-[10px] placeholder:text-[#565656] text-white resize-none"
           />
+          <div className="text-right text-xs text-[#8F8F8F] font-['Pretendard']">
+            {content.length}/5000
+          </div>
         </div>
-        <div
-          onClick={handlepost}
-          className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
+
+        {/* 등록 버튼 */}
+        <button
+          onClick={handleSubmit}
+          disabled={postBoard.isLoading}
+          className={`h-[60px] font-['Pretendard'] text-center text-black text-lg font-bold rounded-[10px] transition-colors ${
+            postBoard.isLoading
+              ? 'bg-[#999] cursor-not-allowed'
+              : 'bg-[#FFBB02] hover:bg-[#E6A500] cursor-pointer'
+          }`}
         >
-          모임 등록하기
-        </div>
+          {postBoard.isLoading ? '등록 중...' : '글 등록하기'}
+        </button>
+
+        {/* 하단 여백 */}
+        <div className="h-20"></div>
       </div>
     </div>
   );

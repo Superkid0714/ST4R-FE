@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 
-export const usegroupMutation = () => {
+export const usePostgroupMutation = () => {
   return useMutation({
     mutationFn: async (data) => {
       const res = await axios.post(
