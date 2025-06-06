@@ -27,8 +27,8 @@ export default function Header({ onSearchResults, allPosts = [] }) {
   };
 
   return (
-    <header className="bg-black text-white pt-6 pb-4">
-      <div className="px-4">
+    <header className="bg-black text-white">
+      <div>
         {/* 상단 타이틀과 알림 영역 */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">Starlight</h1>
@@ -91,7 +91,7 @@ export default function Header({ onSearchResults, allPosts = [] }) {
         </div>
 
         {/* 위치와 날씨 정보 */}
-        <div className="flex items-center space-x-3 mb-6">
+        <div className="flex items-center space-x-3 mb-3">
           <div className="flex items-center bg-[#2A2A2A] rounded-full px-3 py-2 text-gray-300 text-sm">
             <svg
               className="w-4 h-4 mr-2"
@@ -133,8 +133,8 @@ export default function Header({ onSearchResults, allPosts = [] }) {
         </div>
 
         {/* 검색바 */}
-        <div className="mb-2">
-          <SearchBar onSearchResults={onSearchResults} allPosts={allPosts} />
+        <div className="mb-5">
+          <SearchBar onSearchResults={onSearchResults} allPosts={allPosts} placeholder="별자리에 관해 궁금한 글들을 검색해보세요." />
         </div>
       </div>
     </header>
