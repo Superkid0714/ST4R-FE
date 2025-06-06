@@ -1,4 +1,3 @@
-import React from 'react';
 import search from '../../assets/icons/search.svg';
 import { useEffect, useRef, useState } from 'react';
 
@@ -12,12 +11,11 @@ function Kakaomap({ onChange }) {
   const geocoderRef = useRef(null);
   const infowindowRef = useRef(null);
 
-  const [latlng, setLatlng] = useState(null); //클릭한 곳의 위도,경도
-  const [keyword, setKeyword] = useState(null); // 클릭한 곳의 주소 정보
+  const [keyword, setKeyword] = useState(''); // 검색 키워드 (null에서 ''로 변경)
   const [selectedPlace, setSelectedPlace] = useState(null); // 검색한 곳의 장소명 + 클릭한 곳의 주소 정보 합쳐진 변수
   const [placelist, setPlacelist] = useState([]); // 검색 결과 리스트
 
-  //📌마커와 인포윈도우를 생성하는 함수(여러곳에서 사용하므로 useeffect밖으로 뺌)
+  // 마커와 인포윈도우를 생성하는 함수
   const displayMarker = (locPosition, message = null) => {
     const map = mapRef.current;
     const infowindow = infowindowRef.current;
@@ -61,7 +59,7 @@ function Kakaomap({ onChange }) {
     geocoderRef.current = geocoder;
     infowindowRef.current = infowindow;
 
-    //📌현재 위치 표시(마커를 찍기 전)
+    // 현재 위치 표시(마커를 찍기 전)
     if (navigator.geolocation) {
       // GeoLocation을 이용해서 접속 위치를 얻어오기
       navigator.geolocation.getCurrentPosition((position) => {
@@ -86,7 +84,7 @@ function Kakaomap({ onChange }) {
       displayMarker(locPosition, message);
     }
 
-    //📌마우스 클릭하면 마커 생성 + 주소 표시
+    //마우스 클릭하면 마커 생성 + 주소 표시
     kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
       const clickedlatlng = mouseEvent.latLng;
 
@@ -101,7 +99,7 @@ function Kakaomap({ onChange }) {
             const addressText = road || jibun || '주소 정보 없음';
 
             const message = `
-              <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>)
+              <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>
             `;
 
             displayMarker(clickedlatlng, message);
@@ -110,11 +108,6 @@ function Kakaomap({ onChange }) {
             setSelectedPlace({
               name: null, // 장소명은 없으니까 null
               address: road || jibun || null,
-            });
-
-            setLatlng({
-              lat: clickedlatlng.getLat(),
-              lng: clickedlatlng.getLng(),
             });
 
             //부모에게 데이터 전달
@@ -129,7 +122,7 @@ function Kakaomap({ onChange }) {
 
             if (onChange) {
               onChange({
-                locationName:newPlace.name,
+                locationName: newPlace.name,
                 roadAddress: newPlace.address,
                 lat: newLatlng.lat,
                 lng: newLatlng.lng,
@@ -139,10 +132,12 @@ function Kakaomap({ onChange }) {
         }
       );
     });
-  }, []);
+  }, [onChange]); // onChange를 dependency에 추가
 
   //장소 검색 함수
   function searchPlaces() {
+    if (!keyword.trim()) return; // 빈 키워드 체크 추가
+
     const ps = new kakao.maps.services.Places(); // 장소 검색 객체를 생성
 
     // 장소검색 객체를 통해 키워드로 장소검색을 요청
@@ -171,11 +166,6 @@ function Kakaomap({ onChange }) {
       address: place.road_address_name || place.address_name,
     });
 
-    setLatlng({
-      lat: lat,
-      lng: lng,
-    });
-
     const newPlace = {
       name: place.place_name,
       address: place.road_address_name || place.address_name,
@@ -187,11 +177,18 @@ function Kakaomap({ onChange }) {
 
     if (onChange) {
       onChange({
-        locationName:newPlace.name,
+        locationName: newPlace.name,
         roadAddress: newPlace.address,
         lat: newLatlng.lat,
         lng: newLatlng.lng,
       });
+    }
+  };
+
+  // 키보드 이벤트 핸들러 (Enter 키로 검색)
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      searchPlaces();
     }
   };
 
@@ -204,14 +201,10 @@ function Kakaomap({ onChange }) {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="장소를 검색하세요"
-            onKeyDown={searchPlaces}
+            onKeyDown={handleKeyDown}
             className="h-10 w-3/4 px-2 bg-[#1D1D1D] font-['Pretendard'] placeholder:text-[#565656] rounded-[10px] focus:outline-none text-sm"
           />
-          <button
-            onClick={() => {
-              searchPlaces();
-            }}
-          >
+          <button onClick={searchPlaces}>
             <img src={search} alt="검색" className="w-7 h-7" />
           </button>
         </div>
@@ -229,9 +222,7 @@ function Kakaomap({ onChange }) {
           {placelist.map((place) => (
             <li
               key={place.id}
-              onClick={() => {
-                handlePlaceClick(place);
-              }}
+              onClick={() => handlePlaceClick(place)}
               className="cursor-pointer hover:bg-gray-100 p-1 border-b"
             >
               <div className="font-semibold text-black">{place.place_name}</div>
@@ -244,9 +235,8 @@ function Kakaomap({ onChange }) {
       )}
 
       {/* 화면에 선택한 장소 표시 */}
-
       {selectedPlace && (
-        <div className="flex flex-col gap-0.5 p-3 2 bg-[#1D1D1D] rounded-[10px] justify-start">
+        <div className="flex flex-col gap-0.5 p-3 bg-[#1D1D1D] rounded-[10px] justify-start">
           {selectedPlace.name && (
             <div className="flex-1 font-light text-sm font-['Pretendard']">
               📍 {selectedPlace.name}
