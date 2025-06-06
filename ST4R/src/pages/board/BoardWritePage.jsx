@@ -81,7 +81,7 @@ export default function BoardWritePage() {
 
   const postBoard = usePostBoardMutation();
 
-  // 글 등록 핸들러
+  // 글 등록 핸들러 - imageUrls 에러 수정
   const handleSubmit = async () => {
     // 유효성 검사
     if (!title.trim()) {
@@ -105,15 +105,24 @@ export default function BoardWritePage() {
     }
 
     try {
-      // 이미지 업로드
-      const imageUrls = images.length > 0 ? await uploadImagesToS3(images) : [];
+      // 이미지 업로드 (안전하게 처리)
+      let imageUrls = null;
+      if (images && images.length > 0) {
+        console.log('이미지 업로드 시작, 이미지 개수:', images.length);
+        const uploadedUrls = await uploadImagesToS3(images);
+        imageUrls =
+          uploadedUrls && uploadedUrls.length > 0 ? uploadedUrls : null;
+        console.log('이미지 업로드 완료:', imageUrls);
+      } else {
+        console.log('업로드할 이미지가 없음');
+      }
 
-      // 게시글 데이터 준비 및 API 호출
+      // 게시글 데이터 준비
       const postData = {
         title: title.trim(),
         content: content.trim(),
         category: category,
-        imageUrls: imageUrls,
+        imageUrls: imageUrls, // null이거나 URL 배열
       };
 
       // 위치 정보가 있으면 추가
@@ -129,6 +138,7 @@ export default function BoardWritePage() {
         };
       }
 
+      console.log('최종 전송 데이터:', postData);
       postBoard.mutate(postData);
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
