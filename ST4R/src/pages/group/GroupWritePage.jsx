@@ -47,7 +47,7 @@ export default function GroupWritePage() {
         const allowimgs = newimages.slice(0, 10 - prev.length);
         const previews = allowimgs.map((img) => ({
           img,
-          previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+          previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메모리 생성)
         }));
 
         return [...prev, ...previews];
@@ -56,7 +56,7 @@ export default function GroupWritePage() {
       // 제한 안넘으면 모두 업로드
       const previews = newimages.map((img) => ({
         img,
-        previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+        previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메모리 생성)
       }));
 
       return [...prev, ...previews];
