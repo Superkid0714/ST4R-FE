@@ -1,4 +1,13 @@
+import { useNavigate } from 'react-router-dom';
+
 export default function GroupCard({ group }) {
+
+  const navigate = useNavigate();
+
+  const handleClick = () =>{
+    navigate(`/groups/${group.id}`);
+  };
+
   const month = group.whenToMeet.slice(5, 7);
   const day = group.whenToMeet.slice(8, 10);
   const time = group.whenToMeet.slice(11, 16);
@@ -7,6 +16,7 @@ export default function GroupCard({ group }) {
     <div
       key={group.id}
       className=" relative w-full h-20 sm:h-[105px] bg-[#1D1D1D] rounded-[10px]"
+      onClick={handleClick}
     >
       {group.imageUrls && (
         <img
@@ -18,7 +28,7 @@ export default function GroupCard({ group }) {
         {group.name}
       </div>
       <div className="absolute left-[74px] sm:left-[100px] top-11 sm:top-[55px] justify-start text-[#8F8F8F] text-xs sm:text-base font-normal font-['Pretendard'] leading-none">
-        {`${month}/${day}일 ${time}, ${group.location?.marker?.roadAddress}`}
+        {`${month}/${day} ${time}, ${group.location?.marker?.roadAddress}`}
       </div>
       <div className="absolute w-14 sm:w-20 h-9 sm:h-14 right-3 top-6 sm:top-6 flex flex-col justify-center bg-[#101010] rounded-3xl ">
         <div className="text-center text-[#FFBB02] text-base sm:text-lg font-medium font-['Pretendard']">
