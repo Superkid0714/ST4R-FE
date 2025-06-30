@@ -4,6 +4,7 @@ import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
 import { useEffect, useState } from 'react';
 import JoinModal from '../../components/JoinModal';
+import Carousel from '../../components/common/Carousel';
 
 export default function GroupDetailPage() {
   const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
@@ -63,12 +64,8 @@ export default function GroupDetailPage() {
     <div className="flex flex-col gap-3">
       {/* 사진 영역 */}
       <div className="relative">
-        <BackButton className="absolute ml-2 mt-2 hover:cursor-pointer"></BackButton>
-        <img
-          src={groupDetail.imageUrls[0]}
-          alt="사진"
-          className="w-full h-[340px]"
-        />
+        <BackButton className="absolute ml-2 mt-2 z-10 hover:cursor-pointer"></BackButton>
+        <Carousel imageUrls={groupDetail.imageUrls}></Carousel>
       </div>
 
       <div className="p-2 flex flex-col gap-10">
