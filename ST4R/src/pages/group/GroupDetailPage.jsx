@@ -5,6 +5,7 @@ import BackButton from '../../components/common/BackButton';
 import { useEffect, useState } from 'react';
 import JoinModal from '../../components/JoinModal';
 import Carousel from '../../components/common/Carousel';
+import { usegroupDelete } from '../../api/groupDelete';
 
 export default function GroupDetailPage() {
   const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
@@ -12,7 +13,11 @@ export default function GroupDetailPage() {
 
   //모임상세정보 가져오기
   const getGroupDetail = async (id) => {
-    const res = await axios.get(`${BASE_URL}/groups/${id}`);
+    const res = await axios.get(`${BASE_URL}/groups/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
     return res.data;
   };
 
@@ -27,6 +32,7 @@ export default function GroupDetailPage() {
   //참가 모달창 띄우기
   const [modal, setModal] = useState(false);
 
+  //카카오 지도 띄우기
   useEffect(() => {
     const kakao = window.kakao;
 
@@ -48,6 +54,10 @@ export default function GroupDetailPage() {
       position: new kakao.maps.LatLng(lat, lng),
     });
   }, [groupDetail]);
+
+  //글 수정 및 삭제하기(작성자일 경우)
+  const handleEdit = () => {};
+  const handleDelete = usegroupDelete();
 
   //예외처리
   if (isLoading) return <p>로딩 중...</p>;
@@ -86,10 +96,11 @@ export default function GroupDetailPage() {
 
         {/* 프로필 영역 */}
         <div className="relative text-sm text-[#8F8F8F] font-['Pretendard']">
-          작성자: {nickname} <span className='absolute right-3'>오리온자리</span>
-           <div className='mt-4 h-[1.5px] bg-[#565656]'></div>
+          작성자: {nickname}{' '}
+          <span className="absolute right-3">오리온자리</span>
+          <div className="mt-4 h-[1.5px] bg-[#565656]"></div>
         </div>
-        
+
         {/* 지도 영역 */}
         <div>
           <div className="text-xl font-medium font-['Pretendard']">위치</div>
@@ -107,20 +118,38 @@ export default function GroupDetailPage() {
           </div>
         </div>
 
-        {/* 모임 참가하기 버튼 */}
-        <div
-          onClick={() => setModal(true)} // 모달창 열림
-          className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
-        >
-          모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
-        </div>
-        {modal ? (
-          <JoinModal
-            onClose={() => setModal(false)}
-            hasPassword={groupDetail.isPublic}
-            id={id}
-          ></JoinModal>
-        ) : null}
+        {groupDetail.isViewerAuthor ? (
+          <div className="flex gap-2 h-[60px] leading-[60px] font-['Pretendard'] text-black text-lg font-bold">
+            <div
+              onClick={handleEdit}
+              className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px]  "
+            >
+              수정하기
+            </div>
+            <div
+              onClick={() => handleDelete.mutate(id)}
+              className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px] "
+            >
+              삭제하기
+            </div>
+          </div>
+        ) : (
+          <>
+            <div
+              onClick={() => setModal(true)} // 모달창 열림
+              className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
+            >
+              모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
+            </div>
+            {modal ? (
+              <JoinModal
+                onClose={() => setModal(false)}
+                hasPassword={groupDetail.isPublic}
+                id={id}
+              ></JoinModal>
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   );
