@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useBoardDetail,
@@ -19,10 +19,54 @@ export default function BoardDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // 현재 로그인한 사용자 정보
-  const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const isLoggedIn = !!localStorage.getItem('token');
+  // 로그인 상태 확인
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+
+      if (token && user) {
+        try {
+          // JWT 토큰 유효성 검사
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+
+          if (payload.exp && payload.exp > currentTime) {
+            setIsLoggedIn(true);
+            setCurrentUser(JSON.parse(user));
+          } else {
+            // 토큰 만료
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+          }
+        } catch (error) {
+          console.error('토큰 파싱 에러:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+    };
+
+    checkAuthStatus();
+
+    // 토큰 변경 감지를 위한 이벤트 리스너
+    const handleStorageChange = () => {
+      checkAuthStatus();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // API 호출
   const {
@@ -30,6 +74,7 @@ export default function BoardDetailPage() {
     isLoading: isPostLoading,
     error: postError,
   } = useBoardDetail(id);
+
   const { data: comments, isLoading: isCommentsLoading } = useComments(id);
   const { data: editPermission } = useCheckEditPermission(id);
   const likeBoardMutation = useLikeBoard();
@@ -42,7 +87,7 @@ export default function BoardDetailPage() {
 
   // 작성자 아바타 색상 생성 함수
   const getAuthorColor = useCallback((authorId, authorName) => {
-    if (!authorId && !authorName) return '#6B7280'; // 익명 - 회색
+    if (!authorId && !authorName) return '#6B7280';
 
     const str = authorId?.toString() || authorName || 'anonymous';
     let hash = 0;
@@ -50,7 +95,6 @@ export default function BoardDetailPage() {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
 
-    // HSL 색상으로 변환 (채도와 명도 고정으로 보기 좋은 색상 생성)
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 65%, 55%)`;
   }, []);
@@ -75,8 +119,11 @@ export default function BoardDetailPage() {
   // 좋아요 처리
   const handleLike = useCallback(() => {
     if (!isLoggedIn) {
-      alert('로그인이 필요합니다.');
-      navigate('/login');
+      if (
+        window.confirm('로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?')
+      ) {
+        navigate('/login');
+      }
       return;
     }
     likeBoardMutation.mutate(id);
@@ -85,8 +132,11 @@ export default function BoardDetailPage() {
   // 댓글 작성
   const handleCommentSubmit = useCallback(() => {
     if (!isLoggedIn) {
-      alert('로그인이 필요합니다.');
-      navigate('/login');
+      if (
+        window.confirm('로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?')
+      ) {
+        navigate('/login');
+      }
       return;
     }
 
@@ -109,8 +159,13 @@ export default function BoardDetailPage() {
   const handleCommentLike = useCallback(
     (commentId) => {
       if (!isLoggedIn) {
-        alert('로그인이 필요합니다.');
-        navigate('/login');
+        if (
+          window.confirm(
+            '로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?'
+          )
+        ) {
+          navigate('/login');
+        }
         return;
       }
       likeCommentMutation.mutate({ boardId: id, commentId });
@@ -165,6 +220,50 @@ export default function BoardDetailPage() {
 
   // 에러 상태
   if (postError) {
+    // 401 에러인 경우 비로그인 상태 메시지 표시
+    if (postError.response?.status === 401 || postError.isAuthError) {
+      return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
+          <div className="text-center">
+            <svg
+              className="w-16 h-16 mx-auto mb-4 text-yellow-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+            <h2 className="text-xl font-bold text-white mb-2">
+              로그인이 만료되었습니다
+            </h2>
+            <p className="text-gray-400 mb-4">
+              이 게시글을 보려면 로그인이 필요하거나, 비로그인 상태로
+              새로고침해주세요.
+            </p>
+            <div className="flex space-x-3 justify-center">
+              <button
+                onClick={() => navigate('/login')}
+                className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+              >
+                로그인
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-500 transition-colors"
+              >
+                새로고침
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
         <div className="text-center">
@@ -250,7 +349,7 @@ export default function BoardDetailPage() {
 
             <div className="flex space-x-2">
               {/* 수정/삭제 버튼 (작성자만) */}
-              {isAuthor && (
+              {isLoggedIn && isAuthor && (
                 <>
                   <button
                     onClick={handleEdit}
@@ -396,7 +495,7 @@ export default function BoardDetailPage() {
                     {getAuthorDisplayName(post.author)}
                   </p>
                   {/* 작성자 표시 */}
-                  {isAuthor && (
+                  {isLoggedIn && isAuthor && (
                     <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
                       작성자
                     </span>
