@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const { kakao } = window;
 
-function Kakaomap({ onChange }) {
+function Kakaomap({ onChange, initialLocation }) {
   const container = useRef(null); // 지도 컨테이너 접근
 
   const markerRef = useRef(null); // 전역 함수설정
@@ -11,8 +11,8 @@ function Kakaomap({ onChange }) {
   const geocoderRef = useRef(null);
   const infowindowRef = useRef(null);
 
-  const [keyword, setKeyword] = useState(''); // 검색 키워드 (null에서 ''로 변경)
-  const [selectedPlace, setSelectedPlace] = useState(null); // 검색한 곳의 장소명 + 클릭한 곳의 주소 정보 합쳐진 변수
+  const [keyword, setKeyword] = useState(''); // 검색 키워드
+  const [selectedPlace, setSelectedPlace] = useState(null); // 검색한 곳의 장소명 + 클릭한 곳의 주소 정보
   const [placelist, setPlacelist] = useState([]); // 검색 결과 리스트
 
   // 마커와 인포윈도우를 생성하는 함수
@@ -43,6 +43,37 @@ function Kakaomap({ onChange }) {
     map.setCenter(locPosition);
   };
 
+  // 초기 위치 설정 함수
+  const setInitialLocationOnMap = (location) => {
+    if (location && location.lat && location.lng) {
+      const locPosition = new kakao.maps.LatLng(location.lat, location.lng);
+
+      const message = `
+        <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">
+          ${location.locationName || '위치 정보'}
+        </div>
+      `;
+
+      displayMarker(locPosition, message);
+
+      // state 설정
+      setSelectedPlace({
+        name: location.locationName,
+        address: location.roadAddress,
+      });
+
+      // 부모에게 데이터 전달
+      if (onChange) {
+        onChange({
+          locationName: location.locationName,
+          roadAddress: location.roadAddress,
+          lat: location.lat,
+          lng: location.lng,
+        });
+      }
+    }
+  };
+
   //외부 라이브러리 초기화, 브라우저 api호출, 이벤트 등록 함수들은 useeffect안에 넣음
   useEffect(() => {
     const options = {
@@ -59,29 +90,34 @@ function Kakaomap({ onChange }) {
     geocoderRef.current = geocoder;
     infowindowRef.current = infowindow;
 
-    // 현재 위치 표시(마커를 찍기 전)
-    if (navigator.geolocation) {
-      // GeoLocation을 이용해서 접속 위치를 얻어오기
-      navigator.geolocation.getCurrentPosition((position) => {
-        const lat = position.coords.latitude; // 위도
-        const lon = position.coords.longitude; // 경도
-        const locPosition = new kakao.maps.LatLng(lat, lon); // 마커가 표시될 위치를 geolocation으로 얻어온 좌표로 생성
+    // 초기 위치가 있으면 설정
+    if (initialLocation) {
+      setInitialLocationOnMap(initialLocation);
+    } else {
+      // 현재 위치 표시(마커를 찍기 전)
+      if (navigator.geolocation) {
+        // GeoLocation을 이용해서 접속 위치를 얻어오기
+        navigator.geolocation.getCurrentPosition((position) => {
+          const lat = position.coords.latitude; // 위도
+          const lon = position.coords.longitude; // 경도
+          const locPosition = new kakao.maps.LatLng(lat, lon); // 마커가 표시될 위치를 geolocation으로 얻어온 좌표로 생성
 
-        const message = '<div style="padding:5px; color:black;">현재위치</div>'; // 인포윈도우에 표시될 내용
+          const message =
+            '<div style="padding:5px; color:black;">현재위치</div>'; // 인포윈도우에 표시될 내용
+
+          displayMarker(locPosition, message);
+        });
+      } else {
+        // HTML5의 GeoLocation을 사용할 수 없을때 마커 표시 위치와 인포윈도우 내용을 설정
+        const locPosition = new kakao.maps.LatLng(
+          35.30019091752179,
+          127.37915975896176 // 기본 지도 초기화면을 전남대로 설정함
+        );
+        const message =
+          '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
 
         displayMarker(locPosition, message);
-      });
-    } else {
-      // HTML5의 GeoLocation을 사용할 수 없을때 마커 표시 위치와 인포윈도우 내용을 설정
-
-      const locPosition = new kakao.maps.LatLng(
-        35.30019091752179,
-        127.37915975896176 // 기본 지도 초기화면을 전남대로 설정함
-      );
-      const message =
-        '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
-
-      displayMarker(locPosition, message);
+      }
     }
 
     //마우스 클릭하면 마커 생성 + 주소 표시
@@ -132,7 +168,7 @@ function Kakaomap({ onChange }) {
         }
       );
     });
-  }, [onChange]); // onChange를 dependency에 추가
+  }, [onChange, initialLocation]); // initialLocation를 dependency에 추가
 
   //장소 검색 함수
   function searchPlaces() {
