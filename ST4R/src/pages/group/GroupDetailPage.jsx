@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
@@ -10,6 +10,7 @@ import { usegroupDelete } from '../../api/groupDelete';
 export default function GroupDetailPage() {
   const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
   const { id } = useParams();
+  const navigate = useNavigate();
 
   //모임상세정보 가져오기
   const getGroupDetail = async (id) => {
@@ -55,8 +56,7 @@ export default function GroupDetailPage() {
     });
   }, [groupDetail]);
 
-  //글 수정 및 삭제하기(작성자일 경우)
-  const handleEdit = () => {};
+  //글 삭제하기
   const handleDelete = usegroupDelete();
 
   //예외처리
@@ -121,7 +121,7 @@ export default function GroupDetailPage() {
         {groupDetail.isViewerAuthor ? (
           <div className="flex gap-2 h-[60px] leading-[60px] font-['Pretendard'] text-black text-lg font-bold">
             <div
-              onClick={handleEdit}
+              onClick={()=> navigate(`/groups/edit/${id}`)}
               className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px]  "
             >
               수정하기

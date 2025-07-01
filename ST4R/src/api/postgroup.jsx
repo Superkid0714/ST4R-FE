@@ -1,7 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export const usegroupMutation = () => {
+  const navigate = useNavigate();
+
   return useMutation({
     mutationFn: async (data) => {
       const res = await axios.post(
@@ -17,7 +20,7 @@ export const usegroupMutation = () => {
     },
     onSuccess: () => {
       alert('모임 만들기 완료');
-      window.location.href = '/groups';
+      navigate('/groups');
     },
     onError: (error) => {
       console.error('요청 실패', error);
