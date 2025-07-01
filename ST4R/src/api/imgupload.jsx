@@ -26,7 +26,6 @@ const uploadToPresignUrl = async (img, presignedUrl) => {
     const response = await axios.put(presignedUrl, img, {
       headers: {
         'Content-Type': img.type,
-        // axios가 자동으로 추가하는 헤더들을 제거하여 S3와의 호환성 향상
       },
       // 진행률 추적
       onUploadProgress: (progressEvent) => {
@@ -35,6 +34,13 @@ const uploadToPresignUrl = async (img, presignedUrl) => {
         );
         console.log(`업로드 진행률: ${percentCompleted}%`);
       },
+      // axios 인터셉터에서 자동으로 추가되는 Authorization 헤더 무시
+      transformRequest: [
+        (data, headers) => {
+          delete headers['Authorization'];
+          return data;
+        },
+      ],
     });
 
     console.log('업로드 성공:', response.status);
@@ -76,9 +82,6 @@ export default async function uploadImagesToS3(images) {
       console.log('최종 이미지 URL:', finalUrl);
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
-      // 개별 이미지 업로드 실패 시 전체를 중단할지 결정
-      // throw error; // 전체 중단
-      // 또는 계속 진행하고 실패한 이미지만 제외
     }
   }
 
