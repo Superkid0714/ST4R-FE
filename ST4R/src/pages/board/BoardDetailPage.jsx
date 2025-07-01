@@ -6,7 +6,6 @@ import {
   useComments,
   useCreateComment,
   useLikeComment,
-  useCheckEditPermission,
   useDeleteBoard,
 } from '../../api/boardDetail';
 import BackButton from '../../components/common/BackButton';
@@ -26,32 +25,41 @@ export default function BoardDetailPage() {
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
 
-      if (token && user) {
-        try {
-          // JWT 토큰 유효성 검사
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const currentTime = Math.floor(Date.now() / 1000);
+      if (!token) {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        return;
+      }
 
-          if (payload.exp && payload.exp > currentTime) {
-            setIsLoggedIn(true);
-            setCurrentUser(JSON.parse(user));
-          } else {
-            // 토큰 만료
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setIsLoggedIn(false);
-            setCurrentUser(null);
-          }
-        } catch (error) {
-          console.error('토큰 파싱 에러:', error);
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        if (payload.exp && payload.exp > currentTime) {
+          setIsLoggedIn(true);
+
+          const userInfo = {
+            id: payload.id || payload.sub,
+            email: payload.email,
+            name:
+              payload.name ||
+              payload.nickname ||
+              `사용자${payload.id || payload.sub}`,
+          };
+
+          setCurrentUser(userInfo);
+          localStorage.setItem('user', JSON.stringify(userInfo));
+        } else {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setIsLoggedIn(false);
           setCurrentUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error('토큰 파싱 에러:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setIsLoggedIn(false);
         setCurrentUser(null);
       }
@@ -59,7 +67,6 @@ export default function BoardDetailPage() {
 
     checkAuthStatus();
 
-    // 토큰 변경 감지를 위한 이벤트 리스너
     const handleStorageChange = () => {
       checkAuthStatus();
     };
@@ -76,25 +83,29 @@ export default function BoardDetailPage() {
   } = useBoardDetail(id);
 
   const { data: comments, isLoading: isCommentsLoading } = useComments(id);
-  const { data: editPermission } = useCheckEditPermission(id);
   const likeBoardMutation = useLikeBoard();
   const createCommentMutation = useCreateComment();
   const likeCommentMutation = useLikeComment();
   const deleteBoardMutation = useDeleteBoard();
 
-  // 작성자인지 확인
-  const isAuthor = post && currentUser && post.author?.id === currentUser.id;
+  // 작성자인지 확인 - 백엔드 응답의 isViewerAuthor 사용
+  const isAuthor = useCallback(() => {
+    if (!post || !isLoggedIn) return false;
+    return post.isViewerAuthor === true;
+  }, [post, isLoggedIn]);
+
+  // 좋아요 상태 - 백엔드 응답의 liked 사용
+  const isLiked = post?.liked === true;
+  const likeCount = post?.likeCount || 0;
 
   // 작성자 아바타 색상 생성 함수
   const getAuthorColor = useCallback((authorId, authorName) => {
     if (!authorId && !authorName) return '#6B7280';
-
     const str = authorId?.toString() || authorName || 'anonymous';
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 65%, 55%)`;
   }, []);
@@ -126,8 +137,14 @@ export default function BoardDetailPage() {
       }
       return;
     }
+
+    if (isLiked) {
+      alert('이미 좋아요를 누른 게시글입니다!');
+      return;
+    }
+
     likeBoardMutation.mutate(id);
-  }, [isLoggedIn, navigate, likeBoardMutation, id]);
+  }, [isLoggedIn, navigate, likeBoardMutation, id, isLiked]);
 
   // 댓글 작성
   const handleCommentSubmit = useCallback(() => {
@@ -145,11 +162,19 @@ export default function BoardDetailPage() {
       return;
     }
 
+    if (newComment.trim().length > 500) {
+      alert('댓글은 500자 이하로 입력해주세요.');
+      return;
+    }
+
     createCommentMutation.mutate(
       { boardId: id, content: newComment.trim() },
       {
         onSuccess: () => {
           setNewComment('');
+        },
+        onError: (error) => {
+          console.error('댓글 작성 실패:', error);
         },
       }
     );
@@ -209,6 +234,8 @@ export default function BoardDetailPage() {
     setIsImageViewerOpen(false);
   }, []);
 
+  const currentIsAuthor = isAuthor();
+
   // 로딩 상태
   if (isPostLoading) {
     return (
@@ -220,8 +247,10 @@ export default function BoardDetailPage() {
 
   // 에러 상태
   if (postError) {
-    // 401 에러인 경우 비로그인 상태 메시지 표시
-    if (postError.response?.status === 401 || postError.isAuthError) {
+    if (
+      (postError.response?.status === 401 || postError.isAuthError) &&
+      isLoggedIn
+    ) {
       return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
           <div className="text-center">
@@ -242,8 +271,7 @@ export default function BoardDetailPage() {
               로그인이 만료되었습니다
             </h2>
             <p className="text-gray-400 mb-4">
-              이 게시글을 보려면 로그인이 필요하거나, 비로그인 상태로
-              새로고침해주세요.
+              이 게시글을 보려면 다시 로그인해주세요.
             </p>
             <div className="flex space-x-3 justify-center">
               <button
@@ -299,9 +327,7 @@ export default function BoardDetailPage() {
     );
   }
 
-  if (!post) {
-    return null;
-  }
+  if (!post) return null;
 
   const allImages = post.imageUrls || [];
 
@@ -318,7 +344,6 @@ export default function BoardDetailPage() {
                 className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
                 onClick={() => handleImageClick(0)}
               />
-              {/* 클릭 힌트 */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
               <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                 📷 클릭하여 확대
@@ -349,7 +374,7 @@ export default function BoardDetailPage() {
 
             <div className="flex space-x-2">
               {/* 수정/삭제 버튼 (작성자만) */}
-              {isLoggedIn && isAuthor && (
+              {isLoggedIn && currentIsAuthor && (
                 <>
                   <button
                     onClick={handleEdit}
@@ -466,10 +491,10 @@ export default function BoardDetailPage() {
             {post.title}
           </h1>
 
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
+          <div className="mb-6">
+            <div className="flex space-x-3">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
                 style={{
                   backgroundColor: getAuthorColor(
                     post.author?.id,
@@ -489,80 +514,81 @@ export default function BoardDetailPage() {
                   </span>
                 )}
               </div>
-              <div>
-                <div className="flex items-center space-x-2">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
                   <p className="font-medium">
                     {getAuthorDisplayName(post.author)}
                   </p>
-                  {/* 작성자 표시 */}
-                  {isLoggedIn && isAuthor && (
+                  {isLoggedIn && currentIsAuthor && (
                     <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
                       작성자
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400">
-                  {post.createdAt
-                    ? new Date(post.createdAt).toLocaleDateString('ko-KR')
-                    : ''}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4 text-sm text-gray-400">
-              <div className="flex items-center space-x-1">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                  />
-                </svg>
-                <span>{post.likeCount || 0}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <span>{post.viewCount?.toLocaleString() || 0}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                <span>{post.commentCount || comments?.length || 0}</span>
+                {/* 작성 날짜와 통계 정보를 같은 줄에 배치 */}
+                <div className="flex items-center space-x-4">
+                  <p className="text-sm text-gray-400">
+                    {post.createdAt
+                      ? new Date(post.createdAt).toLocaleDateString('ko-KR')
+                      : ''}
+                  </p>
+                  <div className="flex items-center space-x-3 text-sm text-gray-400">
+                    <div className="flex items-center space-x-1">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                      <span>{likeCount}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                      <span>{post.viewCount?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
+                      </svg>
+                      <span>{post.commentCount || comments?.length || 0}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -586,7 +612,6 @@ export default function BoardDetailPage() {
                       className="w-full rounded-lg object-cover max-h-96 cursor-pointer transition-transform group-hover:scale-[1.02]"
                       onClick={() => handleImageClick(index + 1)}
                     />
-                    {/* 호버 오버레이 */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg" />
                     <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                       클릭하여 확대
@@ -611,14 +636,14 @@ export default function BoardDetailPage() {
               onClick={handleLike}
               disabled={likeBoardMutation.isLoading}
               className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${
-                post.isLiked
+                isLiked
                   ? 'bg-red-500/20 text-red-500'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               } ${likeBoardMutation.isLoading ? 'opacity-50 cursor-not-allowed' : ''} ${!isLoggedIn ? 'opacity-75' : ''}`}
             >
               <svg
-                className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`}
-                fill="none"
+                className={`w-5 h-5 ${isLiked ? 'fill-current text-red-500' : ''}`}
+                fill={isLiked ? 'currentColor' : 'none'}
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -629,14 +654,14 @@ export default function BoardDetailPage() {
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />
               </svg>
-              <span>좋아요 {post.likeCount || 0}</span>
+              <span>좋아요 {likeCount}</span>
               {!isLoggedIn && (
                 <span className="text-xs text-gray-500">(로그인 필요)</span>
               )}
             </button>
 
             <div className="text-gray-400 text-sm">
-              댓글 {post.commentCount || comments?.length || 0}개
+              댓글 {comments?.length || 0}개
             </div>
           </div>
 
@@ -682,6 +707,7 @@ export default function BoardDetailPage() {
                       e.key === 'Enter' && handleCommentSubmit()
                     }
                     disabled={createCommentMutation.isLoading}
+                    maxLength={500}
                   />
                   <button
                     onClick={handleCommentSubmit}
@@ -748,13 +774,11 @@ export default function BoardDetailPage() {
                           <span className="font-medium text-sm">
                             {getAuthorDisplayName(comment.author)}
                           </span>
-                          {/* 댓글 작성자 표시 */}
                           {isCommentAuthor && (
                             <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
                               내 댓글
                             </span>
                           )}
-                          {/* 게시글 작성자가 댓글을 단 경우 */}
                           {post.author?.id === comment.author?.id && (
                             <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
                               글쓴이
