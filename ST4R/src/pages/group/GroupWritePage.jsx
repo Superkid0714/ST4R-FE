@@ -28,7 +28,7 @@ export default function GroupWritePage() {
 
   const [lat, setLat] = useState(''); //위도
   const [lng, setLng] = useState(''); // 경도
-  const [locationName, setLocationName] = useState('장소명 미지정'); //장소명
+  const [locationName, setLocationName] = useState(null); //장소명
   const [roadAddress, setRoadAddress] = useState(''); // 도로명주소(or 지번주소)
 
   //이번트 핸들러 함수들
