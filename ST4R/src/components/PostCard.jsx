@@ -1,16 +1,49 @@
+import { useNavigate } from 'react-router-dom';
+
 export default function PostCard({ post }) {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    // 게시글 상세 페이지로 이동
+    navigate(`/boards/${post.id}`);
+  };
+
   return (
-    <div className="bg-[#1A1A1A] rounded-lg p-4">
-      {' '}
-      {/* 회색 배경과 패딩 추가 */}
+    <div
+      className="bg-[#1A1A1A] rounded-lg p-4 cursor-pointer hover:bg-[#242424] transition-colors"
+      onClick={handleCardClick}
+    >
+      {/* 카테고리 배지 */}
+      {post.category && (
+        <div className="mb-2">
+          <span
+            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+              post.category === 'SPOT'
+                ? 'bg-green-500/20 text-green-400'
+                : post.category === 'PROMOTION'
+                  ? 'bg-purple-500/20 text-purple-400'
+                  : 'bg-gray-500/20 text-gray-400'
+            }`}
+          >
+            {post.category === 'SPOT'
+              ? '스팟공유글'
+              : post.category === 'PROMOTION'
+                ? '홍보글'
+                : '자유글'}
+          </span>
+        </div>
+      )}
+
       {/* 게시글 제목 */}
-      <h3 className="text-white font-medium text-base mb-2 leading-relaxed line-clamp-1">
+      <h3 className="text-white font-medium text-base mb-2 leading-relaxed line-clamp-2">
         {post.title}
       </h3>
+
       {/* 게시글 설명 */}
-      <p className="text-gray-400 text-sm mb-3 leading-relaxed line-clamp-1">
+      <p className="text-gray-400 text-sm mb-3 leading-relaxed line-clamp-2">
         {post.contentPreview}
       </p>
+
       {/* 게시글 이미지 */}
       {post.imageUrl && (
         <div className="relative mb-3">
@@ -21,6 +54,7 @@ export default function PostCard({ post }) {
           />
         </div>
       )}
+
       {/* 하단 정보 바 */}
       <div className="flex items-center justify-between text-gray-400 text-sm">
         <div className="flex items-center space-x-4">
