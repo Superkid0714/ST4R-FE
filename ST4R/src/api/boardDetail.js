@@ -106,7 +106,7 @@ export const useLikeBoard = () => {
   return useMutation({
     mutationFn: async (boardId) => {
       const response = await axios.post(
-        `${BASE_URL}/home/boards/${boardId}/like`,
+        `${BASE_URL}/home/boards/${boardId}/likes`,
         {},
         {
           headers: {
@@ -211,7 +211,7 @@ export const useLikeComment = () => {
   return useMutation({
     mutationFn: async ({ boardId, commentId }) => {
       const response = await axios.post(
-        `${BASE_URL}/home/boards/${boardId}/comments/${commentId}/like`,
+        `${BASE_URL}/home/boards/${boardId}/comments/${commentId}/likes`,
         {},
         {
           headers: {

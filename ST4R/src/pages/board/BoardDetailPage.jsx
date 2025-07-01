@@ -40,6 +40,27 @@ export default function BoardDetailPage() {
   // 작성자인지 확인
   const isAuthor = post && currentUser && post.author?.id === currentUser.id;
 
+  // 작성자 아바타 색상 생성 함수
+  const getAuthorColor = useCallback((authorId, authorName) => {
+    if (!authorId && !authorName) return '#6B7280'; // 익명 - 회색
+
+    const str = authorId?.toString() || authorName || 'anonymous';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // HSL 색상으로 변환 (채도와 명도 고정으로 보기 좋은 색상 생성)
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 65%, 55%)`;
+  }, []);
+
+  // 작성자 이름 표시 함수
+  const getAuthorDisplayName = useCallback((author) => {
+    if (!author) return '익명';
+    return author.name || author.nickname || `사용자${author.id}` || '익명';
+  }, []);
+
   // 이미지 클릭 핸들러
   const handleImageClick = useCallback((index = 0) => {
     setSelectedImageIndex(index);
@@ -348,32 +369,32 @@ export default function BoardDetailPage() {
 
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm"
+                style={{
+                  backgroundColor: getAuthorColor(
+                    post.author?.id,
+                    post.author?.name
+                  ),
+                }}
+              >
                 {post.author?.profileImage ? (
                   <img
                     src={post.author.profileImage}
-                    alt={post.author.name}
+                    alt={getAuthorDisplayName(post.author)}
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <svg
-                    className="w-6 h-6 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
+                  <span>
+                    {getAuthorDisplayName(post.author).charAt(0).toUpperCase()}
+                  </span>
                 )}
               </div>
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="font-medium">{post.author?.name || '익명'}</p>
+                  <p className="font-medium">
+                    {getAuthorDisplayName(post.author)}
+                  </p>
                   {/* 작성자 표시 */}
                   {isAuthor && (
                     <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
@@ -528,7 +549,29 @@ export default function BoardDetailPage() {
             {/* 댓글 작성 */}
             {isLoggedIn ? (
               <div className="flex space-x-3">
-                <div className="w-8 h-8 bg-gray-600 rounded-full flex-shrink-0"></div>
+                <div
+                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-medium text-xs"
+                  style={{
+                    backgroundColor: getAuthorColor(
+                      currentUser?.id,
+                      currentUser?.name
+                    ),
+                  }}
+                >
+                  {currentUser?.profileImage ? (
+                    <img
+                      src={currentUser.profileImage}
+                      alt={getAuthorDisplayName(currentUser)}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {getAuthorDisplayName(currentUser)
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  )}
+                </div>
                 <div className="flex-1 flex space-x-2">
                   <input
                     type="text"
@@ -578,16 +621,44 @@ export default function BoardDetailPage() {
 
                   return (
                     <div key={comment.id} className="flex space-x-3">
-                      <div className="w-8 h-8 bg-gray-600 rounded-full flex-shrink-0"></div>
+                      <div
+                        className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-medium text-xs"
+                        style={{
+                          backgroundColor: getAuthorColor(
+                            comment.author?.id,
+                            comment.author?.name
+                          ),
+                        }}
+                      >
+                        {comment.author?.profileImage ? (
+                          <img
+                            src={comment.author.profileImage}
+                            alt={getAuthorDisplayName(comment.author)}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span>
+                            {getAuthorDisplayName(comment.author)
+                              .charAt(0)
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <span className="font-medium text-sm">
-                            {comment.author?.name || '익명'}
+                            {getAuthorDisplayName(comment.author)}
                           </span>
                           {/* 댓글 작성자 표시 */}
                           {isCommentAuthor && (
                             <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
                               내 댓글
+                            </span>
+                          )}
+                          {/* 게시글 작성자가 댓글을 단 경우 */}
+                          {post.author?.id === comment.author?.id && (
+                            <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
+                              글쓴이
                             </span>
                           )}
                           <span className="text-xs text-gray-500">
