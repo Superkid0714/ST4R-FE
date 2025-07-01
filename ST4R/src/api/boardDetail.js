@@ -29,9 +29,7 @@ const validateAndCleanToken = () => {
   }
 };
 
-// 401 에러 처리는 인터셉터에서 자동으로 처리됩니다
-
-// Axios 인스턴스 생성 (인터셉터 적용)
+// Axios 인스턴스 생성
 const createApiInstance = () => {
   const instance = axios.create({
     baseURL: BASE_URL,
@@ -54,11 +52,9 @@ const createApiInstance = () => {
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
-        // 토큰 정리
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
-        // 401 에러를 특별한 객체로 변환하여 컴포넌트에서 처리할 수 있도록 함
         const customError = new Error('Unauthorized');
         customError.isAuthError = true;
         customError.originalError = error;
@@ -73,13 +69,12 @@ const createApiInstance = () => {
 
 const apiInstance = createApiInstance();
 
-// 게시글 상세 조회 (로그인 없이도 접근 가능)
+// 게시글 상세 조회
 export const useBoardDetail = (boardId) => {
   return useQuery({
     queryKey: ['boardDetail', boardId],
     queryFn: async () => {
       const token = validateAndCleanToken();
-
       console.log('게시글 상세 조회 요청:', { boardId, hasToken: !!token });
 
       try {
@@ -93,9 +88,7 @@ export const useBoardDetail = (boardId) => {
           error.message
         );
 
-        // 401 에러인 경우 비로그인 상태로 처리
         if (error.isAuthError) {
-          // 토큰 없이 다시 시도
           try {
             const publicResponse = await axios.get(
               `${BASE_URL}/home/boards/${boardId}`
@@ -117,33 +110,9 @@ export const useBoardDetail = (boardId) => {
     enabled: !!boardId,
     staleTime: 1000 * 60 * 5,
     retry: (failureCount, error) => {
-      // 401 에러는 재시도하지 않음
       if (error?.isAuthError) return false;
       return failureCount < 2;
     },
-  });
-};
-
-// 게시글 수정 권한 확인
-export const useCheckEditPermission = (boardId) => {
-  return useQuery({
-    queryKey: ['editPermission', boardId],
-    queryFn: async () => {
-      const token = validateAndCleanToken();
-      if (!token) return { canEdit: false };
-
-      try {
-        const response = await apiInstance.get(
-          `/home/boards/${boardId}/edit-permission`
-        );
-        return response.data;
-      } catch (error) {
-        console.error('수정 권한 확인 실패:', error);
-        return { canEdit: false };
-      }
-    },
-    enabled: !!boardId && !!validateAndCleanToken(),
-    retry: false, // 권한 확인은 재시도하지 않음
   });
 };
 
@@ -182,7 +151,7 @@ export const useDeleteBoard = () => {
   });
 };
 
-// 게시글 좋아요 토글 (로그인 필요)
+// 게시글 좋아요 토글 - 개선된 버전
 export const useLikeBoard = () => {
   const queryClient = useQueryClient();
 
@@ -203,10 +172,15 @@ export const useLikeBoard = () => {
       queryClient.invalidateQueries(['boardDetail', boardId]);
       queryClient.invalidateQueries(['posts']);
     },
-    onError: (error) => {
+    onError: (error, boardId) => {
       if (error.isAuthError || error.message === '로그인이 필요합니다.') {
         alert('로그인이 필요합니다.');
         window.location.href = '/login';
+      } else if (error.response?.status === 409) {
+        // 409 에러는 이미 좋아요를 누른 상태이므로 특별 처리하지 않음
+        console.log('이미 좋아요를 누른 게시글입니다.');
+        // 게시글 정보를 다시 불러와서 최신 상태로 업데이트
+        queryClient.invalidateQueries(['boardDetail', boardId]);
       } else {
         console.error('좋아요 실패:', error);
         alert('좋아요 처리 중 오류가 발생했습니다.');
@@ -215,7 +189,7 @@ export const useLikeBoard = () => {
   });
 };
 
-// 댓글 목록 조회 (로그인 없이도 접근 가능)
+// 댓글 목록 조회
 export const useComments = (boardId) => {
   return useQuery({
     queryKey: ['comments', boardId],
@@ -227,7 +201,12 @@ export const useComments = (boardId) => {
           `/home/boards/${boardId}/comments`
         );
         console.log('댓글 목록 조회 성공:', response.data);
-        return response.data;
+
+        // 백엔드 응답 구조에 맞게 처리
+        if (response.data.content) {
+          return response.data.content; // 페이징된 응답의 경우
+        }
+        return response.data; // 배열로 직접 온 경우
       } catch (error) {
         console.error(
           '댓글 목록 조회 실패:',
@@ -235,22 +214,23 @@ export const useComments = (boardId) => {
           error.message
         );
 
-        // 401 에러인 경우 비로그인 상태로 처리
         if (error.isAuthError) {
           try {
             const publicResponse = await axios.get(
               `${BASE_URL}/home/boards/${boardId}/comments`
             );
             console.log('비로그인 상태로 댓글 조회 성공:', publicResponse.data);
+
+            if (publicResponse.data.content) {
+              return publicResponse.data.content;
+            }
             return publicResponse.data;
           } catch (publicError) {
             console.error('비로그인 상태 댓글 조회도 실패:', publicError);
-            // 댓글 조회 실패 시 빈 배열 반환
             return [];
           }
         }
 
-        // 다른 에러의 경우 빈 배열 반환
         return [];
       }
     },
@@ -263,7 +243,7 @@ export const useComments = (boardId) => {
   });
 };
 
-// 댓글 작성 (로그인 필요)
+// 댓글 작성 - 개선된 버전
 export const useCreateComment = () => {
   const queryClient = useQueryClient();
 
@@ -274,31 +254,43 @@ export const useCreateComment = () => {
         throw new Error('로그인이 필요합니다.');
       }
 
+      console.log('댓글 작성 요청:', { boardId, content });
+
+      // 댓글 데이터 형식 확인
+      const commentData = {
+        content: content.trim(),
+      };
+
       const response = await apiInstance.post(
         `/home/boards/${boardId}/comments`,
-        {
-          content,
-        }
+        commentData
       );
+
+      console.log('댓글 작성 성공:', response.data);
       return response.data;
     },
     onSuccess: (data, { boardId }) => {
+      console.log('댓글 작성 완료, 목록 새로고침');
       queryClient.invalidateQueries(['comments', boardId]);
       queryClient.invalidateQueries(['boardDetail', boardId]);
     },
-    onError: (error) => {
+    onError: (error, { boardId }) => {
+      console.error('댓글 작성 실패:', error);
+
       if (error.isAuthError || error.message === '로그인이 필요합니다.') {
         alert('로그인이 필요합니다.');
         window.location.href = '/login';
+      } else if (error.response?.status === 400) {
+        console.error('댓글 작성 400 에러:', error.response?.data);
+        alert('댓글 내용을 확인해주세요.');
       } else {
-        console.error('댓글 작성 실패:', error);
         alert('댓글 작성 중 오류가 발생했습니다.');
       }
     },
   });
 };
 
-// 댓글 좋아요 (로그인 필요)
+// 댓글 좋아요
 export const useLikeComment = () => {
   const queryClient = useQueryClient();
 
@@ -322,6 +314,8 @@ export const useLikeComment = () => {
       if (error.isAuthError || error.message === '로그인이 필요합니다.') {
         alert('로그인이 필요합니다.');
         window.location.href = '/login';
+      } else if (error.response?.status === 409) {
+        console.log('이미 좋아요를 누른 댓글입니다.');
       } else {
         console.error('댓글 좋아요 실패:', error);
       }
