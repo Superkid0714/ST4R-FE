@@ -127,7 +127,11 @@ export default function GroupDetailPage() {
               수정하기
             </div>
             <div
-              onClick={() => handleDelete.mutate(id)}
+              onClick={() => {
+                if (confirm('정말 삭제하시겠습니까?')) { // 확인 누르면 삭제
+                  handleDelete.mutate(id);
+                }
+              }}
               className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px] "
             >
               삭제하기
