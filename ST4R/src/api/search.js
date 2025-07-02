@@ -29,16 +29,11 @@ export const useSearchPosts = (searchQuery, options = {}) => {
         params.append('category', options.category);
       }
 
-      // 페이징 옵션 (1부터 시작)
-      if (options.size && options.size > 0) {
-        params.append('size', options.size);
-      }
+      // 더 많은 게시글을 한 번에 가져오기
+      params.append('size', options.size || 10); // 기본 10개
       if (options.page !== undefined && options.page >= 1) {
         params.append('page', options.page);
       }
-
-      // 검색어 파라미터 (추후 백엔드에서 지원 시 추가)
-      // params.append('query', searchQuery);
 
       console.log('검색 API 요청:', `${BASE_URL}/home?${params.toString()}`);
 
@@ -66,7 +61,7 @@ export const useSearchPosts = (searchQuery, options = {}) => {
   });
 };
 
-// 게시글 목록 조회
+// 게시글 목록 조회 (다양한 크기로 시도)
 export const useGetPosts = (options = {}) => {
   return useQuery({
     queryKey: ['posts', options],
@@ -88,19 +83,43 @@ export const useGetPosts = (options = {}) => {
         params.append('category', options.category);
       }
 
-      // 페이징 옵션 (1부터 시작)
-      if (options.size && options.size > 0) {
-        params.append('size', options.size);
-      }
-      if (options.page !== undefined && options.page >= 1) {
-        params.append('page', options.page);
-      }
+      // 다양한 size 파라미터 시도
+      const size = options.size || 20; // 기본값을 20으로 증가
+      params.append('size', size);
 
-      console.log('API 요청:', `${BASE_URL}/home?${params.toString()}`);
+      // limit 파라미터도 함께 시도 (백엔드가 다른 이름을 쓸 수도 있음)
+      params.append('limit', size);
+
+      // count 파라미터도 시도
+      params.append('count', size);
+
+      // 페이지 번호 (0부터 시작하는 경우도 시도)
+      const page = options.page || 0; // 0부터 시작으로 변경
+      params.append('page', page);
+
+      console.log(
+        'API 요청 (다양한 파라미터):',
+        `${BASE_URL}/home?${params.toString()}`
+      );
+      console.log('요청한 게시글 수:', size);
 
       const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
 
       console.log('API 응답:', response.data);
+      console.log(
+        '받은 게시글 수:',
+        response.data.boardPeeks?.content?.length || 0
+      );
+      console.log(
+        '총 게시글 수:',
+        response.data.boardPeeks?.totalElements || 0
+      );
+      console.log(
+        '현재 페이지:',
+        response.data.boardPeeks?.pageable?.pageNumber
+      );
+      console.log('페이지 크기:', response.data.boardPeeks?.pageable?.pageSize);
+      console.log('전체 페이지 수:', response.data.boardPeeks?.totalPages);
 
       return response.data;
     },

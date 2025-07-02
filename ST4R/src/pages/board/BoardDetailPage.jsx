@@ -5,7 +5,9 @@ import {
   useLikeBoard,
   useComments,
   useCreateComment,
-  useLikeComment,
+  useUpdateComment,
+  useDeleteComment,
+  // useLikeComment, // 댓글 좋아요 기능 없음
   useDeleteBoard,
 } from '../../api/boardDetail';
 import BackButton from '../../components/common/BackButton';
@@ -20,6 +22,8 @@ export default function BoardDetailPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState('');
 
   // 로그인 상태 확인
   useEffect(() => {
@@ -85,7 +89,9 @@ export default function BoardDetailPage() {
   const { data: comments, isLoading: isCommentsLoading } = useComments(id);
   const likeBoardMutation = useLikeBoard();
   const createCommentMutation = useCreateComment();
-  const likeCommentMutation = useLikeComment();
+  const updateCommentMutation = useUpdateComment();
+  const deleteCommentMutation = useDeleteComment();
+  // const likeCommentMutation = useLikeComment(); // 댓글 좋아요 기능 없음
   const deleteBoardMutation = useDeleteBoard();
 
   // 작성자인지 확인 - 백엔드 응답의 isViewerAuthor 사용
@@ -180,23 +186,70 @@ export default function BoardDetailPage() {
     );
   }, [isLoggedIn, navigate, newComment, createCommentMutation, id]);
 
-  // 댓글 좋아요
-  const handleCommentLike = useCallback(
+  // 댓글 수정 시작
+  const handleEditComment = useCallback((comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentContent(comment.content);
+  }, []);
+
+  // 댓글 수정 취소
+  const handleCancelEdit = useCallback(() => {
+    setEditingCommentId(null);
+    setEditingCommentContent('');
+  }, []);
+
+  // 댓글 수정 완료
+  const handleUpdateComment = useCallback(
     (commentId) => {
-      if (!isLoggedIn) {
-        if (
-          window.confirm(
-            '로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?'
-          )
-        ) {
-          navigate('/login');
-        }
+      if (!editingCommentContent.trim()) {
+        alert('댓글 내용을 입력해주세요.');
         return;
       }
-      likeCommentMutation.mutate({ boardId: id, commentId });
+
+      if (editingCommentContent.trim().length > 500) {
+        alert('댓글은 500자 이하로 입력해주세요.');
+        return;
+      }
+
+      updateCommentMutation.mutate(
+        {
+          boardId: id,
+          commentId,
+          content: editingCommentContent.trim(),
+        },
+        {
+          onSuccess: () => {
+            setEditingCommentId(null);
+            setEditingCommentContent('');
+          },
+          onError: (error) => {
+            console.error('댓글 수정 실패:', error);
+          },
+        }
+      );
     },
-    [isLoggedIn, navigate, likeCommentMutation, id]
+    [id, editingCommentContent, updateCommentMutation]
   );
+
+  // 댓글 삭제
+  const handleDeleteComment = useCallback(
+    (commentId) => {
+      if (window.confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+        deleteCommentMutation.mutate(
+          { boardId: id, commentId },
+          {
+            onError: (error) => {
+              console.error('댓글 삭제 실패:', error);
+            },
+          }
+        );
+      }
+    },
+    [id, deleteCommentMutation]
+  );
+
+  // 댓글 좋아요 기능 없음
+  // const handleCommentLike = useCallback(...)
 
   // 게시글 수정
   const handleEdit = useCallback(() => {
@@ -775,52 +828,98 @@ export default function BoardDetailPage() {
                             {getAuthorDisplayName(comment.author)}
                           </span>
                           {isCommentAuthor && (
-                            <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
-                              내 댓글
-                            </span>
-                          )}
-                          {post.author?.id === comment.author?.id && (
-                            <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
-                              글쓴이
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-500">
-                            {comment.createdAt
-                              ? new Date(comment.createdAt).toLocaleString(
-                                  'ko-KR'
-                                )
-                              : ''}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-300">
-                          {comment.content}
-                        </p>
-
-                        <div className="flex items-center space-x-4 mt-2">
-                          <button
-                            onClick={() => handleCommentLike(comment.id)}
-                            disabled={!isLoggedIn}
-                            className={`text-xs flex items-center space-x-1 transition-colors ${
-                              isLoggedIn
-                                ? 'text-gray-500 hover:text-gray-300'
-                                : 'text-gray-600 cursor-not-allowed'
-                            }`}
-                          >
                             <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                              className="w-4 h-4 text-blue-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
                             >
                               <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
                               />
                             </svg>
-                            <span>좋아요 {comment.likeCount || 0}</span>
-                          </button>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mb-2">
+                          {comment.createdAt
+                            ? new Date(comment.createdAt).toLocaleString(
+                                'ko-KR'
+                              )
+                            : ''}
+                        </div>
+
+                        {editingCommentId === comment.id ? (
+                          // 수정 모드
+                          <div className="mb-2">
+                            <textarea
+                              value={editingCommentContent}
+                              onChange={(e) =>
+                                setEditingCommentContent(e.target.value)
+                              }
+                              className="w-full bg-[#1A1A1A] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+                              rows={3}
+                              maxLength={500}
+                            />
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs text-gray-500">
+                                {editingCommentContent.length}/500
+                              </span>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-500 transition-colors"
+                                >
+                                  취소
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateComment(comment.id)
+                                  }
+                                  disabled={updateCommentMutation.isLoading}
+                                  className="px-3 py-1 text-xs bg-yellow-500 text-black rounded hover:bg-yellow-400 transition-colors disabled:opacity-50"
+                                >
+                                  {updateCommentMutation.isLoading
+                                    ? '수정중...'
+                                    : '수정'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          // 일반 모드
+                          <p className="text-sm text-gray-300 mb-2">
+                            {comment.content}
+                          </p>
+                        )}
+
+                        <div className="flex items-center space-x-4">
+                          {/* 댓글 좋아요 기능 없음 */}
+
+                          {/* 내 댓글인 경우 수정/삭제 버튼 표시 */}
+                          {isLoggedIn &&
+                            isCommentAuthor &&
+                            editingCommentId !== comment.id && (
+                              <>
+                                <button
+                                  onClick={() => handleEditComment(comment)}
+                                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteComment(comment.id)
+                                  }
+                                  disabled={deleteCommentMutation.isLoading}
+                                  className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                                >
+                                  {deleteCommentMutation.isLoading
+                                    ? '삭제중...'
+                                    : '삭제'}
+                                </button>
+                              </>
+                            )}
                         </div>
                       </div>
                     </div>

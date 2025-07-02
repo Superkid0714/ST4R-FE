@@ -290,8 +290,56 @@ export const useCreateComment = () => {
   });
 };
 
-// 댓글 좋아요
-export const useLikeComment = () => {
+// 댓글 수정
+export const useUpdateComment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ boardId, commentId, content }) => {
+      const token = validateAndCleanToken();
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      console.log('댓글 수정 요청:', { boardId, commentId, content });
+
+      const commentData = {
+        content: content.trim(),
+      };
+
+      const response = await apiInstance.put(
+        `/home/boards/${boardId}/comments/${commentId}`,
+        commentData
+      );
+
+      console.log('댓글 수정 성공:', response.data);
+      return response.data;
+    },
+    onSuccess: (data, { boardId }) => {
+      console.log('댓글 수정 완료, 목록 새로고침');
+      queryClient.invalidateQueries(['comments', boardId]);
+      queryClient.invalidateQueries(['boardDetail', boardId]);
+    },
+    onError: (error, { boardId }) => {
+      console.error('댓글 수정 실패:', error);
+
+      if (error.isAuthError || error.message === '로그인이 필요합니다.') {
+        alert('로그인이 필요합니다.');
+        window.location.href = '/login';
+      } else if (error.response?.status === 403) {
+        alert('댓글 수정 권한이 없습니다.');
+      } else if (error.response?.status === 400) {
+        console.error('댓글 수정 400 에러:', error.response?.data);
+        alert('댓글 내용을 확인해주세요.');
+      } else {
+        alert('댓글 수정 중 오류가 발생했습니다.');
+      }
+    },
+  });
+};
+
+// 댓글 삭제
+export const useDeleteComment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -301,23 +349,91 @@ export const useLikeComment = () => {
         throw new Error('로그인이 필요합니다.');
       }
 
-      const response = await apiInstance.post(
-        `/home/boards/${boardId}/comments/${commentId}/likes`,
-        {}
+      console.log('댓글 삭제 요청:', { boardId, commentId });
+
+      const response = await apiInstance.delete(
+        `/home/boards/${boardId}/comments/${commentId}`
       );
-      return response.data;
+
+      console.log('댓글 삭제 성공:', response.data);
+      return { commentId, boardId };
     },
-    onSuccess: (data, { boardId }) => {
-      queryClient.invalidateQueries(['comments', boardId]);
+    onMutate: async ({ boardId, commentId }) => {
+      // 진행 중인 쿼리들을 취소
+      await queryClient.cancelQueries(['comments', boardId]);
+      await queryClient.cancelQueries(['boardDetail', boardId]);
+
+      // 이전 데이터 백업
+      const previousComments = queryClient.getQueryData(['comments', boardId]);
+      const previousBoardDetail = queryClient.getQueryData([
+        'boardDetail',
+        boardId,
+      ]);
+
+      // 낙관적 업데이트: 댓글을 즉시 UI에서 제거
+      queryClient.setQueryData(['comments', boardId], (old) => {
+        if (!old || !Array.isArray(old)) {
+          console.log('댓글 데이터가 배열이 아님:', old);
+          return old;
+        }
+        const filtered = old.filter((comment) => comment.id !== commentId);
+        console.log('댓글 삭제 후 남은 댓글 수:', filtered.length);
+        return filtered;
+      });
+
+      // 게시글의 댓글 수 감소
+      queryClient.setQueryData(['boardDetail', boardId], (old) => {
+        if (!old) return old;
+        const updated = {
+          ...old,
+          commentCount: Math.max(0, (old.commentCount || 0) - 1),
+        };
+        console.log(
+          '댓글 수 업데이트:',
+          old.commentCount,
+          '->',
+          updated.commentCount
+        );
+        return updated;
+      });
+
+      return { previousComments, previousBoardDetail };
     },
-    onError: (error) => {
+    onSuccess: (data, variables) => {
+      console.log('댓글 삭제 성공, 최신 데이터 가져오기');
+      // 성공 시 서버에서 최신 데이터 가져오기
+      queryClient.invalidateQueries(['comments', variables.boardId]);
+      queryClient.invalidateQueries(['boardDetail', variables.boardId]);
+    },
+    onError: (error, { boardId }, context) => {
+      console.error('댓글 삭제 실패:', error);
+
+      // 에러 발생 시 이전 상태로 롤백
+      if (context?.previousComments) {
+        queryClient.setQueryData(
+          ['comments', boardId],
+          context.previousComments
+        );
+      }
+      if (context?.previousBoardDetail) {
+        queryClient.setQueryData(
+          ['boardDetail', boardId],
+          context.previousBoardDetail
+        );
+      }
+
       if (error.isAuthError || error.message === '로그인이 필요합니다.') {
         alert('로그인이 필요합니다.');
         window.location.href = '/login';
-      } else if (error.response?.status === 409) {
-        console.log('이미 좋아요를 누른 댓글입니다.');
+      } else if (error.response?.status === 403) {
+        alert('댓글 삭제 권한이 없습니다.');
+      } else if (error.response?.status === 404) {
+        alert('댓글을 찾을 수 없습니다.');
+        // 404인 경우 이미 삭제된 것으로 간주하고 목록 새로고침
+        queryClient.invalidateQueries(['comments', boardId]);
+        queryClient.invalidateQueries(['boardDetail', boardId]);
       } else {
-        console.error('댓글 좋아요 실패:', error);
+        alert('댓글 삭제 중 오류가 발생했습니다.');
       }
     },
   });

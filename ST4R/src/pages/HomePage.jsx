@@ -16,7 +16,7 @@ export default function HomePage() {
   const [currentPeriod, setCurrentPeriod] = useState('daily');
   const [currentCategory, setCurrentCategory] = useState('all');
 
-  // 백엔드에서 필터링된 게시글 목록 조회
+  // 게시글 목록 조회 (크기 증가해서 시도)
   const {
     data: postsData,
     isLoading: isPostsLoading,
@@ -26,6 +26,8 @@ export default function HomePage() {
     direction: currentDirection,
     period: currentPeriod,
     category: currentCategory,
+    size: 20, // 크기를 20으로 증가
+    page: 0, // 페이지를 0부터 시작으로 변경
   });
 
   // 표시할 게시글 목록 결정
@@ -65,14 +67,24 @@ export default function HomePage() {
     }
   };
 
+  console.log('=== 디버깅 정보 ===');
   console.log('현재 필터 옵션:', {
     sort: currentSort,
     direction: currentDirection,
     period: currentPeriod,
     category: currentCategory,
   });
-  console.log('표시할 게시글 개수:', displayPosts.length);
   console.log('검색 모드:', isSearchMode);
+  console.log('postsData:', postsData);
+  console.log('postsData.boardPeeks:', postsData?.boardPeeks);
+  console.log('postsData.boardPeeks.content:', postsData?.boardPeeks?.content);
+  console.log('displayPosts 배열:', displayPosts);
+  console.log('displayPosts 길이:', displayPosts.length);
+  console.log(
+    '각 게시글 ID:',
+    displayPosts.map((post) => post.id)
+  );
+  console.log('==================');
 
   return (
     <div className="min-h-screen bg-black">
@@ -135,16 +147,35 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 게시글 목록 */}
+        {/* 게시글 목록 - 디버깅용 */}
         {!postsError && !isPostsLoading && (
           <div className="space-y-6 mb-20">
-            {displayPosts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
+            {displayPosts.length > 0 ? (
+              displayPosts.map((post, index) => {
+                console.log(
+                  `렌더링 중: ${index + 1}번째 게시글, ID: ${post.id}, 제목: ${post.title}`
+                );
+                return (
+                  <div key={post.id} className="bg-gray-800 p-4 rounded-lg">
+                    <h3 className="text-white font-bold">
+                      {index + 1}. {post.title || '제목 없음'}
+                    </h3>
+                    <p className="text-gray-400 text-sm">ID: {post.id}</p>
+                    <p className="text-gray-300 mt-2">
+                      {post.contentPreview || '내용 미리보기 없음'}
+                    </p>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                게시글이 없습니다 (displayPosts.length = {displayPosts.length})
+              </div>
+            )}
           </div>
         )}
 
-        {/* 게시글이 없을 때 (로딩도 아니고 에러도 아닌 경우에만) */}
+        {/* 게시글이 없을 때 */}
         {!postsError && !isPostsLoading && displayPosts.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">해당하는 내용이 없습니다</p>
@@ -153,6 +184,17 @@ export default function HomePage() {
                 ? '다른 키워드로 검색해보세요'
                 : '다른 조건으로 검색해보세요'}
             </p>
+          </div>
+        )}
+
+        {/* 총 게시글 수 표시 */}
+        {!isPostsLoading && !isSearchMode && postsData?.boardPeeks && (
+          <div className="text-center py-4 text-gray-500 text-sm">
+            총 {postsData.boardPeeks.totalElements || 0}개 중{' '}
+            {displayPosts.length}개 표시
+            {postsData.boardPeeks.totalElements > displayPosts.length && (
+              <span> (더 많은 게시글이 있습니다)</span>
+            )}
           </div>
         )}
       </div>
