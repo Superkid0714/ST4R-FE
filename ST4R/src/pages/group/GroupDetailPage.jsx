@@ -2,10 +2,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
+import Bookmark from '../../components/common/Bookmark';
 import { useEffect, useState } from 'react';
 import JoinModal from '../../components/JoinModal';
 import Carousel from '../../components/common/Carousel';
 import { usegroupDelete } from '../../api/groupDelete';
+import { useBookmarkMutation } from '../../api/postBookmark';
 
 export default function GroupDetailPage() {
   const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
@@ -59,6 +61,13 @@ export default function GroupDetailPage() {
   //글 삭제하기
   const handleDelete = usegroupDelete();
 
+  //모임 찜 하기
+  const bookmarkMutation = useBookmarkMutation();
+  
+  const handleBookmark = () => {
+    bookmarkMutation.mutate({id : id, liked : groupDetail.liked});
+  };
+
   //예외처리
   if (isLoading) return <p>로딩 중...</p>;
   if (isError || !groupDetail) return <p>에러 발생</p>;
@@ -75,6 +84,10 @@ export default function GroupDetailPage() {
       {/* 사진 영역 */}
       <div className="relative">
         <BackButton className="absolute ml-2 mt-2 z-10 hover:cursor-pointer"></BackButton>
+        <Bookmark
+          handleClick={handleBookmark}
+          isliked={groupDetail.liked}
+        ></Bookmark>
         <Carousel imageUrls={groupDetail.imageUrls}></Carousel>
       </div>
 
@@ -121,14 +134,15 @@ export default function GroupDetailPage() {
         {groupDetail.isViewerAuthor ? (
           <div className="flex gap-2 h-[60px] leading-[60px] font-['Pretendard'] text-black text-lg font-bold">
             <div
-              onClick={()=> navigate(`/groups/edit/${id}`)}
+              onClick={() => navigate(`/groups/edit/${id}`)}
               className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px]  "
             >
               수정하기
             </div>
             <div
               onClick={() => {
-                if (confirm('정말 삭제하시겠습니까?')) { // 확인 누르면 삭제
+                if (confirm('정말 삭제하시겠습니까?')) {
+                  // 확인 누르면 삭제
                   handleDelete.mutate(id);
                 }
               }}
