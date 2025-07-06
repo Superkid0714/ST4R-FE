@@ -189,7 +189,7 @@ export const useLikeBoard = () => {
   });
 };
 
-// 댓글 목록 조회
+// 댓글 목록 조회 - 개선된 에러 처리
 export const useComments = (boardId) => {
   return useQuery({
     queryKey: ['comments', boardId],
@@ -214,6 +214,12 @@ export const useComments = (boardId) => {
           error.message
         );
 
+        // 500 에러 등 서버 에러의 경우 빈 배열 반환
+        if (error.response?.status >= 500) {
+          console.log('서버 에러로 인해 빈 댓글 목록 반환');
+          return [];
+        }
+
         if (error.isAuthError) {
           try {
             const publicResponse = await axios.get(
@@ -227,18 +233,29 @@ export const useComments = (boardId) => {
             return publicResponse.data;
           } catch (publicError) {
             console.error('비로그인 상태 댓글 조회도 실패:', publicError);
+            // 공개 조회도 실패하면 빈 배열 반환
+            if (publicError.response?.status >= 500) {
+              return [];
+            }
             return [];
           }
         }
 
+        // 기타 에러의 경우도 빈 배열 반환하여 앱이 크래시되지 않도록 함
         return [];
       }
     },
     enabled: !!boardId,
     staleTime: 1000 * 60 * 2,
     retry: (failureCount, error) => {
+      // 500 에러는 재시도하지 않음
+      if (error?.response?.status >= 500) return false;
       if (error?.isAuthError) return false;
-      return failureCount < 2;
+      return failureCount < 1; // 1회만 재시도
+    },
+    // 에러가 발생해도 빈 배열을 반환하도록 설정
+    onError: (error) => {
+      console.log('댓글 조회 에러, 빈 배열로 처리:', error.message);
     },
   });
 };
@@ -283,6 +300,10 @@ export const useCreateComment = () => {
       } else if (error.response?.status === 400) {
         console.error('댓글 작성 400 에러:', error.response?.data);
         alert('댓글 내용을 확인해주세요.');
+      } else if (error.response?.status >= 500) {
+        alert(
+          '서버 오류로 댓글 작성에 실패했습니다. 잠시 후 다시 시도해주세요.'
+        );
       } else {
         alert('댓글 작성 중 오류가 발생했습니다.');
       }
@@ -331,6 +352,10 @@ export const useUpdateComment = () => {
       } else if (error.response?.status === 400) {
         console.error('댓글 수정 400 에러:', error.response?.data);
         alert('댓글 내용을 확인해주세요.');
+      } else if (error.response?.status >= 500) {
+        alert(
+          '서버 오류로 댓글 수정에 실패했습니다. 잠시 후 다시 시도해주세요.'
+        );
       } else {
         alert('댓글 수정 중 오류가 발생했습니다.');
       }
@@ -432,6 +457,10 @@ export const useDeleteComment = () => {
         // 404인 경우 이미 삭제된 것으로 간주하고 목록 새로고침
         queryClient.invalidateQueries(['comments', boardId]);
         queryClient.invalidateQueries(['boardDetail', boardId]);
+      } else if (error.response?.status >= 500) {
+        alert(
+          '서버 오류로 댓글 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.'
+        );
       } else {
         alert('댓글 삭제 중 오류가 발생했습니다.');
       }

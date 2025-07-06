@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGetPosts, useInfiniteGetPosts } from '../api/search';
+import { useGetPosts } from '../api/search';
 import Header from '../layouts/Header';
 import PostCard from '../components/PostCard';
 import FilterBar from '../components/FilterBar';
@@ -9,8 +9,6 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  const [useInfiniteScroll, setUseInfiniteScroll] = useState(false); // 무한 스크롤 토글
-  const observerRef = useRef();
 
   // 백엔드 API에 전달할 옵션들
   const [currentSort, setCurrentSort] = useState('createdAt');
@@ -18,7 +16,7 @@ export default function HomePage() {
   const [currentPeriod, setCurrentPeriod] = useState('daily');
   const [currentCategory, setCurrentCategory] = useState('all');
 
-  // 기존 방식 (한 번에 모든 게시글 로드)
+  // 게시글 목록 조회 (기본 방식만 사용)
   const {
     data: postsData,
     isLoading: isPostsLoading,
@@ -30,22 +28,6 @@ export default function HomePage() {
     category: currentCategory,
   });
 
-  // 무한 스크롤용 게시글 목록 조회
-  const {
-    data: infiniteData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isInfiniteLoading,
-    error: infiniteError,
-  } = useInfiniteGetPosts({
-    sort: currentSort,
-    direction: currentDirection,
-    period: currentPeriod,
-    category: currentCategory,
-    size: 10, // 한 페이지당 10개
-  });
-
   // 표시할 게시글 목록 결정
   let displayPosts = [];
   let isLoading = false;
@@ -53,43 +35,11 @@ export default function HomePage() {
 
   if (isSearchMode) {
     displayPosts = searchResults;
-  } else if (useInfiniteScroll) {
-    // 무한 스크롤 모드
-    displayPosts =
-      infiniteData?.pages?.flatMap((page) => page.boardPeeks?.content || []) ||
-      [];
-    isLoading = isInfiniteLoading;
-    error = infiniteError;
   } else {
-    // 기존 모드 (한 번에 모든 게시글)
     displayPosts = postsData?.boardPeeks?.content || [];
     isLoading = isPostsLoading;
     error = postsError;
   }
-
-  // 무한 스크롤 감지를 위한 Intersection Observer
-  const lastPostElementRef = useCallback(
-    (node) => {
-      if (!useInfiniteScroll || isInfiniteLoading) return;
-      if (observerRef.current) observerRef.current.disconnect();
-
-      observerRef.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          console.log('마지막 게시글이 보임, 다음 페이지 로드');
-          fetchNextPage();
-        }
-      });
-
-      if (node) observerRef.current.observe(node);
-    },
-    [
-      useInfiniteScroll,
-      isInfiniteLoading,
-      fetchNextPage,
-      hasNextPage,
-      isFetchingNextPage,
-    ]
-  );
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -131,7 +81,6 @@ export default function HomePage() {
   });
   console.log('표시할 게시글 개수:', displayPosts.length);
   console.log('검색 모드:', isSearchMode);
-  console.log('무한 스크롤 모드:', useInfiniteScroll);
 
   return (
     <div className="min-h-screen bg-black">
@@ -140,33 +89,19 @@ export default function HomePage() {
 
       {/* 메인 컨텐츠 영역 */}
       <div className="px-2 pt-2">
-        {/* FilterBar와 무한 스크롤 토글 */}
+        {/* FilterBar */}
         {!isSearchMode && (
           <div className="flex items-center justify-between mb-4">
             <span className="text-yellow-500 text-lg">⭐</span>
-            <div className="flex items-center space-x-3">
-              {/* 무한 스크롤 토글 버튼 */}
-              <button
-                onClick={() => setUseInfiniteScroll(!useInfiniteScroll)}
-                className={`px-3 py-1 rounded-full text-xs transition-colors ${
-                  useInfiniteScroll
-                    ? 'bg-yellow-500 text-black'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {useInfiniteScroll ? '무한 스크롤 ON' : '무한 스크롤 OFF'}
-              </button>
-
-              <div className="flex-shrink-0">
-                <FilterBar
-                  currentPeriod={currentPeriod}
-                  currentSort={currentSort}
-                  currentDirection={currentDirection}
-                  currentCategory={currentCategory}
-                  onPeriodChange={handlePeriodChange}
-                  onSortFilterChange={handleSortFilterChange}
-                />
-              </div>
+            <div className="flex-shrink-0">
+              <FilterBar
+                currentPeriod={currentPeriod}
+                currentSort={currentSort}
+                currentDirection={currentDirection}
+                currentCategory={currentCategory}
+                onPeriodChange={handlePeriodChange}
+                onSortFilterChange={handleSortFilterChange}
+              />
             </div>
           </div>
         )}
@@ -208,43 +143,9 @@ export default function HomePage() {
         {/* 게시글 목록 */}
         {!error && !isLoading && (
           <div className="space-y-6 mb-20">
-            {displayPosts.map((post, index) => {
-              // 무한 스크롤 모드에서 마지막 게시글에 ref 추가
-              if (
-                index === displayPosts.length - 1 &&
-                useInfiniteScroll &&
-                !isSearchMode
-              ) {
-                return (
-                  <div key={post.id} ref={lastPostElementRef}>
-                    <PostCard post={post} />
-                  </div>
-                );
-              }
-              return <PostCard key={post.id} post={post} />;
-            })}
-
-            {/* 무한 스크롤: 다음 페이지 로딩 표시 */}
-            {useInfiniteScroll && isFetchingNextPage && !isSearchMode && (
-              <div className="flex justify-center items-center py-4">
-                <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                <span className="text-gray-400 text-sm">
-                  더 많은 게시글을 불러오는 중...
-                </span>
-              </div>
-            )}
-
-            {/* 무한 스크롤: 더 이상 게시글이 없을 때 */}
-            {useInfiniteScroll &&
-              !hasNextPage &&
-              !isSearchMode &&
-              displayPosts.length > 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">
-                    모든 게시글을 확인했습니다
-                  </p>
-                </div>
-              )}
+            {displayPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
           </div>
         )}
 
