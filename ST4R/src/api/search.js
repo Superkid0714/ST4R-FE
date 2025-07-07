@@ -3,7 +3,59 @@ import axios from 'axios';
 
 const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
 
-// 게시글 검색 API (클라이언트 사이드 검색 - 백엔드 지원 시까지)
+// 백엔드 검색 API (새로 추가)
+export const useBackendSearchPosts = (searchQuery, options = {}) => {
+  return useQuery({
+    queryKey: ['backendSearchPosts', searchQuery, options],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+
+      // 검색어 추가
+      if (searchQuery?.trim()) {
+        params.append('query', searchQuery.trim());
+      }
+
+      // 기간 옵션 (필수 파라미터)
+      const period = options.period || 'daily';
+      params.append('period', period);
+
+      // 정렬 옵션
+      const sort = options.sort || 'createdAt';
+      const direction = options.direction || 'desc';
+      params.append('sort', sort);
+      params.append('direction', direction);
+
+      // 카테고리 옵션
+      if (options.category && options.category !== 'all') {
+        params.append('categories', options.category.toLowerCase());
+      }
+
+      // 페이징 옵션 (1부터 시작)
+      if (options.size && options.size > 0) {
+        params.append('size', options.size);
+      }
+      if (options.page !== undefined && options.page >= 1) {
+        params.append('page', options.page);
+      }
+
+      console.log(
+        '백엔드 검색 API 요청:',
+        `${BASE_URL}/home?${params.toString()}`
+      );
+
+      const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
+
+      console.log('백엔드 검색 API 응답:', response.data);
+
+      return response.data;
+    },
+    enabled: true, // 검색어가 없어도 전체 목록 조회
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    retry: 2,
+  });
+};
+
+// 기존 클라이언트 사이드 검색 (백업용으로 유지)
 export const useSearchPosts = (searchQuery, options = {}) => {
   return useQuery({
     queryKey: ['searchPosts', searchQuery, options],
@@ -37,10 +89,10 @@ export const useSearchPosts = (searchQuery, options = {}) => {
         params.append('page', options.page);
       }
 
-      // 검색어 파라미터 (추후 백엔드에서 지원 시 추가)
-      // params.append('query', searchQuery);
-
-      console.log('검색 API 요청:', `${BASE_URL}/home?${params.toString()}`);
+      console.log(
+        '클라이언트 검색 API 요청:',
+        `${BASE_URL}/home?${params.toString()}`
+      );
 
       const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
 
@@ -85,7 +137,7 @@ export const useGetPosts = (options = {}) => {
 
       // 카테고리 옵션 (백엔드에서 지원)
       if (options.category && options.category !== 'all') {
-        params.append('category', options.category);
+        params.append('categories', options.category.toLowerCase());
       }
 
       // 페이징 옵션 (1부터 시작)
@@ -128,7 +180,7 @@ export const useInfiniteGetPosts = (options = {}) => {
 
       // 카테고리 옵션
       if (options.category && options.category !== 'all') {
-        params.append('category', options.category);
+        params.append('categories', options.category.toLowerCase());
       }
 
       // 페이징 옵션

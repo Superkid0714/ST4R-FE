@@ -2,8 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/common/SearchBar';
 import FortuneIcon from '../assets/icons/fortune.svg?react';
 
-export default function Header({ onSearchResults, allPosts = [] }) {
-  // props 추가
+export default function Header({
+  onSearch,
+  isSearchLoading = false,
+  searchQuery = '',
+}) {
   const navigate = useNavigate();
 
   // 토큰 존재 여부로 로그인 상태 확인
@@ -134,7 +137,11 @@ export default function Header({ onSearchResults, allPosts = [] }) {
 
         {/* 검색바 */}
         <div className="mb-5">
-          <SearchBar onSearchResults={onSearchResults} allPosts={allPosts} placeholder="별자리에 관해 궁금한 글들을 검색해보세요." />
+          <SearchBar
+            onSearch={onSearch}
+            isLoading={isSearchLoading}
+            placeholder="별자리에 관해 궁금한 글들을 검색해보세요."
+          />
         </div>
       </div>
     </header>

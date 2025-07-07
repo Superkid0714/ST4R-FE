@@ -1,52 +1,32 @@
 import { useState } from 'react';
 
-export default function SearchBar({ onSearchResults, allPosts = [], placeholder }) {
+export default function SearchBar({
+  onSearch,
+  placeholder,
+  isLoading = false,
+}) {
   const [searchQuery, setSearchQuery] = useState('');
-
-  // 클라이언트 사이드 검색 함수
-  const performSearch = (query) => {
-    if (!query.trim()) {
-      return [];
-    }
-
-    const searchTerm = query.toLowerCase();
-    return allPosts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(searchTerm) ||
-        post.contentPreview?.toLowerCase().includes(searchTerm)
-    );
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const results = performSearch(searchQuery);
-    console.log(`검색어: "${searchQuery}", 결과: ${results.length}개`);
-
-    if (onSearchResults) {
-      // 검색 결과와 검색어를 함께 전달
-      onSearchResults(results, searchQuery);
+    // 검색어를 부모 컴포넌트로 전달 (빈 문자열도 허용)
+    if (onSearch) {
+      onSearch(searchQuery.trim());
     }
   };
 
   const handleClear = () => {
     setSearchQuery('');
-    if (onSearchResults) {
-      // 빈 결과와 빈 검색어를 전달하여 일반 모드로 전환
-      onSearchResults([], '');
+    if (onSearch) {
+      // 빈 검색어로 초기화
+      onSearch('');
     }
   };
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-
-    // 검색어가 비워지면 결과 초기화
-    if (!value.trim()) {
-      if (onSearchResults) {
-        onSearchResults([], '');
-      }
-    }
   };
 
   return (
@@ -54,30 +34,39 @@ export default function SearchBar({ onSearchResults, allPosts = [], placeholder 
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center bg-[#1A1A1A] rounded-lg px-4 py-3">
           {/* 검색 아이콘 */}
-          <button type="submit" className="flex-shrink-0 mr-3">
-            <svg
-              className="w-5 h-5 text-yellow-500 hover:text-yellow-400 transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+          <button
+            type="submit"
+            className="flex-shrink-0 mr-3"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg
+                className="w-5 h-5 text-yellow-500 hover:text-yellow-400 transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            )}
           </button>
 
           {/* 입력 필드 */}
-          <input 
+          <input
             type="text"
             placeholder={placeholder}
             className="bg-transparent font-['Pretendard'] text-gray-300 placeholder-gray-500 w-full focus:outline-none text-sm"
             value={searchQuery}
             onChange={handleInputChange}
+            disabled={isLoading}
           />
 
           {/* 클리어 버튼 */}
@@ -86,6 +75,7 @@ export default function SearchBar({ onSearchResults, allPosts = [], placeholder 
               type="button"
               onClick={handleClear}
               className="ml-2 text-gray-400 hover:text-gray-300 transition-colors flex-shrink-0"
+              disabled={isLoading}
             >
               <svg
                 className="w-4 h-4"
