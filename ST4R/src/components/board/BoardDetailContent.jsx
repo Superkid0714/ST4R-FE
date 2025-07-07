@@ -8,8 +8,6 @@ export default function BoardDetailContent({
 }) {
   if (!post) return null;
 
-  const allImages = post.imageUrls || [];
-
   return (
     <div className="px-4 py-6 -mt-8 relative bg-black rounded-t-3xl">
       {/* 카테고리 배지 */}
@@ -49,15 +47,6 @@ export default function BoardDetailContent({
           {post.content?.text || post.contentPreview}
         </p>
       </div>
-
-      {/* 추가 이미지들 */}
-      {allImages.length > 1 && (
-        <AdditionalImages
-          images={allImages.slice(1)}
-          title={post.title}
-          onImageClick={onImageClick}
-        />
-      )}
 
       {/* 지도 */}
       {post.content?.map && (
@@ -169,31 +158,6 @@ function PostStats({ likeCount, viewCount, commentCount }) {
           />
         </svg>
         <span>{commentCount || 0}</span>
-      </div>
-    </div>
-  );
-}
-
-// 추가 이미지들 컴포넌트
-function AdditionalImages({ images, title, onImageClick }) {
-  return (
-    <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-3">추가 이미지</h3>
-      <div className="grid grid-cols-1 gap-4">
-        {images.map((imageUrl, index) => (
-          <div key={index} className="relative group">
-            <img
-              src={imageUrl}
-              alt={`${title} - ${index + 2}`}
-              className="w-full rounded-lg object-cover max-h-96 cursor-pointer transition-transform group-hover:scale-[1.02]"
-              onClick={() => onImageClick(index + 1)}
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg" />
-            <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-              클릭하여 확대
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

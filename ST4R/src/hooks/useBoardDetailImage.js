@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export function useBoardDetailImage() {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
@@ -15,8 +15,8 @@ export function useBoardDetailImage() {
     setIsImageViewerOpen(false);
   }, []);
 
-  // 전역 이미지 뷰어 설정 (헤더 컴포넌트에서 사용)
-  useCallback(() => {
+  // 전역 이미지 뷰어 설정 (헤더 컴포넌트에서 사용) - 이 부분이 누락되어 있었습니다!
+  useEffect(() => {
     window.boardDetailImageViewer = {
       open: handleImageClick,
     };

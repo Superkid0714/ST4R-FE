@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import BackButton from '../common/BackButton';
 
 export default function BoardDetailHeader({
@@ -12,6 +12,7 @@ export default function BoardDetailHeader({
   onDelete,
   onShare,
   likeMutation,
+  onImageClick,
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -32,12 +33,38 @@ export default function BoardDetailHeader({
     );
   }, [allImages.length]);
 
-  const handleImageClick = useCallback(() => {
-    // 이미지 뷰어 열기 이벤트를 부모로 전달
-    if (window.boardDetailImageViewer) {
-      window.boardDetailImageViewer.open(currentImageIndex);
-    }
-  }, [currentImageIndex]);
+  // 이미지 클릭 핸들러
+  const handleImageClick = useCallback(
+    (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      if (onImageClick) {
+        onImageClick(currentImageIndex);
+      }
+    },
+    [currentImageIndex, onImageClick]
+  );
+
+  // 키보드 네비게이션
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (allImages.length <= 1) return;
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPrevImage();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNextImage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goToPrevImage, goToNextImage, allImages.length]);
 
   if (!post) return null;
 
@@ -45,14 +72,19 @@ export default function BoardDetailHeader({
     <div className="relative h-80 overflow-hidden">
       {allImages.length > 0 ? (
         <div className="relative group h-full">
+          {/* 클릭 가능한 이미지 영역 */}
+          <div
+            className="absolute inset-0 w-full h-full cursor-pointer z-10"
+            onClick={handleImageClick}
+          />
+
           {/* 현재 이미지 */}
           <img
             src={allImages[currentImageIndex] || allImages[0]}
             alt={`${post.title} - ${currentImageIndex + 1}`}
-            className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
-            onClick={handleImageClick}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            style={{ pointerEvents: 'none' }}
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
           {/* 이미지 슬라이드 컨트롤 */}
           {allImages.length > 1 && (
@@ -63,7 +95,8 @@ export default function BoardDetailHeader({
                   e.stopPropagation();
                   goToPrevImage();
                 }}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-all duration-200 opacity-0 group-hover:opacity-100 z-20"
+                aria-label="이전 이미지"
               >
                 <svg
                   className="w-6 h-6 text-white"
@@ -86,7 +119,8 @@ export default function BoardDetailHeader({
                   e.stopPropagation();
                   goToNextImage();
                 }}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-all duration-200 opacity-0 group-hover:opacity-100 z-20"
+                aria-label="다음 이미지"
               >
                 <svg
                   className="w-6 h-6 text-white"
@@ -104,7 +138,7 @@ export default function BoardDetailHeader({
               </button>
 
               {/* 슬라이드 인디케이터 */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
                 {allImages.map((_, index) => (
                   <button
                     key={index}
@@ -112,19 +146,24 @@ export default function BoardDetailHeader({
                       e.stopPropagation();
                       setCurrentImageIndex(index);
                     }}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                      index === currentImageIndex
+                        ? 'bg-white'
+                        : 'bg-white/50 hover:bg-white/75'
                     }`}
+                    aria-label={`이미지 ${index + 1}로 이동`}
                   />
                 ))}
               </div>
             </>
           )}
 
-          {/* 확대 안내 */}
-          <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-            📷 클릭하여 확대
-          </div>
+          {/* 이미지 카운터 표시 */}
+          {allImages.length > 1 && (
+            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium z-20">
+              {currentImageIndex + 1} / {allImages.length}
+            </div>
+          )}
         </div>
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -144,9 +183,9 @@ export default function BoardDetailHeader({
         </div>
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80 pointer-events-none" />
 
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+      <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-30">
         <BackButton className="bg-black/50 backdrop-blur-sm" />
 
         <div className="flex space-x-2">
@@ -157,6 +196,7 @@ export default function BoardDetailHeader({
                 <button
                   onClick={onDelete}
                   className="p-3 bg-red-500/50 backdrop-blur-sm rounded-full hover:bg-red-500/70 transition-colors"
+                  aria-label="게시글 삭제"
                 >
                   <svg
                     className="w-5 h-5"
@@ -175,6 +215,7 @@ export default function BoardDetailHeader({
                 <button
                   onClick={onEdit}
                   className="p-3 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+                  aria-label="게시글 수정"
                 >
                   <svg
                     className="w-5 h-5"
@@ -193,6 +234,7 @@ export default function BoardDetailHeader({
                 <button
                   onClick={onShare}
                   className="p-3 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+                  aria-label="게시글 공유"
                 >
                   <svg
                     className="w-5 h-5"
@@ -220,6 +262,7 @@ export default function BoardDetailHeader({
                 <button
                   onClick={onShare}
                   className="p-3 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+                  aria-label="게시글 공유"
                 >
                   <svg
                     className="w-5 h-5"
@@ -247,6 +290,7 @@ export default function BoardDetailHeader({
             <button
               onClick={onShare}
               className="p-3 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+              aria-label="게시글 공유"
             >
               <svg
                 className="w-5 h-5"
@@ -265,15 +309,6 @@ export default function BoardDetailHeader({
           )}
         </div>
       </div>
-
-      {/* 이미지 카운터 표시 */}
-      {allImages.length > 1 && (
-        <div className="absolute bottom-4 right-4">
-          <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium">
-            {currentImageIndex + 1} / {allImages.length}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -290,6 +325,7 @@ function LikeButton({ isLiked, onClick, isLoading }) {
           : 'bg-black/50 hover:bg-black/70'
       } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={isLiked ? '좋아요 취소' : '좋아요'}
+      aria-label={isLiked ? '좋아요 취소' : '좋아요'}
     >
       <svg
         className={`w-5 h-5 ${isLiked ? 'text-white fill-current' : 'text-white'}`}

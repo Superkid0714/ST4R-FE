@@ -112,6 +112,7 @@ export default function BoardDetailPage() {
           onDelete={handleDelete}
           onShare={handleShare}
           likeMutation={likeBoardMutation}
+          onImageClick={handleImageClick}
         />
 
         {/* 메인 콘텐츠 */}
@@ -226,7 +227,7 @@ function ErrorState({ error, isLoggedIn, boardId, navigate, onBack }) {
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={1}
+            strokeWidth={2}
             d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
