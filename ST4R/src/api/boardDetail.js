@@ -151,7 +151,7 @@ export const useDeleteBoard = () => {
   });
 };
 
-// 게시글 좋아요 토글 - 개선된 버전
+// 게시글 좋아요 토글 - 409 에러 처리 개선
 export const useLikeBoard = () => {
   const queryClient = useQueryClient();
 
@@ -162,28 +162,137 @@ export const useLikeBoard = () => {
         throw new Error('로그인이 필요합니다.');
       }
 
-      const response = await apiInstance.post(
-        `/home/boards/${boardId}/likes`,
-        {}
-      );
-      return response.data;
+      console.log('좋아요 요청 시작:', boardId);
+
+      try {
+        // 좋아요 API 호출
+        const response = await apiInstance.post(
+          `/home/boards/${boardId}/likes`,
+          {}
+        );
+        console.log('좋아요 요청 성공:', response.data);
+        return response.data;
+      } catch (error) {
+        // 409 Conflict 에러는 이미 좋아요한 상태에서 다시 좋아요를 시도할 때 발생
+        if (error.response?.status === 409) {
+          console.log('409 에러 감지 - 좋아요 취소 시도');
+
+          try {
+            // 좋아요 취소 API 호출 (DELETE 방식)
+            const deleteResponse = await apiInstance.delete(
+              `/home/boards/${boardId}/likes`
+            );
+            console.log('좋아요 취소 성공:', deleteResponse.data);
+            return { action: 'unlike', data: deleteResponse.data };
+          } catch (deleteError) {
+            console.error('좋아요 취소 실패:', deleteError);
+
+            // DELETE 엔드포인트가 없는 경우, 다시 POST로 토글 시도
+            if (
+              deleteError.response?.status === 404 ||
+              deleteError.response?.status === 405
+            ) {
+              console.log('DELETE 엔드포인트 없음 - POST로 토글 시도');
+
+              // 백엔드가 POST 요청으로 토글을 지원하는지 확인
+              // 409 에러가 나는 것은 이미 좋아요한 상태이므로,
+              // 게시글 상태를 새로고침하여 현재 상태를 확인
+              const currentPostResponse = await apiInstance.get(
+                `/home/boards/${boardId}`
+              );
+              const currentPost = currentPostResponse.data;
+
+              return {
+                action: 'refresh',
+                liked: currentPost.liked,
+                likeCount: currentPost.likeCount,
+              };
+            }
+
+            throw deleteError;
+          }
+        }
+
+        throw error;
+      }
+    },
+    onMutate: async (boardId) => {
+      // 낙관적 업데이트를 위해 현재 쿼리 취소
+      await queryClient.cancelQueries(['boardDetail', boardId]);
+
+      // 이전 데이터 백업
+      const previousBoardDetail = queryClient.getQueryData([
+        'boardDetail',
+        boardId,
+      ]);
+
+      // 낙관적 업데이트: 좋아요 상태 토글
+      queryClient.setQueryData(['boardDetail', boardId], (old) => {
+        if (!old) return old;
+
+        const newLiked = !old.liked;
+        const newLikeCount = newLiked
+          ? (old.likeCount || 0) + 1
+          : Math.max(0, (old.likeCount || 0) - 1);
+
+        console.log('낙관적 업데이트:', {
+          이전: { liked: old.liked, likeCount: old.likeCount },
+          변경: { liked: newLiked, likeCount: newLikeCount },
+        });
+
+        return {
+          ...old,
+          liked: newLiked,
+          likeCount: newLikeCount,
+        };
+      });
+
+      return { previousBoardDetail };
     },
     onSuccess: (data, boardId) => {
-      queryClient.invalidateQueries(['boardDetail', boardId]);
+      console.log('좋아요 토글 성공:', data);
+
+      // 서버 응답에 따라 상태 업데이트
+      if (data?.action === 'refresh') {
+        // 서버에서 현재 상태를 받아온 경우
+        queryClient.setQueryData(['boardDetail', boardId], (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            liked: data.liked,
+            likeCount: data.likeCount,
+          };
+        });
+      } else {
+        // 일반적인 경우 게시글 정보 새로고침
+        queryClient.invalidateQueries(['boardDetail', boardId]);
+      }
+
+      // 게시글 목록도 새로고침
       queryClient.invalidateQueries(['posts']);
     },
-    onError: (error, boardId) => {
+    onError: (error, boardId, context) => {
+      console.error('좋아요 토글 실패:', error);
+
+      // 에러 발생 시 이전 상태로 롤백
+      if (context?.previousBoardDetail) {
+        queryClient.setQueryData(
+          ['boardDetail', boardId],
+          context.previousBoardDetail
+        );
+      }
+
       if (error.isAuthError || error.message === '로그인이 필요합니다.') {
         alert('로그인이 필요합니다.');
         window.location.href = '/login';
-      } else if (error.response?.status === 409) {
-        // 409 에러는 이미 좋아요를 누른 상태이므로 특별 처리하지 않음
-        console.log('이미 좋아요를 누른 게시글입니다.');
-        // 게시글 정보를 다시 불러와서 최신 상태로 업데이트
-        queryClient.invalidateQueries(['boardDetail', boardId]);
       } else {
-        console.error('좋아요 실패:', error);
-        alert('좋아요 처리 중 오류가 발생했습니다.');
+        console.error('좋아요 처리 중 예상치 못한 오류:', error);
+
+        // 다른 에러의 경우 게시글 정보를 새로고침하여 정확한 상태 동기화
+        queryClient.invalidateQueries(['boardDetail', boardId]);
+
+        // 사용자에게는 간단한 메시지만 표시
+        alert('잠시 후 다시 시도해주세요.');
       }
     },
   });

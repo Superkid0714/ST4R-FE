@@ -695,51 +695,27 @@ export default function BoardDetailPage() {
             {post.title}
           </h1>
 
-          {/* 작성자 정보 */}
+          {/* 작성자 정보 - 프로필 사진을 일정하게 변경 */}
           <div className="mb-6">
             <div className="flex space-x-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-                style={{
-                  backgroundColor: `hsl(${
-                    Math.abs(
-                      (
-                        post.author?.id?.toString() ||
-                        post.author?.name ||
-                        'anonymous'
-                      )
-                        .split('')
-                        .reduce(
-                          (hash, char) =>
-                            char.charCodeAt(0) + ((hash << 5) - hash),
-                          0
-                        )
-                    ) % 360
-                  }, 65%, 55%)`,
-                }}
-              >
-                {post.author?.profileImage ? (
-                  <img
-                    src={post.author.profileImage}
-                    alt={getAuthorDisplayName(post.author)}
-                    className="w-full h-full rounded-full object-cover"
+              <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                <svg
+                  className="w-6 h-6 text-gray-300"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clipRule="evenodd"
                   />
-                ) : (
-                  <span>
-                    {getAuthorDisplayName(post.author).charAt(0).toUpperCase()}
-                  </span>
-                )}
+                </svg>
               </div>
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
                   <p className="font-medium">
                     {getAuthorDisplayName(post.author)}
                   </p>
-                  {isLoggedIn && currentIsAuthor && (
-                    <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-medium">
-                      작성자
-                    </span>
-                  )}
                 </div>
                 {/* 작성 날짜와 통계 정보를 같은 줄에 배치 */}
                 <div className="flex items-center space-x-4">
@@ -858,39 +834,18 @@ export default function BoardDetailPage() {
             {/* 댓글 작성 */}
             {isLoggedIn ? (
               <div className="flex space-x-3">
-                <div
-                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-medium text-xs"
-                  style={{
-                    backgroundColor: `hsl(${
-                      Math.abs(
-                        (
-                          currentUser?.id?.toString() ||
-                          currentUser?.name ||
-                          'anonymous'
-                        )
-                          .split('')
-                          .reduce(
-                            (hash, char) =>
-                              char.charCodeAt(0) + ((hash << 5) - hash),
-                            0
-                          )
-                      ) % 360
-                    }, 65%, 55%)`,
-                  }}
-                >
-                  {currentUser?.profileImage ? (
-                    <img
-                      src={currentUser.profileImage}
-                      alt={getAuthorDisplayName(currentUser)}
-                      className="w-full h-full rounded-full object-cover"
+                <div className="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center text-white font-medium text-xs">
+                  <svg
+                    className="w-5 h-5 text-gray-300"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
                     />
-                  ) : (
-                    <span>
-                      {getAuthorDisplayName(currentUser)
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  )}
+                  </svg>
                 </div>
                 <div className="flex-1 flex space-x-2">
                   <input
@@ -917,15 +872,17 @@ export default function BoardDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-[#1A1A1A] rounded-lg p-4 text-center">
-                <p className="text-gray-400 mb-3">
-                  댓글을 작성하려면 로그인이 필요합니다.
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="bg-[#1D1D1D] rounded-2xl px-5 py-4 flex-1">
+                  <span className="text-[#D3D3D3] text-sm font-normal">
+                    지금 로그인하고 댓글을 남겨보세요!
+                  </span>
+                </div>
                 <button
                   onClick={() => navigate('/login')}
-                  className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+                  className="bg-[#FFBB02] text-black px-5 py-4 rounded-2xl font-bold text-sm hover:bg-[#E6A500] transition-colors flex-shrink-0"
                 >
-                  로그인하기
+                  로그인
                 </button>
               </div>
             )}
@@ -943,58 +900,72 @@ export default function BoardDetailPage() {
 
                   return (
                     <div key={comment.id} className="flex space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-medium text-xs"
-                        style={{
-                          backgroundColor: `hsl(${
-                            Math.abs(
-                              (
-                                comment.author?.id?.toString() ||
-                                comment.author?.name ||
-                                'anonymous'
-                              )
-                                .split('')
-                                .reduce(
-                                  (hash, char) =>
-                                    char.charCodeAt(0) + ((hash << 5) - hash),
-                                  0
-                                )
-                            ) % 360
-                          }, 65%, 55%)`,
-                        }}
-                      >
-                        {comment.author?.profileImage ? (
-                          <img
-                            src={comment.author.profileImage}
-                            alt={getAuthorDisplayName(comment.author)}
-                            className="w-full h-full rounded-full object-cover"
+                      <div className="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center text-white font-medium text-xs">
+                        <svg
+                          className="w-5 h-5 text-gray-300"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
                           />
-                        ) : (
-                          <span>
-                            {getAuthorDisplayName(comment.author)
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
-                        )}
+                        </svg>
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
+                        <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">
                             {getAuthorDisplayName(comment.author)}
                           </span>
-                          {isCommentAuthor && (
-                            <svg
-                              className="w-4 h-4 text-blue-400"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
+                          {/* 댓글 수정/삭제 버튼을 오른쪽에 배치 */}
+                          {isLoggedIn &&
+                            isCommentAuthor &&
+                            editingCommentId !== comment.id && (
+                              <div className="flex items-center space-x-3">
+                                <button
+                                  onClick={() => handleEditComment(comment)}
+                                  className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+                                  title="수정"
+                                >
+                                  <svg
+                                    className="w-4 h-4 text-gray-400 hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                    />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteComment(comment.id)
+                                  }
+                                  disabled={deleteCommentMutation.isLoading}
+                                  className="p-1.5 hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+                                  title="삭제"
+                                >
+                                  <svg
+                                    className="w-4 h-4 text-gray-400 hover:text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                         </div>
                         <div className="text-xs text-gray-500 mb-2">
                           {comment.createdAt
@@ -1047,33 +1018,6 @@ export default function BoardDetailPage() {
                             {comment.content}
                           </p>
                         )}
-
-                        <div className="flex items-center space-x-4">
-                          {/* 내 댓글인 경우 수정/삭제 버튼 표시 */}
-                          {isLoggedIn &&
-                            isCommentAuthor &&
-                            editingCommentId !== comment.id && (
-                              <>
-                                <button
-                                  onClick={() => handleEditComment(comment)}
-                                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                >
-                                  수정
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteComment(comment.id)
-                                  }
-                                  disabled={deleteCommentMutation.isLoading}
-                                  className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                                >
-                                  {deleteCommentMutation.isLoading
-                                    ? '삭제중...'
-                                    : '삭제'}
-                                </button>
-                              </>
-                            )}
-                        </div>
                       </div>
                     </div>
                   );
