@@ -138,7 +138,7 @@ export default function BoardDetailHeader({
               </button>
 
               {/* 슬라이드 인디케이터 */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
+              <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
                 {allImages.map((_, index) => (
                   <button
                     key={index}
