@@ -88,6 +88,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <span className="text-yellow-500 text-lg">⭐</span>
+            <span className="text-white text-lg font-medium">게시글</span>
           </div>
           <div className="flex-shrink-0">
             <FilterBar
