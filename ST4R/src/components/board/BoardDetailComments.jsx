@@ -70,19 +70,6 @@ function CommentInput({
   if (isLoggedIn) {
     return (
       <div className="flex space-x-3">
-        <div className="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center text-white font-medium text-xs">
-          <svg
-            className="w-5 h-5 text-gray-300"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </div>
         <div className="flex-1 flex space-x-2">
           <input
             type="text"
@@ -97,9 +84,26 @@ function CommentInput({
           <button
             onClick={onCommentSubmit}
             disabled={!newComment.trim() || createCommentMutation.isLoading}
-            className="px-4 py-3 bg-yellow-500 text-black rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-400 transition-colors"
+            className="w-12 h-12 bg-[#1A1A1A] text-yellow-500 rounded-full hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            aria-label="댓글 등록"
           >
-            {createCommentMutation.isLoading ? '등록중...' : '등록'}
+            {createCommentMutation.isLoading ? (
+              <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg
+                width="19"
+                height="16"
+                viewBox="0 0 19 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-4"
+              >
+                <path
+                  d="M17.8435 8.97835L1.55979 15.8436C1.20824 15.9842 0.874277 15.9539 0.557916 15.7529C0.241555 15.5516 0.083374 15.2596 0.083374 14.8767V1.12347C0.083374 0.740612 0.241555 0.448557 0.557916 0.247307C0.874277 0.0462511 1.20824 0.0160154 1.55979 0.156599L17.8435 7.02185C18.2773 7.21338 18.4942 7.53946 18.4942 8.0001C18.4942 8.46074 18.2773 8.78682 17.8435 8.97835ZM1.83337 13.8334L15.6584 8.0001L1.83337 2.16676V6.47439L8.16021 8.0001L1.83337 9.52581V13.8334Z"
+                  fill="currentColor"
+                />
+              </svg>
+            )}
           </button>
         </div>
       </div>
