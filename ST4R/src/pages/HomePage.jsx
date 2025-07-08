@@ -88,11 +88,6 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <span className="text-yellow-500 text-lg">⭐</span>
-            {searchQuery && (
-              <span className="text-gray-400 text-sm">
-                "{searchQuery}" 검색 결과
-              </span>
-            )}
           </div>
           <div className="flex-shrink-0">
             <FilterBar
