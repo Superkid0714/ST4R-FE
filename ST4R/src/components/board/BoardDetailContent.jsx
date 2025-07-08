@@ -9,7 +9,7 @@ export default function BoardDetailContent({
   if (!post) return null;
 
   return (
-    <div className="px-4 py-6 -mt-8 relative bg-black rounded-t-3xl">
+    <div className="px-4 py-6 -mt-8 relative bg-black">
       {/* 카테고리 배지 */}
       {post.category && (
         <div className="mb-4">
