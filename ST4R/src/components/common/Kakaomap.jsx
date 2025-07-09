@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const { kakao } = window;
 
-function Kakaomap({ onChange }) {
+function Kakaomap({ onChange, initialLat, initialLng, initialRoadAddress }) {
   const container = useRef(null); // 지도 컨테이너 접근
 
   const markerRef = useRef(null); // 전역 함수설정
@@ -44,6 +44,15 @@ function Kakaomap({ onChange }) {
     // 지도 중심 이동
     map.setCenter(locPosition);
   };
+
+  //초기값이 주어진다면
+  if (initialLat && initialLng) {
+    const locPosition = new kakao.maps.LatLng(initialLat, initialLng);
+    const message = `
+            <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${initialRoadAddress}</div>)
+          `;
+    displayMarker(locPosition, message);
+  }
 
   //외부 라이브러리 초기화, 브라우저 api호출, 이벤트 등록 함수들은 useeffect안에 넣음
   useEffect(() => {
@@ -139,7 +148,7 @@ function Kakaomap({ onChange }) {
         }
       );
     });
-  }, []);
+  }, [initialLat, initialLng]);
 
   //장소 검색 함수
   function searchPlaces() {
