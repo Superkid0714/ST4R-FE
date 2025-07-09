@@ -1,8 +1,9 @@
-import { useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export const usegroupMutation = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   return useMutation({
@@ -20,6 +21,7 @@ export const usegroupMutation = () => {
     },
     onSuccess: () => {
       alert('모임 만들기 완료');
+      queryClient.invalidateQueries({ queryKey : ['groups']});
       navigate('/groups');
     },
     onError: (error) => {
