@@ -4,8 +4,10 @@ import FortuneIcon from '../assets/icons/fortune.svg?react';
 
 export default function Header({
   onSearch,
+  onSearchTypeChange,
   isSearchLoading = false,
   searchQuery = '',
+  searchType = 'titleAndContent',
 }) {
   const navigate = useNavigate();
 
@@ -20,7 +22,6 @@ export default function Header({
 
   // 운세 버튼 클릭 핸들러
   const handleFortuneClick = () => {
-    // 운세 페이지로 이동하거나 모달을 띄우는 로직
     console.log('운세 버튼 클릭');
   };
 
@@ -46,7 +47,6 @@ export default function Header({
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
               >
                 <path
                   strokeLinecap="round"
@@ -59,17 +59,14 @@ export default function Header({
 
             {/* 로그인 상태에 따른 조건부 렌더링 */}
             {isAuthenticated ? (
-              /* 로그인된 경우: 운세 버튼 */
               <button
                 onClick={handleFortuneClick}
                 className="bg-[#2A2A2A] rounded-full px-3 py-2 hover:bg-[#3A3A3A] transition-colors flex items-center space-x-1"
               >
-                {/* 운세 아이콘 */}
                 <FortuneIcon className="w-4 h-4 text-gray-400" />
                 <span className="text-gray-400 text-sm">운세</span>
               </button>
             ) : (
-              /* 로그인 안된 경우: 로그인 버튼 */
               <button
                 onClick={handleLoginClick}
                 className="bg-[#FFBB02] rounded-full px-4 py-2 hover:bg-[#E6A500] transition-colors flex items-center space-x-1"
@@ -139,8 +136,11 @@ export default function Header({
         <div className="mb-5">
           <SearchBar
             onSearch={onSearch}
+            onSearchTypeChange={onSearchTypeChange}
             isLoading={isSearchLoading}
             placeholder="별자리에 관해 궁금한 글들을 검색해보세요."
+            showSearchTypeSelector={true}
+            currentSearchType={searchType}
           />
         </div>
       </div>
