@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import mainimage from '../assets/mainimage.png';
 
 export default function GroupCard({ group }) {
-
   const navigate = useNavigate();
 
-  const handleClick = () =>{
+  const handleClick = () => {
     navigate(`/groups/${group.id}`);
   };
 
@@ -18,7 +18,12 @@ export default function GroupCard({ group }) {
       className=" relative w-full h-20 sm:h-[105px] bg-[#1D1D1D] rounded-[10px]"
       onClick={handleClick}
     >
-      {group.imageUrls && (
+      {group.imageUrls?.length === 0 ? (
+        <img
+          className="absolute w-14 sm:w-20 sm:h-20 h-14 left-2 top-3 rounded-xl"
+          src={mainimage}
+        />
+      ) : (
         <img
           className="absolute w-14 sm:w-20 sm:h-20 h-14 left-2 top-3 rounded-xl"
           src={group.imageUrls[0]}
