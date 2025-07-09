@@ -63,9 +63,9 @@ export default function GroupDetailPage() {
 
   //모임 찜 하기
   const bookmarkMutation = useBookmarkMutation();
-  
+
   const handleBookmark = () => {
-    bookmarkMutation.mutate({id : id, liked : groupDetail.liked});
+    bookmarkMutation.mutate({ id: id, liked: groupDetail.liked });
   };
 
   //예외처리
@@ -91,6 +91,8 @@ export default function GroupDetailPage() {
         <Carousel imageUrls={groupDetail.imageUrls}></Carousel>
       </div>
 
+      {groupDetail.imageUrls?.length === 0 && (<div className='h-6'></div>)}
+      
       <div className="p-2 flex flex-col gap-10">
         {/* 타이틀 영역 */}
         <div>
@@ -134,21 +136,21 @@ export default function GroupDetailPage() {
         {groupDetail.isViewerAuthor ? (
           <div className="flex gap-2 h-[60px] leading-[60px] font-['Pretendard'] text-black text-lg font-bold">
             <div
-              onClick={() => navigate(`/groups/edit/${id}`)}
-              className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px]  "
-            >
-              수정하기
-            </div>
-            <div
               onClick={() => {
                 if (confirm('정말 삭제하시겠습니까?')) {
                   // 확인 누르면 삭제
                   handleDelete.mutate(id);
                 }
               }}
-              className="flex-1 text-center hover:cursor-pointer bg-[#FFBB02] rounded-[10px] "
+              className="flex-1 text-[#FF4343] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px] "
             >
               삭제하기
+            </div>
+            <div
+              onClick={() => navigate(`/groups/edit/${id}`)}
+              className="flex-1 text-[#FFBB02] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px]  "
+            >
+              수정하기
             </div>
           </div>
         ) : (
@@ -160,11 +162,13 @@ export default function GroupDetailPage() {
               모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
             </div>
             {modal ? (
-              <JoinModal
-                onClose={() => setModal(false)}
-                hasPassword={groupDetail.isPublic}
-                id={id}
-              ></JoinModal>
+              <ModalPortal>
+                <JoinModal
+                  onClose={() => setModal(false)}
+                  hasPassword={groupDetail.isPublic}
+                  id={id}
+                ></JoinModal>
+              </ModalPortal>
             ) : null}
           </>
         )}
