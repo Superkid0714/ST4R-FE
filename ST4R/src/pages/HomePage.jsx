@@ -10,6 +10,7 @@ export default function HomePage() {
 
   // 검색 상태
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState('titleAndContent');
 
   // 백엔드 API에 전달할 옵션들
   const [currentSort, setCurrentSort] = useState('createdAt');
@@ -17,12 +18,13 @@ export default function HomePage() {
   const [currentPeriod, setCurrentPeriod] = useState('daily');
   const [currentCategory, setCurrentCategory] = useState('all');
 
-  // 백엔드 검색 API 사용 (검색어가 있든 없든 항상 호출)
+  // 백엔드 검색 API 사용
   const {
     data: postsData,
     isLoading: isPostsLoading,
     error: postsError,
   } = useBackendSearchPosts(searchQuery, {
+    searchType,
     sort: currentSort,
     direction: currentDirection,
     period: currentPeriod,
@@ -49,6 +51,12 @@ export default function HomePage() {
     setSearchQuery(query);
   };
 
+  // 검색 타입 변경
+  const handleSearchTypeChange = (type) => {
+    console.log('검색 타입 변경:', type);
+    setSearchType(type);
+  };
+
   // 기간 변경
   const handlePeriodChange = (periodValue) => {
     setCurrentPeriod(periodValue);
@@ -66,6 +74,7 @@ export default function HomePage() {
 
   console.log('현재 상태:', {
     searchQuery,
+    searchType,
     sort: currentSort,
     direction: currentDirection,
     period: currentPeriod,
@@ -78,8 +87,10 @@ export default function HomePage() {
       {/* 헤더 컴포넌트 */}
       <Header
         onSearch={handleSearch}
+        onSearchTypeChange={handleSearchTypeChange}
         isSearchLoading={isPostsLoading}
         searchQuery={searchQuery}
+        searchType={searchType}
       />
 
       {/* 메인 컨텐츠 영역 */}
