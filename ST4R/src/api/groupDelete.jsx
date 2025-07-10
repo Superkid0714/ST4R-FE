@@ -19,7 +19,6 @@ export const usegroupDelete = () => {
       return res.data;
     },
     onSuccess: () => {
-      alert('모임 삭제 완료');
       queryClient.invalidateQueries({ queryKey : ['groups']});
       navigate('/groups');
     },

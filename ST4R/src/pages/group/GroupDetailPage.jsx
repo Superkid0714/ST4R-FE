@@ -6,8 +6,8 @@ import Bookmark from '../../components/common/Bookmark';
 import ModalPortal from '../../components/common/ModalPortal';
 import { useEffect, useState } from 'react';
 import JoinModal from '../../components/JoinModal';
+import DeleteModal from '../../components/DeleteModal';
 import Carousel from '../../components/common/Carousel';
-import { usegroupDelete } from '../../api/groupDelete';
 import { useBookmarkMutation } from '../../api/postBookmark';
 
 export default function GroupDetailPage() {
@@ -34,7 +34,10 @@ export default function GroupDetailPage() {
   console.log(groupDetail);
 
   //참가 모달창 띄우기
-  const [modal, setModal] = useState(false);
+  const [joinModal, setJoinModal] = useState(false);
+
+  //취소 모달창 띄우기
+  const [deleteModal, setDeleteModal] = useState(false);
 
   //카카오 지도 띄우기
   useEffect(() => {
@@ -58,9 +61,6 @@ export default function GroupDetailPage() {
       position: new kakao.maps.LatLng(lat, lng),
     });
   }, [groupDetail]);
-
-  //글 삭제하기
-  const handleDelete = usegroupDelete();
 
   //모임 찜 하기
   const bookmarkMutation = useBookmarkMutation();
@@ -138,15 +138,20 @@ export default function GroupDetailPage() {
           <div className="flex gap-2 h-[60px] leading-[60px] font-['Pretendard'] text-black text-lg font-bold">
             <div
               onClick={() => {
-                if (confirm('정말 삭제하시겠습니까?')) {
-                  // 확인 누르면 삭제
-                  handleDelete.mutate(id);
-                }
+                setDeleteModal(true);
+                console.log(joinModal);
               }}
               className="flex-1 font-normal text-[#FF4343] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px] "
             >
               삭제하기
             </div>
+            {deleteModal ? (
+              <ModalPortal>
+                <DeleteModal
+                  onClose={() => setDeleteModal(false)}
+                ></DeleteModal>
+              </ModalPortal>
+            ) : null}
             <div
               onClick={() => navigate(`/groups/edit/${id}`)}
               className="flex-1 font-normal text-[#FFBB02] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px]  "
@@ -157,7 +162,7 @@ export default function GroupDetailPage() {
         ) : (
           <>
             <div
-              onClick={() => setModal(true)} // 모달창 열림
+              onClick={() => setJoinModal(true)} // 모달창 열림
               className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
             >
               모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
@@ -165,12 +170,11 @@ export default function GroupDetailPage() {
           </>
         )}
       </div>
-      {modal ? (
+      {joinModal ? (
         <ModalPortal>
           <JoinModal
-            onClose={() => setModal(false)}
+            onClose={() => setJoinModal(false)}
             hasPassword={groupDetail.isPublic}
-            id={id}
           ></JoinModal>
         </ModalPortal>
       ) : null}
