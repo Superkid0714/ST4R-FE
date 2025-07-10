@@ -118,6 +118,13 @@ export default function GroupPage() {
             ></FilterBar>
           </div>
 
+          {/* 로딩 상태 */}
+          {isGruopsLoading && !isSearchMode && (
+            <div className="mx-auto py-8">
+              <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+
           {/* 모임 박스 1개 */}
           {displayGroups.map((group) => (
             <GroupCard key={group.id} group={group}></GroupCard>

@@ -70,7 +70,12 @@ export default function GroupDetailPage() {
   };
 
   //예외처리
-  if (isLoading) return <p>로딩 중...</p>;
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   if (isError || !groupDetail) return <p>에러 발생</p>;
 
   //표시할 정보들
@@ -170,7 +175,7 @@ export default function GroupDetailPage() {
           <div
             onClick={() => {
               navigate(`/groups/${id}/chats`); // 채팅방 이동
-            }} 
+            }}
             className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
           >
             채팅방 입장하기
