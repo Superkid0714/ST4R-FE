@@ -382,6 +382,7 @@ export default function GroupEditPage() {
             initialLat={lat}
             initialLng={lng}
             initialRoadAddress={roadAddress}
+            initialMap={true}
           ></Kakaomap>
         </div>
         {/* 모임 설명 칸 */}
