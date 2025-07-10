@@ -111,8 +111,7 @@ export default function GroupWritePage() {
     }
 
     const imageUrls = await uploadImagesToS3(images);
-    console.log(imageUrls);
-
+   
     postgroup.mutate({
       imageUrls: imageUrls,
       name: name,

@@ -20,7 +20,6 @@ export const usegroupMutation = () => {
       return res.data;
     },
     onSuccess: () => {
-      alert('모임 만들기 완료');
       queryClient.invalidateQueries({ queryKey : ['groups']});
       navigate('/groups');
     },
