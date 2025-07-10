@@ -159,15 +159,22 @@ export default function GroupDetailPage() {
               수정하기
             </div>
           </div>
+        ) : groupDetail.isJoinable ? (
+          <div
+            onClick={() => setJoinModal(true)} // 모달창 열림
+            className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
+          >
+            모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
+          </div>
         ) : (
-          <>
-            <div
-              onClick={() => setJoinModal(true)} // 모달창 열림
-              className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
-            >
-              모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
-            </div>
-          </>
+          <div
+            onClick={() => {
+              navigate(`/groups/${id}/chats`); // 채팅방 이동
+            }} 
+            className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
+          >
+            채팅방 입장하기
+          </div>
         )}
       </div>
       {joinModal ? (
