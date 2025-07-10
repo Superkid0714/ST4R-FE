@@ -50,19 +50,29 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
         params.append('categories', options.category.toLowerCase());
       }
 
-      // 위치 기반 검색 옵션
+      // 위치 기반 검색 옵션 - 개선된 처리
       if (options.location) {
-        if (options.location.latitude) {
-          params.append('location.latitude', options.location.latitude);
-        }
-        if (options.location.longitude) {
-          params.append('location.longitude', options.location.longitude);
-        }
-        if (options.location.distanceInMeters) {
+        console.log('위치 기반 검색 활성화:', options.location);
+
+        if (options.location.latitude && options.location.longitude) {
           params.append(
-            'location.distanceInMeters',
-            options.location.distanceInMeters
+            'location.latitude',
+            options.location.latitude.toString()
           );
+          params.append(
+            'location.longitude',
+            options.location.longitude.toString()
+          );
+
+          // 거리 설정 (기본값: 1000m)
+          const distance = options.location.distanceInMeters || 1000;
+          params.append('location.distanceInMeters', distance.toString());
+
+          console.log('위치 검색 파라미터:', {
+            latitude: options.location.latitude,
+            longitude: options.location.longitude,
+            distance: distance,
+          });
         }
       }
 
@@ -74,12 +84,10 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
         params.append('page', options.page);
       }
 
-      console.log(
-        '백엔드 검색 API 요청:',
-        `${BASE_URL}/home?${params.toString()}`
-      );
+      const requestUrl = `${BASE_URL}/home?${params.toString()}`;
+      console.log('백엔드 검색 API 요청:', requestUrl);
 
-      const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
+      const response = await axios.get(requestUrl);
 
       console.log('백엔드 검색 API 응답:', response.data);
 
@@ -88,5 +96,51 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
     enabled: true,
     staleTime: 1000 * 60 * 5,
     retry: 2,
+  });
+};
+
+// 지도 검색 전용 API (더 빠른 응답을 위한 별도 hook)
+export const useMapSearchPosts = (location, options = {}) => {
+  return useQuery({
+    queryKey: ['mapSearchPosts', location, options],
+    queryFn: async () => {
+      if (!location?.latitude || !location?.longitude) {
+        return { boardPeeks: { content: [] } };
+      }
+
+      const params = new URLSearchParams();
+
+      // 위치 파라미터
+      params.append('location.latitude', location.latitude.toString());
+      params.append('location.longitude', location.longitude.toString());
+      params.append(
+        'location.distanceInMeters',
+        (location.distanceInMeters || 1000).toString()
+      );
+
+      // 기본 정렬 (최신순)
+      params.append('sort', options.sort || 'createdAt');
+      params.append('direction', options.direction || 'desc');
+      params.append('period', options.period || 'daily');
+
+      // 카테고리 필터
+      if (options.category && options.category !== 'all') {
+        params.append('categories', options.category.toLowerCase());
+      }
+
+      // 페이지 크기 제한 (지도 검색은 더 적게)
+      params.append('size', options.size || 20);
+
+      console.log(
+        '지도 검색 API 요청:',
+        `${BASE_URL}/home?${params.toString()}`
+      );
+
+      const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
+      return response.data;
+    },
+    enabled: !!(location?.latitude && location?.longitude),
+    staleTime: 1000 * 60 * 2, // 2분 캐시
+    retry: 1,
   });
 };
