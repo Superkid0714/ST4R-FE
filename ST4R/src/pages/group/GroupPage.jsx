@@ -124,6 +124,8 @@ export default function GroupPage() {
               <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
+          
+          {groupsError && (<div>값을 불러오는데 에러가 생겼습니다.</div>)}
 
           {/* 모임 박스 1개 */}
           {displayGroups.map((group) => (

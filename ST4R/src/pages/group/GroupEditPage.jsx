@@ -95,7 +95,6 @@ export default function GroupEditPage() {
         ? true
         : false
     );
-    
   }, [newWhenToMeet]);
 
   //이번트 핸들러 함수들
@@ -214,6 +213,14 @@ export default function GroupEditPage() {
       id,
     });
   };
+
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  if (isError || !groupDetail) return <p>에러 발생</p>;
 
   return (
     <div className="px-3 py-2 max-w-screen w-full">

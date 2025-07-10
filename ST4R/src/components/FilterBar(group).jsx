@@ -33,6 +33,7 @@ export default function FilterBar({
   const sortOptions = [
     { sort: 'createdAt', direction: 'desc', label: '최신순' },
     { sort: 'createdAt', direction: 'asc', label: '오래된순' },
+    { sort: 'likeCount', direction: 'desc', label: '인기순' },
     { sort: 'whenToMeet', direction: 'asc', label: '모임 임박한 순' },
   ];
 
