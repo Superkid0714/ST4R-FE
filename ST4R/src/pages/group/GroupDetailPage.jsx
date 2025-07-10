@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
 import Bookmark from '../../components/common/Bookmark';
+import ModalPortal from '../../components/common/ModalPortal';
 import { useEffect, useState } from 'react';
 import JoinModal from '../../components/JoinModal';
 import Carousel from '../../components/common/Carousel';
@@ -91,8 +92,8 @@ export default function GroupDetailPage() {
         <Carousel imageUrls={groupDetail.imageUrls}></Carousel>
       </div>
 
-      {groupDetail.imageUrls?.length === 0 && (<div className='h-6'></div>)}
-      
+      {groupDetail.imageUrls?.length === 0 && <div className="h-6"></div>}
+
       <div className="p-2 flex flex-col gap-10">
         {/* 타이틀 영역 */}
         <div>
@@ -142,13 +143,13 @@ export default function GroupDetailPage() {
                   handleDelete.mutate(id);
                 }
               }}
-              className="flex-1 text-[#FF4343] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px] "
+              className="flex-1 font-normal text-[#FF4343] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px] "
             >
               삭제하기
             </div>
             <div
               onClick={() => navigate(`/groups/edit/${id}`)}
-              className="flex-1 text-[#FFBB02] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px]  "
+              className="flex-1 font-normal text-[#FFBB02] text-center hover:cursor-pointer bg-[#1D1D1D] rounded-[10px]  "
             >
               수정하기
             </div>
@@ -161,18 +162,18 @@ export default function GroupDetailPage() {
             >
               모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
             </div>
-            {modal ? (
-              <ModalPortal>
-                <JoinModal
-                  onClose={() => setModal(false)}
-                  hasPassword={groupDetail.isPublic}
-                  id={id}
-                ></JoinModal>
-              </ModalPortal>
-            ) : null}
           </>
         )}
       </div>
+      {modal ? (
+        <ModalPortal>
+          <JoinModal
+            onClose={() => setModal(false)}
+            hasPassword={groupDetail.isPublic}
+            id={id}
+          ></JoinModal>
+        </ModalPortal>
+      ) : null}
     </div>
   );
 }
