@@ -7,8 +7,8 @@ const getPresignedUrl = async (img) => {
     `http://eridanus.econo.mooo.com:8080/upload/s3/presigned-url?fileName=${img.name}`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
     }
   );
   return res.data.presignedUrl;
@@ -33,6 +33,5 @@ export default async function uploadImagesToS3(images) {
     console.log(imageUrls);
   }
   console.log(imageUrls);
-  
   return imageUrls;
 }

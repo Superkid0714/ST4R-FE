@@ -25,6 +25,9 @@ import GroupDetailPage from '../pages/group/GroupDetailPage';
 import GroupEditPage from '../pages/group/GroupEditPage';
 import GroupWritePage from '../pages/group/GroupWritePage';
 
+//채팅 페이지
+import ChatPage from '../pages/chat/ChatPage';
+
 // 잘못된 경로 페이지
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -86,6 +89,11 @@ const router = createBrowserRouter([
   {
     path: 'groups/:id',
     element: <GroupDetailPage />,
+  },
+  //채팅 페이지
+  {
+    path: 'groups/:id/chats',
+    element: <ChatPage/>
   },
   // 선택창 페이지
   {

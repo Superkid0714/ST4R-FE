@@ -39,3 +39,14 @@
 .read-the-docs {
   color: #888;
 }
+
+/* 비활성 점: 흰색 */
+.slick-dots li button:before {
+  color: white;
+}
+
+/* 활성 점: 흰색 (더 진하게 보이도록 opacity 유지) */
+.slick-dots li.slick-active button:before {
+  color: white;
+  opacity: 1;
+}

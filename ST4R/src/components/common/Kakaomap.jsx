@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const { kakao } = window;
 
-function Kakaomap({ onChange }) {
+function Kakaomap({ onChange, initialLat, initialLng, initialRoadAddress, initialMap=false }) {
   const container = useRef(null); // 지도 컨테이너 접근
 
   const markerRef = useRef(null); // 전역 함수설정
@@ -61,8 +61,17 @@ function Kakaomap({ onChange }) {
     geocoderRef.current = geocoder;
     infowindowRef.current = infowindow;
 
+     //초기값이 주어진다면
+    if (initialMap) {
+      const locPosition = new kakao.maps.LatLng(initialLat, initialLng);
+      const message = `
+              <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${initialRoadAddress}</div>)
+            `;
+      displayMarker(locPosition, message);
+    }
+
     //📌현재 위치 표시(마커를 찍기 전)
-    if (navigator.geolocation) {
+    else { if (navigator.geolocation) {
       // GeoLocation을 이용해서 접속 위치를 얻어오기
       navigator.geolocation.getCurrentPosition((position) => {
         const lat = position.coords.latitude; // 위도
@@ -84,7 +93,7 @@ function Kakaomap({ onChange }) {
         '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
 
       displayMarker(locPosition, message);
-    }
+    }}
 
     //📌마우스 클릭하면 마커 생성 + 주소 표시
     kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
@@ -139,7 +148,7 @@ function Kakaomap({ onChange }) {
         }
       );
     });
-  }, []);
+  }, [initialLat, initialLng]);
 
   //장소 검색 함수
   function searchPlaces() {
