@@ -1,107 +1,184 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-export default function SearchBar({ onSearchResults, allPosts = [], placeholder }) {
+export default function SearchBar({
+  onSearch,
+  placeholder,
+  isLoading = false,
+  showSearchTypeSelector = false, // 검색 타입 선택기 표시 여부
+  onSearchTypeChange, // 검색 타입 변경 콜백
+  currentSearchType = 'titleAndContent', // 현재 검색 타입
+}) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const dropdownRef = useRef(null);
 
-  // 클라이언트 사이드 검색 함수
-  const performSearch = (query) => {
-    if (!query.trim()) {
-      return [];
+  const searchTypeOptions = [
+    { value: 'title', label: '제목' },
+    { value: 'content', label: '내용' },
+    { value: 'titleAndContent', label: '제목+내용' },
+    { value: 'author', label: '작성자' },
+  ];
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowTypeMenu(false);
+      }
+    };
+
+    if (showTypeMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-
-    const searchTerm = query.toLowerCase();
-    return allPosts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(searchTerm) ||
-        post.contentPreview?.toLowerCase().includes(searchTerm)
-    );
-  };
+  }, [showTypeMenu]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const results = performSearch(searchQuery);
-    console.log(`검색어: "${searchQuery}", 결과: ${results.length}개`);
-
-    if (onSearchResults) {
-      // 검색 결과와 검색어를 함께 전달
-      onSearchResults(results, searchQuery);
+    if (onSearch) {
+      onSearch(searchQuery.trim());
     }
   };
 
   const handleClear = () => {
     setSearchQuery('');
-    if (onSearchResults) {
-      // 빈 결과와 빈 검색어를 전달하여 일반 모드로 전환
-      onSearchResults([], '');
+    if (onSearch) {
+      onSearch('');
     }
   };
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
+  };
 
-    // 검색어가 비워지면 결과 초기화
-    if (!value.trim()) {
-      if (onSearchResults) {
-        onSearchResults([], '');
-      }
+  const handleSearchTypeSelect = (type) => {
+    if (onSearchTypeChange) {
+      onSearchTypeChange(type);
     }
+    setShowTypeMenu(false);
+  };
+
+  const getCurrentTypeLabel = () => {
+    return (
+      searchTypeOptions.find((option) => option.value === currentSearchType)
+        ?.label || '제목+내용'
+    );
   };
 
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative flex items-center bg-[#1A1A1A] rounded-lg px-4 py-3">
-          {/* 검색 아이콘 */}
-          <button type="submit" className="flex-shrink-0 mr-3">
-            <svg
-              className="w-5 h-5 text-yellow-500 hover:text-yellow-400 transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </button>
+        <div className="relative flex items-center bg-[#1A1A1A] rounded-lg pl-3 pr-2 py-3">
+          {/* 검색 타입 선택기 */}
+          {showSearchTypeSelector && (
+            <div className="flex-shrink-0 mr-3 relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowTypeMenu(!showTypeMenu)}
+                className="flex items-center text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                disabled={isLoading}
+              >
+                <span className="mr-1">{getCurrentTypeLabel()}</span>
+                <svg
+                  className={`w-3 h-3 transition-transform ${
+                    showTypeMenu ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
 
-          {/* 입력 필드 */}
-          <input 
+              {/* 검색 타입 드롭다운 */}
+              {showTypeMenu && (
+                <div className="absolute top-8 left-0 bg-[#1A1A1A] border border-gray-700 rounded-lg py-1 min-w-[120px] z-50 shadow-lg">
+                  {searchTypeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleSearchTypeSelect(option.value)}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-[#2A2A2A] transition-colors ${
+                        currentSearchType === option.value
+                          ? 'text-yellow-500 bg-[#2A2A2A]'
+                          : 'text-gray-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 중앙: 입력 필드 */}
+          <input
             type="text"
             placeholder={placeholder}
             className="bg-transparent font-['Pretendard'] text-gray-300 placeholder-gray-500 w-full focus:outline-none text-sm"
             value={searchQuery}
             onChange={handleInputChange}
+            disabled={isLoading}
           />
 
-          {/* 클리어 버튼 */}
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="ml-2 text-gray-400 hover:text-gray-300 transition-colors flex-shrink-0"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          {/* 오른쪽: 클리어 버튼 + 검색 버튼 */}
+          <div className="flex items-center flex-shrink-0 ml-2">
+            {/* 클리어(X) 버튼 */}
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="p-1.5 text-gray-400 hover:text-gray-300 transition-colors"
+                disabled={isLoading}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+
+            {/* 검색(돋보기) 버튼 */}
+            <button type="submit" className="p-1.5 ml-1" disabled={isLoading}>
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg
+                  className="w-5 h-5 text-yellow-500 hover:text-yellow-400 transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              )}
             </button>
-          )}
+          </div>
         </div>
       </form>
     </div>

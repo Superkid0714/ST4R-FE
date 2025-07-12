@@ -2,7 +2,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-export const usegroupMutation = () => {
+export const usePostgroupMutation = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -20,7 +20,7 @@ export const usegroupMutation = () => {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey : ['groups']});
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
       navigate('/groups');
     },
     onError: (error) => {

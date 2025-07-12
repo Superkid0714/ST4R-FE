@@ -3,18 +3,39 @@ import axios from 'axios';
 
 const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
 
-// 게시글 검색 API (클라이언트 사이드 검색 - 백엔드 지원 시까지)
-export const useSearchPosts = (searchQuery, options = {}) => {
+// 백엔드 검색 API
+export const useBackendSearchPosts = (searchQuery, options = {}) => {
   return useQuery({
-    queryKey: ['searchPosts', searchQuery, options],
+    queryKey: ['backendSearchPosts', searchQuery, options],
     queryFn: async () => {
-      if (!searchQuery?.trim()) {
-        return { boardPeeks: { content: [] } };
-      }
-
       const params = new URLSearchParams();
 
-      // 기간 옵션 (필수 파라미터)
+      // 검색어가 있을 때만 검색 파라미터 추가
+      if (searchQuery?.trim()) {
+        // 검색 타입에 따라 다른 파라미터 설정
+        switch (options.searchType) {
+          case 'title':
+            params.append('title', searchQuery.trim());
+            break;
+          case 'content':
+            params.append('content', searchQuery.trim());
+            break;
+          case 'titleAndContent':
+            // 제목+내용 검색의 경우
+            params.append('title', searchQuery.trim());
+            params.append('content', searchQuery.trim());
+            break;
+          case 'author':
+            params.append('authorName', searchQuery.trim());
+            break;
+          default:
+            // 기본값: 제목+내용 검색
+            params.append('title', searchQuery.trim());
+            params.append('content', searchQuery.trim());
+        }
+      }
+
+      // 기간 옵션
       const period = options.period || 'daily';
       params.append('period', period);
 
@@ -26,10 +47,36 @@ export const useSearchPosts = (searchQuery, options = {}) => {
 
       // 카테고리 옵션
       if (options.category && options.category !== 'all') {
-        params.append('category', options.category);
+        params.append('categories', options.category.toLowerCase());
       }
 
-      // 페이징 옵션 (1부터 시작)
+      // 위치 기반 검색 옵션 - 개선된 처리
+      if (options.location) {
+        console.log('위치 기반 검색 활성화:', options.location);
+
+        if (options.location.latitude && options.location.longitude) {
+          params.append(
+            'location.latitude',
+            options.location.latitude.toString()
+          );
+          params.append(
+            'location.longitude',
+            options.location.longitude.toString()
+          );
+
+          // 거리 설정 (기본값: 1000m)
+          const distance = options.location.distanceInMeters || 1000;
+          params.append('location.distanceInMeters', distance.toString());
+
+          console.log('위치 검색 파라미터:', {
+            latitude: options.location.latitude,
+            longitude: options.location.longitude,
+            distance: distance,
+          });
+        }
+      }
+
+      // 페이징 옵션
       if (options.size && options.size > 0) {
         params.append('size', options.size);
       }
@@ -37,74 +84,63 @@ export const useSearchPosts = (searchQuery, options = {}) => {
         params.append('page', options.page);
       }
 
-      // 검색어 파라미터 (추후 백엔드에서 지원 시 추가)
-      // params.append('query', searchQuery);
+      const requestUrl = `${BASE_URL}/home?${params.toString()}`;
+      console.log('백엔드 검색 API 요청:', requestUrl);
 
-      console.log('검색 API 요청:', `${BASE_URL}/home?${params.toString()}`);
+      const response = await axios.get(requestUrl);
 
-      const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
+      console.log('백엔드 검색 API 응답:', response.data);
 
-      // 현재는 검색 기능이 없으므로 전체 결과에서 클라이언트 사이드 필터링
-      const allPosts = response.data.boardPeeks?.content || [];
-      const filteredPosts = allPosts.filter(
-        (post) =>
-          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          post.contentPreview?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-      return {
-        ...response.data,
-        boardPeeks: {
-          ...response.data.boardPeeks,
-          content: filteredPosts,
-        },
-      };
+      return response.data;
     },
-    enabled: !!searchQuery?.trim(), // 검색어가 있을 때만 요청
-    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    enabled: true,
+    staleTime: 1000 * 60 * 5,
     retry: 2,
   });
 };
 
-// 게시글 목록 조회
-export const useGetPosts = (options = {}) => {
+// 지도 검색 전용 API (더 빠른 응답을 위한 별도 hook)
+export const useMapSearchPosts = (location, options = {}) => {
   return useQuery({
-    queryKey: ['posts', options],
+    queryKey: ['mapSearchPosts', location, options],
     queryFn: async () => {
+      if (!location?.latitude || !location?.longitude) {
+        return { boardPeeks: { content: [] } };
+      }
+
       const params = new URLSearchParams();
 
-      // 기간 옵션 (필수 파라미터)
-      const period = options.period || 'daily';
-      params.append('period', period);
+      // 위치 파라미터
+      params.append('location.latitude', location.latitude.toString());
+      params.append('location.longitude', location.longitude.toString());
+      params.append(
+        'location.distanceInMeters',
+        (location.distanceInMeters || 1000).toString()
+      );
 
-      // 정렬 옵션
-      const sort = options.sort || 'createdAt';
-      const direction = options.direction || 'desc';
-      params.append('sort', sort);
-      params.append('direction', direction);
+      // 기본 정렬 (최신순)
+      params.append('sort', options.sort || 'createdAt');
+      params.append('direction', options.direction || 'desc');
+      params.append('period', options.period || 'daily');
 
-      // 카테고리 옵션 (백엔드에서 지원)
+      // 카테고리 필터
       if (options.category && options.category !== 'all') {
-        params.append('category', options.category);
+        params.append('categories', options.category.toLowerCase());
       }
 
-      // 페이징 옵션 (1부터 시작)
-      if (options.size && options.size > 0) {
-        params.append('size', options.size);
-      }
-      if (options.page !== undefined && options.page >= 1) {
-        params.append('page', options.page);
-      }
+      // 페이지 크기 제한 (지도 검색은 더 적게)
+      params.append('size', options.size || 20);
 
-      console.log('API 요청:', `${BASE_URL}/home?${params.toString()}`);
+      console.log(
+        '지도 검색 API 요청:',
+        `${BASE_URL}/home?${params.toString()}`
+      );
 
       const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
-
-      console.log('API 응답:', response.data);
-
       return response.data;
     },
-    staleTime: 1000 * 60 * 2, // 2분간 캐시 유지
-    retry: 2,
+    enabled: !!(location?.latitude && location?.longitude),
+    staleTime: 1000 * 60 * 2, // 2분 캐시
+    retry: 1,
   });
 };
