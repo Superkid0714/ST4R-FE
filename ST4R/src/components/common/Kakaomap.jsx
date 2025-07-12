@@ -3,7 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 
 const { kakao } = window;
 
-function Kakaomap({ onChange, initialLocation }) {
+function Kakaomap({
+  onChange,
+  initialLat,
+  initialLng,
+  initialRoadAddress,
+  initialMap = false,
+  initialLocation,
+}) {
   const container = useRef(null); // 지도 컨테이너 접근
 
   const markerRef = useRef(null); // 전역 함수설정
@@ -74,102 +81,89 @@ function Kakaomap({ onChange, initialLocation }) {
     }
   };
 
-  //외부 라이브러리 초기화, 브라우저 api호출, 이벤트 등록 함수들은 useeffect안에 넣음
-  useEffect(() => {
-    const options = {
-      //지도를 생성할 때 필요한 기본 옵션
-      center: new kakao.maps.LatLng(35.1757875820353, 126.90820322250839), //지도의 중심좌표.
-      level: 3, //지도의 레벨(확대, 축소 정도)
-    };
+useEffect(() => {
+  const options = {
+    center: new kakao.maps.LatLng(35.1757875820353, 126.90820322250839),
+    level: 3,
+  };
 
-    const map = new kakao.maps.Map(container.current, options); //지도 객체 생성
-    const geocoder = new kakao.maps.services.Geocoder(); // 주소-좌표 변환 객체 생성
-    const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 }); //인포윈도우 객체 생성
+  const map = new kakao.maps.Map(container.current, options);
+  const geocoder = new kakao.maps.services.Geocoder();
+  const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-    mapRef.current = map;
-    geocoderRef.current = geocoder;
-    infowindowRef.current = infowindow;
+  mapRef.current = map;
+  geocoderRef.current = geocoder;
+  infowindowRef.current = infowindow;
 
-    // 초기 위치가 있으면 설정
-    if (initialLocation) {
-      setInitialLocationOnMap(initialLocation);
-    } else {
-      // 현재 위치 표시(마커를 찍기 전)
-      if (navigator.geolocation) {
-        // GeoLocation을 이용해서 접속 위치를 얻어오기
-        navigator.geolocation.getCurrentPosition((position) => {
-          const lat = position.coords.latitude; // 위도
-          const lon = position.coords.longitude; // 경도
-          const locPosition = new kakao.maps.LatLng(lat, lon); // 마커가 표시될 위치를 geolocation으로 얻어온 좌표로 생성
-
-          const message =
-            '<div style="padding:5px; color:black;">현재위치</div>'; // 인포윈도우에 표시될 내용
-
-          displayMarker(locPosition, message);
-        });
-      } else {
-        // HTML5의 GeoLocation을 사용할 수 없을때 마커 표시 위치와 인포윈도우 내용을 설정
-        const locPosition = new kakao.maps.LatLng(
-          35.30019091752179,
-          127.37915975896176 // 기본 지도 초기화면을 전남대로 설정함
-        );
+  if (initialMap && initialLat && initialLng && initialRoadAddress) {
+    const locPosition = new kakao.maps.LatLng(initialLat, initialLng);
+    const message = `
+      <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">
+        주소: ${initialRoadAddress}
+      </div>
+    `;
+    displayMarker(locPosition, message);
+  } else if (initialLocation) {
+    setInitialLocationOnMap(initialLocation);
+  } else {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const locPosition = new kakao.maps.LatLng(lat, lon);
         const message =
-          '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
-
+          '<div style="padding:5px; color:black;">현재위치</div>';
         displayMarker(locPosition, message);
-      }
+      });
+    } else {
+      const locPosition = new kakao.maps.LatLng(
+        35.30019091752179,
+        127.37915975896176
+      );
+      const message =
+        '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
+      displayMarker(locPosition, message);
     }
+  }
 
-    //마우스 클릭하면 마커 생성 + 주소 표시
-    kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
-      const clickedlatlng = mouseEvent.latLng;
+  // 마우스 클릭 시 이벤트 등록
+  kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+    const clickedlatlng = mouseEvent.latLng;
 
-      //주소 변환
-      geocoder.coord2Address(
-        clickedlatlng.getLng(),
-        clickedlatlng.getLat(),
-        (result, status) => {
-          if (status === kakao.maps.services.Status.OK) {
-            const road = result[0].road_address?.address_name; //도로명주소
-            const jibun = result[0].address?.address_name; // 지번주소
-            const addressText = road || jibun || '주소 정보 없음';
+    geocoder.coord2Address(
+      clickedlatlng.getLng(),
+      clickedlatlng.getLat(),
+      (result, status) => {
+        if (status === kakao.maps.services.Status.OK) {
+          const road = result[0].road_address?.address_name;
+          const jibun = result[0].address?.address_name;
+          const addressText = road || jibun || '주소 정보 없음';
 
-            const message = `
-              <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>
-            `;
+          const message = `
+            <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>
+          `;
 
-            displayMarker(clickedlatlng, message);
+          displayMarker(clickedlatlng, message);
 
-            //state설정
-            setSelectedPlace({
-              name: null, // 장소명은 없으니까 null
-              address: road || jibun || null,
-            });
+          setSelectedPlace({
+            name: null,
+            address: road || jibun || null,
+          });
 
-            //부모에게 데이터 전달
-            const newPlace = {
-              name: null,
-              address: road || jibun || null,
-            };
-            const newLatlng = {
+          if (onChange) {
+            onChange({
+              locationName: null,
+              roadAddress: road || jibun || null,
               lat: clickedlatlng.getLat(),
               lng: clickedlatlng.getLng(),
-            };
-
-            if (onChange) {
-              onChange({
-                locationName: newPlace.name,
-                roadAddress: newPlace.address,
-                lat: newLatlng.lat,
-                lng: newLatlng.lng,
-              });
-            }
+            });
           }
         }
-      );
-    });
-  }, [onChange, initialLocation]); // initialLocation를 dependency에 추가
-
+      }
+    );
+  });
+}, [onChange, initialLat, initialLng, initialMap, initialRoadAddress, initialLocation]);
+  
   //장소 검색 함수
   function searchPlaces() {
     if (!keyword.trim()) return; // 빈 키워드 체크 추가

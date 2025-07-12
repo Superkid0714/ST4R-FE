@@ -84,7 +84,6 @@ export default async function uploadImagesToS3(images) {
       console.error('이미지 업로드 실패:', error);
     }
   }
-
   console.log('모든 이미지 업로드 완료:', imageUrls);
   return imageUrls;
 }

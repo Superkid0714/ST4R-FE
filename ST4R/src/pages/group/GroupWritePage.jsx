@@ -11,13 +11,13 @@ import { usePostgroupMutation } from '../../api/postgroup';
 import uploadImagesToS3 from '../../api/imgupload';
 
 export default function GroupWritePage() {
-  const imageInputRef = useRef(null); //이미지 input 태그 연결
+  const imageInputRef = useRef(''); //이미지 input 태그 연결
   const [images, setImages] = useState([]); // 이미지 배열
 
   const [name, setName] = useState(''); // 제목
 
-  const [selectedDate, setSelectedDate] = useState(null); //날짜
-  const [selectedTime, setSelectedTime] = useState(null); //시간
+  const [selectedDate, setSelectedDate] = useState(''); //날짜
+  const [selectedTime, setSelectedTime] = useState(''); //시간
   const whenToMeet = combine(selectedDate, selectedTime); //ISO 8601 형식 + KST 시간대 오프셋(+09:00) / ex) 2025-05-16T15:56:00+09:00
 
   const [maxParticipantCount, setMaxParticipantCount] = useState(''); //최대 인원 수
@@ -26,10 +26,10 @@ export default function GroupWritePage() {
 
   const [description, setDescription] = useState(''); //본문
 
-  const [lat, setLat] = useState(null); //위도
-  const [lng, setLng] = useState(null); // 경도
-  const [locationName, setLocationName] = useState('장소명 미지정'); //장소명
-  const [roadAddress, setRoadAddress] = useState(null); // 도로명주소(or 지번주소)
+  const [lat, setLat] = useState(''); //위도
+  const [lng, setLng] = useState(''); // 경도
+  const [locationName, setLocationName] = useState(null); //장소명
+  const [roadAddress, setRoadAddress] = useState(''); // 도로명주소(or 지번주소)
 
   //이벤트 핸들러 함수들
   const handleIconClick = () => {
@@ -47,7 +47,7 @@ export default function GroupWritePage() {
         const allowimgs = newimages.slice(0, 10 - prev.length);
         const previews = allowimgs.map((img) => ({
           img,
-          previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+          previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메모리 생성)
         }));
 
         return [...prev, ...previews];
@@ -56,7 +56,7 @@ export default function GroupWritePage() {
       // 제한 안넘으면 모두 업로드
       const previews = newimages.map((img) => ({
         img,
-        previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메로리 생성)
+        previewUrl: URL.createObjectURL(img), //임시 url생성(미리보기 메모리 생성)
       }));
 
       return [...prev, ...previews];
@@ -113,8 +113,7 @@ export default function GroupWritePage() {
     }
 
     const imageUrls = await uploadImagesToS3(images);
-    console.log(imageUrls);
-
+   
     postgroup.mutate({
       imageUrls: imageUrls,
       name: name,
