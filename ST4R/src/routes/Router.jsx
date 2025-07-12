@@ -14,6 +14,9 @@ import LoginAlertPage from '../pages/login/LoginAlertPage';
 // 로비 페이지
 import HomePage from '../pages/HomePage';
 
+// 지도 검색 페이지
+import MapSearchPage from '../pages/MapSearchPage';
+
 // 게시판 관련 페이지
 import BoardDetailPage from '../pages/board/BoardDetailPage';
 import BoardEditPage from '../pages/board/BoardEditPage';
@@ -41,11 +44,14 @@ import ProfilePage from '../pages/ProfilePage';
 import AuthGuard from '../guards/AuthGuard';
 
 const router = createBrowserRouter([
-  //<모바일 레이아웃이 없는 경로>-네비바가 필요없는 페이지
+  // 네비바가 필요없는 페이지
 
   // 로그인 페이지
   { path: 'login', element: <LoginPage /> },
   { path: 'login-alert', element: <LoginAlertPage /> },
+
+  // 지도 검색 페이지
+  { path: 'map-search', element: <MapSearchPage /> },
 
   //게시판 관련 페이지
   {
@@ -105,7 +111,7 @@ const router = createBrowserRouter([
     ),
   },
 
-  // <모바일 레이아웃이 적용된 경로>-네비바 필요한 페이지
+  // 네비바 필요한 페이지
   {
     path: '/',
     element: <MobileLayout />,
@@ -119,7 +125,7 @@ const router = createBrowserRouter([
         path: 'home',
         element: <HomePage />,
         children: [
-          // *** /home/boards로 오면 /home으로 리다이렉트 ***
+          //  /home/boards로 오면 /home으로 리다이렉트
           {
             path: 'boards',
             element: <Navigate to="/home" replace />,
