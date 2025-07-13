@@ -52,8 +52,6 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
 
       // 위치 기반 검색 옵션 - 개선된 처리
       if (options.location) {
-        console.log('위치 기반 검색 활성화:', options.location);
-
         if (options.location.latitude && options.location.longitude) {
           params.append(
             'location.latitude',
@@ -67,12 +65,6 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
           // 거리 설정 (기본값: 1000m)
           const distance = options.location.distanceInMeters || 1000;
           params.append('location.distanceInMeters', distance.toString());
-
-          console.log('위치 검색 파라미터:', {
-            latitude: options.location.latitude,
-            longitude: options.location.longitude,
-            distance: distance,
-          });
         }
       }
 
@@ -85,11 +77,8 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
       }
 
       const requestUrl = `${BASE_URL}/home?${params.toString()}`;
-      console.log('백엔드 검색 API 요청:', requestUrl);
 
       const response = await axios.get(requestUrl);
-
-      console.log('백엔드 검색 API 응답:', response.data);
 
       return response.data;
     },
@@ -130,11 +119,6 @@ export const useMapSearchPosts = (location, options = {}) => {
 
       // 페이지 크기 제한 (지도 검색은 더 적게)
       params.append('size', options.size || 20);
-
-      console.log(
-        '지도 검색 API 요청:',
-        `${BASE_URL}/home?${params.toString()}`
-      );
 
       const response = await axios.get(`${BASE_URL}/home?${params.toString()}`);
       return response.data;
