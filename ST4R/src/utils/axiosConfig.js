@@ -1,4 +1,3 @@
-// src/utils/axiosConfig.js
 import axios from 'axios';
 
 const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
@@ -18,7 +17,6 @@ const isTokenValid = (token) => {
 
     return true;
   } catch (error) {
-    console.error('토큰 검증 실패:', error);
     return false;
   }
 };
@@ -27,7 +25,6 @@ const isTokenValid = (token) => {
 const clearAuthData = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-  console.log('인증 데이터가 정리되었습니다.');
 };
 
 // Axios 기본 설정
@@ -63,7 +60,6 @@ axios.interceptors.response.use(
   (error) => {
     // 401 에러 처리
     if (error.response?.status === 401) {
-      console.log('401 에러 감지 - 토큰 정리 중...');
       clearAuthData();
 
       // 현재 경로에 따라 다르게 처리

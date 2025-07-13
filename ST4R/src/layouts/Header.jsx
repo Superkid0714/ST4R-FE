@@ -25,12 +25,12 @@ export default function Header({
 
   // 운세 버튼 클릭 핸들러
   const handleFortuneClick = () => {
-    console.log('운세 버튼 클릭');
+    // 운세 기능 구현 예정
   };
 
   // 알림 버튼 클릭 핸들러
   const handleNotificationClick = () => {
-    console.log('알림 버튼 클릭');
+    // 알림 기능 구현 예정
   };
 
   // 지도 검색 버튼 클릭 핸들러

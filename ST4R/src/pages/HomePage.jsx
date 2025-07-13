@@ -64,20 +64,17 @@ export default function HomePage() {
 
     if (token) {
       localStorage.setItem('token', token);
-      console.log('토큰 저장 완료:', token);
       navigate('/home', { replace: true });
     }
   }, [navigate]);
 
   // 검색 처리
   const handleSearch = (query) => {
-    console.log('검색어 변경:', query);
     setSearchQuery(query);
   };
 
   // 검색 타입 변경
   const handleSearchTypeChange = (type) => {
-    console.log('검색 타입 변경:', type);
     setSearchType(type);
   };
 
@@ -95,17 +92,6 @@ export default function HomePage() {
       setCurrentCategory(option.value);
     }
   };
-
-  console.log('현재 상태:', {
-    searchQuery,
-    searchType,
-    sort: currentSort,
-    direction: currentDirection,
-    period: currentPeriod,
-    category: currentCategory,
-    mapSearch: isMapSearchActive,
-    postsCount: displayPosts.length,
-  });
 
   return (
     <div className="min-h-screen bg-black">
