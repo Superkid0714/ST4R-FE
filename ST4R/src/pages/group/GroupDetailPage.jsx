@@ -9,27 +9,18 @@ import JoinModal from '../../components/JoinModal';
 import DeleteModal from '../../components/DeleteModal';
 import Carousel from '../../components/common/Carousel';
 import { useBookmarkMutation } from '../../api/postBookmark';
+import { useGetGroupDetail } from '../../api/getGroupDetail';
 
 export default function GroupDetailPage() {
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
   const { id } = useParams();
   const navigate = useNavigate();
 
   //모임상세정보 가져오기
-  const getGroupDetail = async (id) => {
-    const res = await axios.get(`${BASE_URL}/groups/${id}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    return res.data;
-  };
-
   const {
     data: groupDetail,
     isLoading,
     isError,
-  } = useQuery(['group', id], () => getGroupDetail(id), { enabled: !!id });
+  } = useGetGroupDetail(id);
 
   console.log(groupDetail);
 
