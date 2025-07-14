@@ -40,6 +40,10 @@ import WriteChoicePage from '../pages/WriteChoicePage';
 // 프로필 관련 페이지
 import ProfilePage from '../pages/ProfilePage';
 
+// 법적 문서 페이지
+import TermsOfServicePage from '../pages/TermsOfServicePage';
+import PrivacyPolicyPage from '../pages/PrivacyPolicyPage';
+
 // 라우트 가드
 import AuthGuard from '../guards/AuthGuard';
 
@@ -99,7 +103,7 @@ const router = createBrowserRouter([
   //채팅 페이지
   {
     path: 'groups/:id/chats',
-    element: <ChatPage/>
+    element: <ChatPage />,
   },
   // 선택창 페이지
   {
@@ -109,6 +113,25 @@ const router = createBrowserRouter([
         <WriteChoicePage />
       </AuthGuard>
     ),
+  },
+
+  // 법적 문서 페이지
+  {
+    path: 'legal/terms',
+    element: <TermsOfServicePage />,
+  },
+  {
+    path: 'legal/privacy',
+    element: <PrivacyPolicyPage />,
+  },
+  // 호환성을 위한 추가 경로들
+  {
+    path: 'terms-of-service',
+    element: <TermsOfServicePage />,
+  },
+  {
+    path: 'privacy-policy',
+    element: <PrivacyPolicyPage />,
   },
 
   // 네비바 필요한 페이지
