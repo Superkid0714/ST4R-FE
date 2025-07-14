@@ -39,7 +39,9 @@ import WriteChoicePage from '../pages/WriteChoicePage';
 
 // 프로필 관련 페이지
 import ProfilePage from '../pages/ProfilePage';
-import MyPostsPage from '../pages/profile/MyPostsPage';
+import MyPostsPage from '../pages/profile/MyPostPage';
+import MyLikedPostsPage from '../pages/profile/MyLikedPostsPage';
+import MyLikedGroupsPage from '../pages/profile/MyLikedGroupsPage';
 
 // 법적 문서 페이지
 import TermsOfServicePage from '../pages/TermsOfServicePage';
@@ -122,6 +124,22 @@ const router = createBrowserRouter([
     element: (
       <AuthGuard>
         <MyPostsPage />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: 'profile/liked-posts',
+    element: (
+      <AuthGuard>
+        <MyLikedPostsPage />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: 'profile/liked-groups',
+    element: (
+      <AuthGuard>
+        <MyLikedGroupsPage />
       </AuthGuard>
     ),
   },
