@@ -3,14 +3,57 @@ import { useGetChatHistory } from '../../api/getChatHistory';
 import BackBotton from '../../components/common/BackButton';
 import threelines from '../../assets/icons/threelines.svg';
 import sendBotton from '../../assets/icons/send.svg'
+import { useEffect, useRef, useState } from 'react';
 
 export default function ChatPage() {
   const { id } = useParams();
+  const clientRef = useRef(null);
+
   const {
     data: chatHistory,
     isLoading: isChatHistoryLoading,
     isError,
   } = useGetChatHistory(id);
+
+  const [messagelist, setMessagelist] = useState([]);
+  cosnt [input, setInput] = useState('');
+
+  //stomp 연결 후 구독
+  useEffect(()=>{
+    const sock = new SockJs(
+        'http://eridanus.econo.mooo.com:8080/websocket/connect'
+      );
+    
+      const stompClient = new Client({
+        webSocketFactory: () => sock,
+        reconnectDelay: 5000,
+        connectHeaders: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        onConnect: () => {
+          console.log('✅ STOMP 연결됨');
+          //subscibe(구독할url, 구독 후 실행할 콜백함수)
+          stompClient.subscribe(`websocket/subscribe/${id}`, (message) => {
+            const data = JSON.parse(message.body); //데이터 파싱
+            handleIncomingMessage(data); //받은 데이터 처리 함수
+            });
+        },
+        onStompError: (frame) => {
+          console.error('❌ STOMP 에러', frame);
+        },
+      });
+    
+      stompClient.activate();
+      clientRef.current = stompClient;
+    
+      return () => {
+        stompClient.deactivate();
+      };
+  },[id])
+
+  
+  
+  
 
   return (
     <div>
