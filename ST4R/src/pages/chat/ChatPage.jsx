@@ -66,6 +66,19 @@ export default function ChatPage() {
     } // 메시지 리스트 업데이트
   };
 
+  //메세지 전송
+  const sendMessage =()=>{
+    if (!input.trim()) return;
+
+    clientRef.current.publish({
+      destination: `websocket/broadcast/${id}`,
+      body: JSON.stringify({
+        message: input,})
+    });
+
+    setInput(''); // 전송 후 다시 초기화
+  }
+
   return (
     <div>
       {/* 상단바 */}
