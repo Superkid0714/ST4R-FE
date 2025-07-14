@@ -130,14 +130,14 @@ export default function ProfilePage() {
             </button>
             <button
               className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
-              onClick={() => navigate('/profile/bookmarked-groups')}
+              onClick={() => navigate('/profile/liked-posts')} // 이 부분 수정
             >
               <span className="text-[#D3D3D3]">내가 좋아한 글 보기</span>
               <ArrowIcon />
             </button>
             <button
               className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
-              onClick={() => navigate('/profile/created-groups')}
+              onClick={() => navigate('/profile/liked-groups')} // 이 부분 수정
             >
               <span className="text-[#D3D3D3]">내가 찜한 모임 보기</span>
               <ArrowIcon />
