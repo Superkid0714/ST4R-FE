@@ -39,6 +39,7 @@ import WriteChoicePage from '../pages/WriteChoicePage';
 
 // 프로필 관련 페이지
 import ProfilePage from '../pages/ProfilePage';
+import MyPostsPage from '../pages/profile/MyPostsPage';
 
 // 법적 문서 페이지
 import TermsOfServicePage from '../pages/TermsOfServicePage';
@@ -111,6 +112,16 @@ const router = createBrowserRouter([
     element: (
       <AuthGuard>
         <WriteChoicePage />
+      </AuthGuard>
+    ),
+  },
+
+  // 프로필 관련 페이지 (네비바 없음)
+  {
+    path: 'profile/my-posts',
+    element: (
+      <AuthGuard>
+        <MyPostsPage />
       </AuthGuard>
     ),
   },
