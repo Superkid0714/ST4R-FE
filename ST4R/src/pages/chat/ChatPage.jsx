@@ -51,9 +51,12 @@ export default function ChatPage() {
       };
   },[id])
 
-  
-  
-  
+  // 메세지를 받았을 경우
+  const handleIncomingMessage = (data) =>{
+    if (data.messageType === 'general') {
+      const newMessage = data.message;
+      setMessagelist(prev=>[...prev, newMessage]);} // 메시지 리스트 업데이트
+    }
 
   return (
     <div>
