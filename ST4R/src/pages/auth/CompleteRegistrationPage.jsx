@@ -1,17 +1,17 @@
-// src/pages/auth/CompleteRegistrationPage.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import uploadImagesToS3 from '../../api/imgupload';
 
-// 닉네임 중복 확인 API
+// 닉네임 중복 확인 API - 수정됨
 const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
       const response = await axios.get(
-        `http://eridanus.econo.mooo.com:8080/members/check-nickname?nickname=${nickname}`,
+        `http://eridanus.econo.mooo.com:8080/members/exists`,
         {
+          params: { nickname },
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -49,12 +49,21 @@ const useCompleteRegistrationMutation = () => {
     },
     onError: (error) => {
       console.error('회원가입 완료 실패:', error);
+      console.error('에러 상세:', error.response?.data);
 
       if (error.response?.status === 401) {
         alert('로그인이 필요합니다.');
         window.location.href = '/login';
       } else if (error.response?.status === 400) {
         alert('입력한 정보를 확인해주세요.');
+      } else if (error.response?.status === 409) {
+        // 409 Conflict 에러 처리 - 이미 회원가입이 완료된 상태일 수 있음
+        const errorMessage =
+          error.response?.data?.message ||
+          '이미 회원가입이 완료되었거나 중복된 정보입니다.';
+        alert(errorMessage);
+        // 이미 완료된 경우 홈으로 이동
+        window.location.href = '/home';
       } else {
         alert('회원가입 완료에 실패했습니다. 다시 시도해주세요.');
       }
@@ -72,9 +81,9 @@ export default function CompleteRegistrationPage() {
 
   // 폼 상태 관리
   const [formData, setFormData] = useState({
+    nickname: '',
     birthDate: '',
     gender: 'UNKNOWN',
-    nickname: '',
     profileImageUrl: '',
   });
 
@@ -178,17 +187,48 @@ export default function CompleteRegistrationPage() {
     }
 
     try {
-      await checkNicknameMutation.mutateAsync(formData.nickname);
-      setIsNicknameChecked(true);
-      setNicknameCheckResult('available');
-      setErrors((prev) => ({ ...prev, nickname: '' }));
-    } catch (error) {
-      if (error.response?.status === 409) {
+      const response = await checkNicknameMutation.mutateAsync(
+        formData.nickname
+      );
+      console.log('닉네임 중복 확인 응답:', response);
+
+      if (response.isSuccess) {
+        if (response.exists) {
+          // 닉네임이 이미 존재하는 경우
+          setErrors((prev) => ({
+            ...prev,
+            nickname: '이미 존재하는 닉네임입니다.',
+          }));
+          setNicknameCheckResult('unavailable');
+          setIsNicknameChecked(false);
+        } else {
+          // 닉네임을 사용할 수 있는 경우
+          setIsNicknameChecked(true);
+          setNicknameCheckResult('available');
+          setErrors((prev) => ({ ...prev, nickname: '' }));
+        }
+      } else {
+        // API 응답에서 isSuccess가 false인 경우
         setErrors((prev) => ({
           ...prev,
-          nickname: '이미 사용중인 닉네임입니다.',
+          nickname: response.message || '닉네임 확인에 실패했습니다.',
         }));
-        setNicknameCheckResult('unavailable');
+        setNicknameCheckResult('error');
+        setIsNicknameChecked(false);
+      }
+    } catch (error) {
+      console.error('닉네임 중복 확인 에러:', error);
+
+      if (error.response?.status === 404) {
+        console.warn('닉네임 중복 확인 API 엔드포인트를 확인해주세요.');
+        alert(
+          '닉네임 중복 확인 기능을 사용할 수 없습니다. 고유한 닉네임을 입력해주세요.'
+        );
+        setErrors((prev) => ({
+          ...prev,
+          nickname: '닉네임 중복 확인을 할 수 없습니다.',
+        }));
+        setNicknameCheckResult('error');
       } else {
         setErrors((prev) => ({
           ...prev,
@@ -204,6 +244,21 @@ export default function CompleteRegistrationPage() {
   const validateForm = () => {
     const newErrors = {};
 
+    // 닉네임 검사
+    if (!formData.nickname.trim()) {
+      newErrors.nickname = '닉네임을 입력해주세요.';
+    } else if (formData.nickname.length < 2 || formData.nickname.length > 10) {
+      newErrors.nickname = '닉네임은 2-10자 사이여야 합니다.';
+    } else if (!isNicknameChecked || nicknameCheckResult !== 'available') {
+      // 닉네임 중복 확인이 실패했거나 에러인 경우는 통과시킴 (404 에러 대응)
+      if (nicknameCheckResult === 'error') {
+        // 에러인 경우 경고만 표시하고 진행 허용
+        console.warn('닉네임 중복 확인 없이 진행');
+      } else {
+        newErrors.nickname = '닉네임 중복 확인을 해주세요.';
+      }
+    }
+
     // 생년월일 검사
     if (!formData.birthDate) {
       newErrors.birthDate = '생년월일을 입력해주세요.';
@@ -215,15 +270,6 @@ export default function CompleteRegistrationPage() {
       if (age < 14 || age > 100) {
         newErrors.birthDate = '올바른 생년월일을 입력해주세요.';
       }
-    }
-
-    // 닉네임 검사
-    if (!formData.nickname.trim()) {
-      newErrors.nickname = '닉네임을 입력해주세요.';
-    } else if (formData.nickname.length < 2 || formData.nickname.length > 10) {
-      newErrors.nickname = '닉네임은 2-10자 사이여야 합니다.';
-    } else if (!isNicknameChecked || nicknameCheckResult !== 'available') {
-      newErrors.nickname = '닉네임 중복 확인을 해주세요.';
     }
 
     setErrors(newErrors);
@@ -250,9 +296,9 @@ export default function CompleteRegistrationPage() {
       }
 
       const submitData = {
+        nickname: formData.nickname.trim(),
         birthDate: formData.birthDate,
         gender: formData.gender,
-        nickname: formData.nickname.trim(),
         profileImageUrl: finalProfileImageUrl || null,
       };
 
@@ -264,25 +310,28 @@ export default function CompleteRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-['Pretendard']">
-      <div className="px-4 py-6">
+    <div className="min-h-screen bg-black text-white font-['Pretendard'] flex items-center justify-center">
+      <div className="w-full max-w-md px-4 py-6">
         {/* 헤더 */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-6">추가 정보 입력</h1>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-white mb-2">추가 정보 입력</h1>
+          <p className="text-gray-400 text-sm">
+            서비스 이용을 위한 기본 정보를 입력해주세요
+          </p>
         </div>
 
         {/* 폼 */}
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* 프로필 이미지 */}
           <div className="text-center">
-            <label className="block text-sm font-medium text-white mb-4">
+            <label className="block text-sm font-medium text-white mb-6">
               프로필 이미지 <span className="text-gray-400">(선택사항)</span>
             </label>
 
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center mb-2">
               <div
                 onClick={handleImageClick}
-                className="relative w-24 h-24 rounded-full bg-[#1D1D1D] border-2 border-dashed border-gray-600 flex items-center justify-center cursor-pointer hover:border-yellow-500 transition-colors group"
+                className="relative w-32 h-32 rounded-full bg-[#1D1D1D] border-2 border-dashed border-gray-600 flex items-center justify-center cursor-pointer hover:border-yellow-500 transition-colors group"
               >
                 {profileImagePreview ? (
                   <>
@@ -296,7 +345,7 @@ export default function CompleteRegistrationPage() {
                         e.stopPropagation();
                         handleImageRemove();
                       }}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors"
+                      className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors"
                     >
                       ✕
                     </button>
@@ -304,7 +353,7 @@ export default function CompleteRegistrationPage() {
                 ) : (
                   <div className="text-center">
                     <svg
-                      className="w-8 h-8 text-gray-400 group-hover:text-yellow-500 mx-auto mb-1"
+                      className="w-10 h-10 text-gray-400 group-hover:text-yellow-500 mx-auto mb-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -331,6 +380,54 @@ export default function CompleteRegistrationPage() {
                 className="hidden"
               />
             </div>
+          </div>
+
+          {/* 닉네임 */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              닉네임 <span className="text-red-400">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.nickname}
+                onChange={(e) => handleInputChange('nickname', e.target.value)}
+                placeholder="2-10자 사이로 입력해주세요"
+                maxLength={10}
+                className={`flex-1 h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white placeholder-gray-500 ${
+                  errors.nickname ? 'border border-red-400' : ''
+                }`}
+              />
+              <button
+                type="button"
+                onClick={checkNickname}
+                disabled={
+                  !formData.nickname.trim() || checkNicknameMutation.isLoading
+                }
+                className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {checkNicknameMutation.isLoading ? '확인중...' : '중복확인'}
+              </button>
+            </div>
+            {errors.nickname && (
+              <p className="text-red-400 text-sm mt-1">{errors.nickname}</p>
+            )}
+            {nicknameCheckResult === 'available' && !errors.nickname && (
+              <p className="text-green-400 text-sm mt-1">
+                ✓ 사용 가능한 닉네임입니다
+              </p>
+            )}
+            {nicknameCheckResult === 'unavailable' && (
+              <p className="text-red-400 text-sm mt-1">
+                이미 존재하는 닉네임입니다.
+              </p>
+            )}
+            {nicknameCheckResult === 'error' && !errors.nickname && (
+              <p className="text-yellow-400 text-sm mt-1">
+                ⚠ 닉네임 중복 확인을 할 수 없습니다. 고유한 닉네임을
+                사용해주세요.
+              </p>
+            )}
           </div>
 
           {/* 생년월일 */}
@@ -379,43 +476,6 @@ export default function CompleteRegistrationPage() {
             </div>
           </div>
 
-          {/* 닉네임 */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              닉네임 <span className="text-red-400">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={formData.nickname}
-                onChange={(e) => handleInputChange('nickname', e.target.value)}
-                placeholder="2-10자 사이로 입력해주세요"
-                maxLength={10}
-                className={`flex-1 h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white placeholder-gray-500 ${
-                  errors.nickname ? 'border border-red-400' : ''
-                }`}
-              />
-              <button
-                type="button"
-                onClick={checkNickname}
-                disabled={
-                  !formData.nickname.trim() || checkNicknameMutation.isLoading
-                }
-                className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {checkNicknameMutation.isLoading ? '확인중...' : '중복확인'}
-              </button>
-            </div>
-            {errors.nickname && (
-              <p className="text-red-400 text-sm mt-1">{errors.nickname}</p>
-            )}
-            {nicknameCheckResult === 'available' && !errors.nickname && (
-              <p className="text-green-400 text-sm mt-1">
-                ✓ 사용 가능한 닉네임입니다
-              </p>
-            )}
-          </div>
-
           {/* 제출 버튼 */}
           <button
             onClick={handleSubmit}
@@ -427,14 +487,6 @@ export default function CompleteRegistrationPage() {
             }`}
           >
             {completeRegistrationMutation.isLoading ? '처리중...' : '가입 완료'}
-          </button>
-
-          {/* 건너뛰기 버튼 */}
-          <button
-            onClick={() => navigate('/home')}
-            className="w-full h-12 bg-transparent border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            나중에 입력하기
           </button>
         </div>
       </div>
