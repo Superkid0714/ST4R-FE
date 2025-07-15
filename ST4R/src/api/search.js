@@ -10,9 +10,9 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      // 검색어가 있을 때만 검색 파라미터 추가
+      // 검색어가 있을 때만 검색 파라미터 추가 (중복 방지)
       if (searchQuery?.trim()) {
-        // 검색 타입에 따라 다른 파라미터 설정
+        // 검색 타입에 따라 다른 파라미터 설정 - 중복 제거
         switch (options.searchType) {
           case 'title':
             params.append('title', searchQuery.trim());
@@ -21,17 +21,15 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
             params.append('content', searchQuery.trim());
             break;
           case 'titleAndContent':
-            // 제목+내용 검색의 경우
-            params.append('title', searchQuery.trim());
-            params.append('content', searchQuery.trim());
+            // 제목+내용 검색의 경우 하나의 파라미터만 사용
+            params.append('query', searchQuery.trim());
             break;
           case 'author':
             params.append('authorName', searchQuery.trim());
             break;
           default:
-            // 기본값: 제목+내용 검색
-            params.append('title', searchQuery.trim());
-            params.append('content', searchQuery.trim());
+            // 기본값: 통합 검색
+            params.append('query', searchQuery.trim());
         }
       }
 
@@ -77,6 +75,7 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
       }
 
       const requestUrl = `${BASE_URL}/home?${params.toString()}`;
+      console.log('검색 API 요청 URL:', requestUrl);
 
       const response = await axios.get(requestUrl);
 
@@ -84,7 +83,23 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
     },
     enabled: true,
     staleTime: 1000 * 60 * 5,
-    retry: 2,
+    retry: (failureCount, error) => {
+      // 422 에러는 재시도하지 않음
+      if (error?.response?.status === 422) {
+        console.error(
+          '422 에러 발생 - 파라미터 확인 필요:',
+          error.response?.data
+        );
+        return false;
+      }
+      return failureCount < 2;
+    },
+    onError: (error) => {
+      console.error('검색 API 에러:', error);
+      if (error?.response?.status === 422) {
+        console.error('422 에러 상세:', error.response?.data);
+      }
+    },
   });
 };
 

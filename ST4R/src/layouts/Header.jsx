@@ -44,6 +44,22 @@ export default function Header({
     }
   };
 
+  // 검색 핸들러 개선
+  const handleSearch = (query) => {
+    console.log('헤더에서 검색 실행:', { query, searchType });
+    if (onSearch) {
+      onSearch(query);
+    }
+  };
+
+  // 검색 타입 변경 핸들러 개선
+  const handleSearchTypeChange = (type) => {
+    console.log('헤더에서 검색 타입 변경:', type);
+    if (onSearchTypeChange) {
+      onSearchTypeChange(type);
+    }
+  };
+
   return (
     <header className="bg-black text-white">
       <div>
@@ -220,8 +236,8 @@ export default function Header({
         <div className="mb-5">
           <div className="relative">
             <SearchBar
-              onSearch={onSearch}
-              onSearchTypeChange={onSearchTypeChange}
+              onSearch={handleSearch}
+              onSearchTypeChange={handleSearchTypeChange}
               isLoading={isSearchLoading}
               placeholder="별자리에 관해 궁금한 글들을 검색해보세요."
               showSearchTypeSelector={true}

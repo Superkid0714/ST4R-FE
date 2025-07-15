@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../api/auth';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 // 프로필 아이콘 컴포넌트
 const ProfileIcon = ({ className = 'w-[18px] h-[18px]' }) => (
@@ -13,7 +15,7 @@ const ProfileIcon = ({ className = 'w-[18px] h-[18px]' }) => (
     className={className}
   >
     <path
-      d="M1.99988 15.4708C2.89988 14.5875 3.94571 13.8916 5.13738 13.3833C6.32904 12.875 7.61654 12.6208 8.99988 12.6208C10.3832 12.6208 11.6707 12.875 12.8624 13.3833C14.054 13.8916 15.0999 14.5875 15.9999 15.4708V2.73631C15.9999 2.65931 15.9678 2.58881 15.9036 2.52481C15.8396 2.46064 15.7691 2.42856 15.6921 2.42856H2.30763C2.23063 2.42856 2.16013 2.46064 2.09613 2.52481C2.03196 2.58881 1.99988 2.65931 1.99988 2.73631V15.4708ZM8.99988 10.4671C9.90238 10.4671 10.6697 10.1511 11.3019 9.51906C11.9339 8.88689 12.2499 8.11956 12.2499 7.21706C12.2499 6.31456 11.9339 5.54722 11.3019 4.91506C10.6697 4.28306 9.90238 3.96706 8.99988 3.96706C8.09738 3.96706 7.33004 4.28306 6.69788 4.91506C6.06588 5.54722 5.74988 6.31456 5.74988 7.21706C5.74988 8.11956 6.06588 8.88689 6.69788 9.51906C7.33004 10.1511 8.09738 10.4671 8.99988 10.4671ZM2.30763 17.9286C1.80246 17.9286 1.37488 17.7536 1.02488 17.4036C0.674878 17.0536 0.499878 16.626 0.499878 16.1208V2.73631C0.499878 2.23114 0.674878 1.80356 1.02488 1.45356C1.37488 1.10356 1.80246 0.928558 2.30763 0.928558H15.6921C16.1973 0.928558 16.6249 1.10356 16.9749 1.45356C17.3249 1.80356 17.4999 2.23114 17.4999 2.73631V16.1208C17.4999 16.626 17.3249 17.0536 16.9749 17.4036C16.6249 17.7536 16.1973 17.9286 15.6921 17.9286H2.30763ZM3.17688 16.4286H14.8229C13.9742 15.6504 13.049 15.0712 12.0471 14.6911C11.0451 14.3109 10.0294 14.1208 8.99988 14.1208C7.98321 14.1208 6.96554 14.3109 5.94688 14.6911C4.92838 15.0712 4.00504 15.6504 3.17688 16.4286ZM8.99988 8.96706C8.51904 8.96706 8.10721 8.79556 7.76438 8.45256C7.42138 8.10972 7.24988 7.69789 7.24988 7.21706C7.24988 6.73622 7.42138 6.32439 7.76438 5.98156C8.10721 5.63856 8.51904 5.46706 8.99988 5.46706C9.48071 5.46706 9.89254 5.63856 10.2354 5.98156C10.5784 6.32439 10.7499 6.73622 10.7499 7.21706C10.7499 7.69789 10.5784 8.10972 10.2354 8.45256C9.89254 8.79556 9.48071 8.96706 8.99988 8.96706Z"
+      d="M2.33334 17.0493C3.38334 16.0187 4.60348 15.2069 5.99376 14.6139C7.38404 14.0208 8.88612 13.7243 10.5 13.7243C12.1139 13.7243 13.616 14.0208 15.0063 14.6139C16.3965 15.2069 17.6167 16.0187 18.6667 17.0493V2.19235C18.6667 2.10252 18.6292 2.02027 18.5544 1.9456C18.4797 1.87074 18.3975 1.83331 18.3076 1.83331H2.69239C2.60255 1.83331 2.5203 1.87074 2.44564 1.9456C2.37077 2.02027 2.33334 2.10252 2.33334 2.19235V17.0493ZM10.5 11.2116C11.5529 11.2116 12.4482 10.8429 13.1857 10.1056C13.923 9.36804 14.2917 8.47281 14.2917 7.4199C14.2917 6.36698 13.923 5.47176 13.1857 4.73423C12.4482 3.9969 11.5529 3.62823 10.5 3.62823C9.44709 3.62823 8.55187 3.9969 7.81434 4.73423C7.07701 5.47176 6.70834 6.36698 6.70834 7.4199C6.70834 8.47281 7.07701 9.36804 7.81434 10.1056C8.55187 10.8429 9.44709 11.2116 10.5 11.2116ZM2.69239 19.9166C2.10302 19.9166 1.60418 19.7125 1.19584 19.3041C0.78751 18.8958 0.583344 18.397 0.583344 17.8076V2.19235C0.583344 1.60299 0.78751 1.10415 1.19584 0.695813C1.60418 0.28748 2.10302 0.083313 2.69239 0.083313H18.3076C18.897 0.083313 19.3958 0.28748 19.8042 0.695813C20.2125 1.10415 20.4167 1.60299 20.4167 2.19235V17.8076C20.4167 18.397 20.2125 18.8958 19.8042 19.3041C19.3958 19.7125 18.897 19.9166 18.3076 19.9166H2.69239ZM3.70651 18.1666H17.2935C16.3034 17.2588 15.2239 16.5831 14.0551 16.1396C12.8861 15.696 11.7011 15.4743 10.5 15.4743C9.3139 15.4743 8.12662 15.696 6.93818 16.1396C5.74993 16.5831 4.67271 17.2588 3.70651 18.1666ZM10.5 9.46157C9.93904 9.46157 9.45857 9.26148 9.05859 8.86131C8.65843 8.46134 8.45834 7.98087 8.45834 7.4199C8.45834 6.85892 8.65843 6.37845 9.05859 5.97848C9.45857 5.57831 9.93904 5.37823 10.5 5.37823C11.061 5.37823 11.5415 5.57831 11.9414 5.97848C12.3416 6.37845 12.5417 6.85892 12.5417 7.4199C12.5417 7.98087 12.3416 8.46134 11.9414 8.86131C11.5415 9.26148 11.061 9.46157 10.5 9.46157Z"
       fill="#FFBB02"
     />
   </svg>
@@ -35,34 +37,55 @@ const ArrowIcon = () => (
   </svg>
 );
 
+// 사용자 정보 조회 API
+const useUserInfo = () => {
+  return useQuery({
+    queryKey: ['userInfo'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      const response = await axios.get(
+        'http://eridanus.econo.mooo.com:8080/members/me',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log('사용자 정보 조회 성공:', response.data);
+
+      // 받은 사용자 정보를 로컬 스토리지에 저장
+      localStorage.setItem('user', JSON.stringify(response.data));
+
+      return response.data;
+    },
+    enabled: !!localStorage.getItem('token'), // 토큰이 있을 때만 요청
+    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
+    retry: (failureCount, error) => {
+      // 401 에러는 재시도하지 않음
+      if (error?.response?.status === 401) return false;
+      return failureCount < 2;
+    },
+    onError: (error) => {
+      console.error('사용자 정보 조회 실패:', error);
+      if (error?.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    },
+  });
+};
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation();
 
-  // 사용자 정보 상태
-  const [userInfo, setUserInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // 컴포넌트 마운트 시 사용자 정보 로드
-  useEffect(() => {
-    const loadUserInfo = () => {
-      try {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (token && storedUser) {
-          const user = JSON.parse(storedUser);
-          setUserInfo(user);
-        }
-      } catch (error) {
-        console.error('사용자 정보 로드 실패:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadUserInfo();
-  }, []);
+  // API를 통해 사용자 정보 조회
+  const { data: userInfo, isLoading, error, refetch } = useUserInfo();
 
   // 로그아웃 핸들러
   const handleLogout = () => {
@@ -71,6 +94,7 @@ export default function ProfilePage() {
     }
   };
 
+  // 로딩 상태
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -79,6 +103,86 @@ export default function ProfilePage() {
     );
   }
 
+  // 에러 상태 (로그인 필요)
+  if (
+    error?.response?.status === 401 ||
+    error?.message === '로그인이 필요합니다.'
+  ) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
+        <div className="text-center">
+          <svg
+            className="w-16 h-16 mx-auto mb-4 text-yellow-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          <h2 className="text-xl font-bold text-white mb-2">
+            로그인이 필요합니다
+          </h2>
+          <p className="text-gray-400 mb-4">프로필을 보려면 로그인해주세요.</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+          >
+            로그인
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 기타 에러 상태
+  if (error && error?.response?.status !== 401) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
+        <div className="text-center">
+          <svg
+            className="w-16 h-16 mx-auto mb-4 text-red-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <h2 className="text-xl font-bold text-white mb-2">
+            오류가 발생했습니다
+          </h2>
+          <p className="text-gray-400 mb-4">
+            사용자 정보를 불러올 수 없습니다. 다시 시도해주세요.
+          </p>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => refetch()}
+              className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+            >
+              다시 시도
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-500 transition-colors"
+            >
+              로그인
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 사용자 정보가 없는 경우
   if (!userInfo) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
@@ -110,7 +214,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-3">
               <ProfileIcon />
               <span className="text-white text-lg">
-                {userInfo.name || '안성준'}회원님
+                {userInfo.nickname || userInfo.name || '사용자'}님
               </span>
             </div>
             <ArrowIcon />
@@ -130,14 +234,14 @@ export default function ProfilePage() {
             </button>
             <button
               className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
-              onClick={() => navigate('/profile/liked-posts')} // 이 부분 수정
+              onClick={() => navigate('/profile/liked-posts')}
             >
               <span className="text-[#D3D3D3]">내가 좋아한 글 보기</span>
               <ArrowIcon />
             </button>
             <button
               className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
-              onClick={() => navigate('/profile/liked-groups')} // 이 부분 수정
+              onClick={() => navigate('/profile/liked-groups')}
             >
               <span className="text-[#D3D3D3]">내가 찜한 모임 보기</span>
               <ArrowIcon />
@@ -151,18 +255,24 @@ export default function ProfilePage() {
           <div className="p-4 pt-4 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-[#D3D3D3]">닉네임</span>
-              <span className="text-[#8F8F8F]">에코노베이션</span>
+              <span className="text-[#8F8F8F]">
+                {userInfo.nickname || '닉네임 없음'}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[#D3D3D3]">이메일</span>
               <span className="text-[#8F8F8F]">
-                {userInfo.email || 'newkid0714@jnu.ac.kr'}
+                {userInfo.email || '이메일 없음'}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[#D3D3D3]">생년월일</span>
-              <span className="text-[#8F8F8F]">2000.07.14</span>
-            </div>
+            {userInfo.birthDate && (
+              <div className="flex justify-between items-center">
+                <span className="text-[#D3D3D3]">생년월일</span>
+                <span className="text-[#8F8F8F]">
+                  {new Date(userInfo.birthDate).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
