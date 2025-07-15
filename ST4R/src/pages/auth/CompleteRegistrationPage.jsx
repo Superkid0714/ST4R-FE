@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import uploadImagesToS3 from '../../api/imgupload';
 
-// 닉네임 중복 확인 API - 수정됨
+// 닉네임 중복 확인 API
 const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
@@ -29,7 +29,7 @@ const useCompleteRegistrationMutation = () => {
       console.log('회원가입 완료 요청:', data);
 
       const response = await axios.patch(
-        'http://eridanus.econo.mooo.com:8080/members/completeRegistration',
+        'http://eridanus.econo.mooo.com:8080/my/complete', // 엔드포인트 변경
         data,
         {
           headers: {

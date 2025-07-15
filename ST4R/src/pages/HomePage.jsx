@@ -60,6 +60,7 @@ export default function HomePage() {
   const displayPosts = postsData?.boardPeeks?.content || [];
 
   // 카카오 로그인 토큰 처리 및 회원가입 완료 확인
+  // HomePage.jsx의 useEffect 부분만 수정
   useEffect(() => {
     const handleKakaoLogin = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -69,9 +70,9 @@ export default function HomePage() {
         try {
           localStorage.setItem('token', token);
 
-          // 사용자 정보 확인 - 회원가입 완료 여부 체크
+          // 사용자 정보 확인 - 회원가입 완료 여부 체크 (엔드포인트 변경)
           const userResponse = await axios.get(
-            'http://eridanus.econo.mooo.com:8080/members/me',
+            'http://eridanus.econo.mooo.com:8080/my', // /members/me에서 /my로 변경
             {
               headers: {
                 Authorization: `Bearer ${token}`,

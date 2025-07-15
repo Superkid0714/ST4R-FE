@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../api/auth';
 import { useQuery } from '@tanstack/react-query';
@@ -37,7 +37,23 @@ const ArrowIcon = () => (
   </svg>
 );
 
-// 사용자 정보 조회 API
+// 별자리 매핑 객체
+const CONSTELLATION_NAMES = {
+  ARIES: '양자리',
+  TAURUS: '황소자리',
+  GEMINI: '쌍둥이자리',
+  CANCER: '게자리',
+  LEO: '사자자리',
+  VIRGO: '처녀자리',
+  LIBRA: '천칭자리',
+  SCORPIO: '전갈자리',
+  SAGITTARIUS: '사수자리',
+  CAPRICORN: '염소자리',
+  AQUARIUS: '물병자리',
+  PISCES: '물고기자리',
+};
+
+// 사용자 정보 조회 API - 엔드포인트 수정
 const useUserInfo = () => {
   return useQuery({
     queryKey: ['userInfo'],
@@ -48,7 +64,7 @@ const useUserInfo = () => {
       }
 
       const response = await axios.get(
-        'http://eridanus.econo.mooo.com:8080/members/me',
+        'http://eridanus.econo.mooo.com:8080/my', // 엔드포인트 변경
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -92,6 +108,11 @@ export default function ProfilePage() {
     if (window.confirm('정말로 로그아웃 하시겠습니까?')) {
       logoutMutation.mutate();
     }
+  };
+
+  // 별자리 이름 표시 함수
+  const getConstellationName = (constellation) => {
+    return CONSTELLATION_NAMES[constellation] || '별자리 정보 없음';
   };
 
   // 로딩 상태
@@ -213,9 +234,16 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-3">
               <ProfileIcon />
-              <span className="text-white text-lg">
-                {userInfo.nickname || userInfo.name || '사용자'}님
-              </span>
+              <div className="flex flex-col">
+                <span className="text-white text-lg">
+                  {userInfo.nickname || userInfo.name || '사용자'}님
+                </span>
+                {userInfo.constellation && (
+                  <span className="text-[#8F8F8F] text-sm">
+                    {getConstellationName(userInfo.constellation)}
+                  </span>
+                )}
+              </div>
             </div>
             <ArrowIcon />
           </div>
@@ -270,6 +298,18 @@ export default function ProfilePage() {
                 <span className="text-[#D3D3D3]">생년월일</span>
                 <span className="text-[#8F8F8F]">
                   {new Date(userInfo.birthDate).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+            )}
+            {userInfo.gender && (
+              <div className="flex justify-between items-center">
+                <span className="text-[#D3D3D3]">성별</span>
+                <span className="text-[#8F8F8F]">
+                  {userInfo.gender === 'MAN'
+                    ? '남성'
+                    : userInfo.gender === 'WOMAN'
+                      ? '여성'
+                      : '선택안함'}
                 </span>
               </div>
             )}
