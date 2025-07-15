@@ -4,6 +4,7 @@ import { useBackendSearchPosts } from '../api/search';
 import Header from '../layouts/Header';
 import PostCard from '../components/PostCard';
 import FilterBar from '../components/FilterBar';
+import axios from 'axios';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -58,14 +59,62 @@ export default function HomePage() {
   // 표시할 게시글 목록
   const displayPosts = postsData?.boardPeeks?.content || [];
 
+  // 카카오 로그인 토큰 처리 및 회원가입 완료 확인
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('accessToken');
+    const handleKakaoLogin = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('accessToken');
 
-    if (token) {
-      localStorage.setItem('token', token);
-      navigate('/home', { replace: true });
-    }
+      if (token) {
+        try {
+          localStorage.setItem('token', token);
+
+          // 사용자 정보 확인 - 회원가입 완료 여부 체크
+          const userResponse = await axios.get(
+            'http://eridanus.econo.mooo.com:8080/members/me',
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          console.log('사용자 정보:', userResponse.data);
+
+          // 사용자 정보 저장
+          localStorage.setItem('user', JSON.stringify(userResponse.data));
+
+          // 닉네임이 없으면 회원가입 완료 페이지로 리다이렉트
+          if (
+            !userResponse.data.nickname ||
+            userResponse.data.nickname.trim() === ''
+          ) {
+            navigate('/complete-registration', { replace: true });
+            return;
+          }
+
+          // 회원가입이 완료된 사용자는 홈으로 이동
+          navigate('/home', { replace: true });
+        } catch (error) {
+          console.error('사용자 정보 조회 실패:', error);
+
+          if (error.response?.status === 401) {
+            // 토큰이 유효하지 않은 경우
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/login', { replace: true });
+          } else if (error.response?.status === 404) {
+            // 사용자 정보가 없는 경우 - 회원가입 완료 필요
+            navigate('/complete-registration', { replace: true });
+          } else {
+            // 기타 에러 - 일단 홈으로 이동
+            navigate('/home', { replace: true });
+          }
+        }
+      }
+    };
+
+    handleKakaoLogin();
   }, [navigate]);
 
   // 검색 처리

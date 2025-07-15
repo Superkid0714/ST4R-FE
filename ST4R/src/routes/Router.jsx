@@ -10,6 +10,7 @@ import MobileLayout from '../layouts/MobileLayout';
 // 페이지 컴포넌트
 import LoginPage from '../pages/login/LoginPage';
 import LoginAlertPage from '../pages/login/LoginAlertPage';
+import CompleteRegistrationPage from '../pages/auth/CompleteRegistrationPage';
 
 // 로비 페이지
 import HomePage from '../pages/HomePage';
@@ -56,6 +57,9 @@ const router = createBrowserRouter([
   // 로그인 페이지
   { path: 'login', element: <LoginPage /> },
   { path: 'login-alert', element: <LoginAlertPage /> },
+
+  // 회원가입 완료 페이지 (카카오 로그인 후 추가 정보 입력)
+  { path: 'complete-registration', element: <CompleteRegistrationPage /> },
 
   // 지도 검색 페이지
   { path: 'map-search', element: <MapSearchPage /> },
