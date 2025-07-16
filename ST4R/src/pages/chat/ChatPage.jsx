@@ -13,7 +13,8 @@ import { useGetGroupMembers } from '../../api/getGroupMembers';
 export default function ChatPage() {
   const { id } = useParams();
   const clientRef = useRef(null);
-  const [messagelist, setMessagelist] = useState([]); 
+  const messageListRef = useRef(null);
+  const [messagelist, setMessagelist] = useState([]);
   const [input, setInput] = useState(''); // 보내는 메세지 내용
 
   // 모임 상세 정보
@@ -24,10 +25,8 @@ export default function ChatPage() {
   } = useGetGroupDetail(id);
 
   // 모임 구성원 정보
-  const {data: members} = useGetGroupMembers(id);
+  const { data: members } = useGetGroupMembers(id);
   console.log(members);
-
-  
 
   // 채팅 히스토리
   const {
@@ -47,6 +46,13 @@ export default function ChatPage() {
   const stompDebugLogger = (str) => {
     console.log('[STOMP DEBUG]', str);
   };
+
+  //채팅 올 때마다 맨 아래로 스크롤
+  useEffect(() => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  }, [messagelist]);
 
   //웹소켓으로 채팅하기
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function ChatPage() {
   console.log(messagelist);
 
   return (
-    <div>
+    <div className="h-screen flex flex-col">
       {/* 상단바 */}
       <div className="flex">
         <BackButton className="ml-2 mt-2" />
@@ -131,27 +137,33 @@ export default function ChatPage() {
       </div>
 
       {/* 채팅 메세지 목록 */}
-      {messagelist.map((msg, i)=>{
-        const senderInfo  = members.find(m => m.isMe == true) // 보낸사람 정보
-        console.log(senderInfo);
-        const prev = messagelist[i-1];
-        const isFirstOfSender = !prev || prev.sender.id !== msg.sender.id; // 연속된 채팅을 보냈을 경우 가장 첫 메세지
-        return(
-        <ChatBlock
-          key={i}
-          message={msg.message}
-          isMe={msg.sender.id === senderInfo.id}
-          sender = {isFirstOfSender ? msg.sender : null}
-        ></ChatBlock>)
-})}
+      <div
+        className="mb-[76px] flex flex-col gap-2 mx-4 pr-3 overflow-y-auto"
+        ref={messageListRef}
+      >
+        {messagelist.map((msg, i) => {
+          const senderInfo = members.find((m) => m.isMe == true); // 보낸사람 정보
+          console.log(senderInfo);
+          const prev = messagelist[i - 1];
+          const isFirstOfSender = !prev || prev.sender.id !== msg.sender.id; // 연속된 채팅을 보냈을 경우 가장 첫 메세지
+          console.log(msg.sender);
+          return (
+            <ChatBlock
+              key={i}
+              message={msg.message}
+              isMe={msg.sender.id === senderInfo.id}
+              nickname={isFirstOfSender ? msg.sender.nickname : null}
+            ></ChatBlock>
+          );
+        })}
+      </div>
 
       {isChatHistoryLoading && (
         <div className="mx-auto mt-10 w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
       )}
 
-
       {/* 메세지 입력 칸 */}
-      <div className="absolute w-full flex p-3 bottom-3">
+      <div className="absolute z-9999 w-full flex px-3 bottom-3">
         <input
           type="text"
           className="w-full rounded-3xl font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656] p-3 h-14"
@@ -161,7 +173,7 @@ export default function ChatPage() {
         />
         <img
           onClick={sendMessage}
-          className="absolute w-12 right-4 top-4"
+          className="absolute w-12 right-4 top-1"
           src={sendBotton}
         />
       </div>
