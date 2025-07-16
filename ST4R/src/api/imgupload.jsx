@@ -1,20 +1,55 @@
 import axios from 'axios';
 
+// 파일명 정리 함수 추가
+const sanitizeFileName = (fileName) => {
+  // 한글 파일명을 영문으로 변환하거나 안전한 문자로 대체
+  return fileName
+    .replace(/\s+/g, '_') // 공백을 언더스코어로
+    .replace(/[()]/g, '') // 괄호 제거
+    .replace(/[^\w\-_.]/g, '') // 영문, 숫자, 하이픈, 언더스코어, 점만 허용
+    .replace(/_{2,}/g, '_') // 연속된 언더스코어를 하나로
+    .substring(0, 100); // 길이 제한
+};
+
+// 고유한 파일명 생성 함수
+const generateUniqueFileName = (originalName) => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const extension = originalName.split('.').pop().toLowerCase();
+  const baseName = originalName.split('.').slice(0, -1).join('.');
+  const cleanBaseName = sanitizeFileName(baseName);
+
+  return `${cleanBaseName}_${timestamp}_${random}.${extension}`;
+};
+
 //Presignedurl 받기
 const getPresignedUrl = async (img) => {
-  console.log('요청할 파일명:', img.name);
+  // 원본 파일명 대신 정리된 파일명 사용
+  const cleanFileName = generateUniqueFileName(img.name);
+
+  console.log('원본 파일명:', img.name);
+  console.log('정리된 파일명:', cleanFileName);
   console.log('파일 타입:', img.type);
 
-  const res = await axios.get(
-    `http://eridanus.econo.mooo.com:8080/upload/s3/presigned-url?fileName=${encodeURIComponent(img.name)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    }
-  );
-  console.log('받은 Presigned URL:', res.data.presignedUrl);
-  return res.data.presignedUrl;
+  try {
+    const res = await axios.get(
+      `http://eridanus.econo.mooo.com:8080/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+    console.log('받은 Presigned URL:', res.data.presignedUrl);
+    return res.data.presignedUrl;
+  } catch (error) {
+    console.error('Presigned URL 요청 실패:', error);
+    console.error(
+      '요청 URL:',
+      `http://eridanus.econo.mooo.com:8080/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`
+    );
+    throw error;
+  }
 };
 
 //s3에 이미지 업로드
@@ -54,6 +89,12 @@ const uploadToPresignUrl = async (img, presignedUrl) => {
 
 // 최종 이미지 배열 s3에 업로드
 export default async function uploadImagesToS3(images) {
+  if (!images || images.length === 0) {
+    console.log('업로드할 이미지가 없습니다.');
+    return [];
+  }
+
+  console.log('이미지 업로드 시작, 이미지 개수:', images.length);
   const imageUrls = [];
 
   for (const image of images) {
@@ -72,6 +113,15 @@ export default async function uploadImagesToS3(images) {
         continue;
       }
 
+      // 파일 크기 체크 (10MB 제한)
+      if (img.size > 10 * 1024 * 1024) {
+        console.error('파일 크기가 너무 큽니다 (10MB 초과):', img.size);
+        alert(
+          `파일 "${img.name}"의 크기가 너무 큽니다. 10MB 이하의 파일을 선택해주세요.`
+        );
+        continue;
+      }
+
       const presignedUrl = await getPresignedUrl(img);
       await uploadToPresignUrl(img, presignedUrl);
 
@@ -82,8 +132,15 @@ export default async function uploadImagesToS3(images) {
       console.log('최종 이미지 URL:', finalUrl);
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
+      console.error('파일명:', image.img?.name);
+
+      // 개별 이미지 업로드 실패는 전체를 중단하지 않고 계속 진행
+      alert(
+        `이미지 "${image.img?.name || '알 수 없음'}" 업로드에 실패했습니다.`
+      );
     }
   }
+
   console.log('모든 이미지 업로드 완료:', imageUrls);
   return imageUrls;
 }
