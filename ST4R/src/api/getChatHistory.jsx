@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export const useGetChatHistory = (id) => {
   return useQuery({
-    queryKey: ['chatHistory'],
+    queryKey: ['chatHistory', id],
     queryFn: async () => {
       const res = await axios.get(
         `http://eridanus.econo.mooo.com:8080/groups/${id}/chats?sort=chattedAt`,
