@@ -53,7 +53,7 @@ const useCheckNicknameMutation = () => {
   });
 };
 
-// 프로필 수정 API
+// 프로필 수정 API - 백엔드 스펙에 맞게 수정
 const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
 
@@ -61,17 +61,23 @@ const useUpdateProfileMutation = () => {
     mutationFn: async (data) => {
       console.log('프로필 수정 요청 데이터:', data);
 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
       const response = await axios.patch(
         'http://eridanus.econo.mooo.com:8080/my/profile',
         data,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }
       );
 
+      console.log('프로필 수정 응답:', response.data);
       return response.data;
     },
     onSuccess: () => {
@@ -81,6 +87,15 @@ const useUpdateProfileMutation = () => {
     },
     onError: (error) => {
       console.error('프로필 수정 실패:', error);
+      console.error('응답 데이터:', error.response?.data);
+      console.error('응답 상태:', error.response?.status);
+
+      // SECURITY_403_001 에러 처리
+      if (error.response?.data?.errorCode === 'SECURITY_403_001') {
+        alert('회원가입을 완료해주세요.');
+        window.location.href = '/complete-registration';
+        return;
+      }
     },
   });
 };
@@ -173,8 +188,8 @@ export default function ProfileEditPage() {
       return;
     }
 
-    if (nickname.length < 2 || nickname.length > 10) {
-      setNicknameError('닉네임은 2-10자 사이여야 합니다.');
+    if (nickname.length < 2 || nickname.length > 15) {
+      setNicknameError('닉네임은 2-15자 사이여야 합니다.');
       return;
     }
 
@@ -220,16 +235,24 @@ export default function ProfileEditPage() {
     }
   };
 
-  // 프로필 수정 제출
+  // 프로필 수정 제출 - 백엔드 스펙에 맞게 수정
   const handleSubmit = async () => {
+    // 토큰 확인
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
     // 닉네임 유효성 검사
     if (!nickname.trim()) {
       setNicknameError('닉네임을 입력해주세요.');
       return;
     }
 
-    if (nickname.length < 2 || nickname.length > 10) {
-      setNicknameError('닉네임은 2-10자 사이여야 합니다.');
+    if (nickname.length < 2 || nickname.length > 15) {
+      setNicknameError('닉네임은 2-15자 사이여야 합니다.');
       return;
     }
 
@@ -270,20 +293,28 @@ export default function ProfileEditPage() {
         finalProfileImageUrl = '';
       }
 
-      // 수정 데이터 구성
-      const updateData = {};
+      // 백엔드 스펙에 맞는 데이터 구성
+      const updateData = {
+        changeNickname: hasNicknameChanged,
+        changeProfileImage: hasImageChanged,
+      };
 
+      // 변경이 있는 경우에만 해당 필드 추가
       if (hasNicknameChanged) {
         updateData.nicknameToChange = nickname.trim();
-        updateData.changeNickname = true;
       }
 
       if (hasImageChanged) {
-        updateData.profileImageUrlToChange = finalProfileImageUrl;
-        updateData.changeProfileImage = true;
+        updateData.profileImageUrlToChange = finalProfileImageUrl || '';
       }
 
-      console.log('프로필 수정 요청 데이터:', updateData);
+      console.log('백엔드 스펙에 맞춘 프로필 수정 요청 데이터:', updateData);
+
+      // 최소 하나는 true여야 함
+      if (!updateData.changeNickname && !updateData.changeProfileImage) {
+        alert('변경된 내용이 없습니다.');
+        return;
+      }
 
       await updateProfileMutation.mutateAsync(updateData);
 
@@ -295,8 +326,27 @@ export default function ProfileEditPage() {
       if (error.response?.status === 401) {
         alert('로그인이 필요합니다.');
         navigate('/login');
+      } else if (error.response?.status === 403) {
+        // SECURITY_403_001 에러 처리
+        if (error.response?.data?.errorCode === 'SECURITY_403_001') {
+          alert('회원가입을 완료해주세요.');
+          navigate('/complete-registration');
+        } else {
+          alert('권한이 없습니다.');
+        }
       } else if (error.response?.status === 400) {
-        alert('입력한 정보를 확인해주세요.');
+        const errorMessage =
+          error.response?.data?.message || '입력한 정보를 확인해주세요.';
+        alert(errorMessage);
+      } else if (error.response?.status === 422) {
+        const errorMessage =
+          error.response?.data?.message || '입력한 데이터가 올바르지 않습니다.';
+        alert(errorMessage);
+      } else if (error.response?.status === 409) {
+        alert('이미 사용 중인 닉네임입니다.');
+        setNicknameError('이미 사용 중인 닉네임입니다.');
+        setIsNicknameChecked(false);
+        setNicknameCheckResult('unavailable');
       } else {
         alert('프로필 수정에 실패했습니다. 다시 시도해주세요.');
       }
@@ -440,8 +490,8 @@ export default function ProfileEditPage() {
                 type="text"
                 value={nickname}
                 onChange={(e) => handleNicknameChange(e.target.value)}
-                placeholder="2-10자 사이로 입력해주세요"
-                maxLength={10}
+                placeholder="2-15자 사이로 입력해주세요"
+                maxLength={15}
                 className={`flex-1 h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white placeholder-gray-500 ${
                   nicknameError ? 'border border-red-400' : ''
                 }`}
