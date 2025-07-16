@@ -26,7 +26,6 @@ export default function ChatPage() {
 
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
-  console.log(members);
 
   // 채팅 히스토리
   const {
@@ -93,6 +92,7 @@ export default function ChatPage() {
         clientRef.current.disconnect(() => {
           console.log('⛔ 웹소켓 연결 종료');
         });
+        clientRef.current = null;
       }
     };
   }, [id]);
@@ -101,8 +101,17 @@ export default function ChatPage() {
   const handleIncomingMessage = (data) => {
     if (data.messageType === 'general') {
       const newMessage = data.message;
-      setMessagelist((prev) => [...prev, newMessage]);
-    } // 메시지 리스트 업데이트
+
+      setMessagelist((prev) => {
+        // 중복 방지: 동일 ID 가진 메시지가 이미 있으면 추가 안 함
+        const alreadyExists = prev.some(
+          (msg) => msg.chatId === newMessage.chatId
+        );
+        if (alreadyExists) return [...prev];
+
+        return [...prev, newMessage]; // 메시지 리스트 업데이트
+      }); 
+    }
   };
 
   //메세지 전송
@@ -128,25 +137,24 @@ export default function ChatPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* 상단바 */}
-      <div className="flex">
+      <div className="flex mb-2">
         <BackButton className="ml-2 mt-2" />
         <div className="mx-auto mt-3 text-2xl text-[#8F8F8F] font-['Pretendard']">
           {/* {groupDetail.name} */}
         </div>
-        <img className="mr-2 mt-2 w-12 h-12" src={threelines} />
+        <img className="mr-4 mt-2 w-12 h-12 " src={threelines} />
       </div>
+      <div className="h-[1px] w-full bg-[#2F2F2F]"></div>
 
       {/* 채팅 메세지 목록 */}
       <div
-        className="mb-[76px] flex flex-col gap-2 mx-4 pr-3 overflow-y-auto"
+        className="pt-2 mb-[76px] flex flex-col gap-2 mx-3 pr-2 overflow-y-auto"
         ref={messageListRef}
       >
         {messagelist.map((msg, i) => {
           const senderInfo = members.find((m) => m.isMe == true); // 보낸사람 정보
-          console.log(senderInfo);
           const prev = messagelist[i - 1];
           const isFirstOfSender = !prev || prev.sender.id !== msg.sender.id; // 연속된 채팅을 보냈을 경우 가장 첫 메세지
-          console.log(msg.sender);
           return (
             <ChatBlock
               key={i}
@@ -166,7 +174,7 @@ export default function ChatPage() {
       <div className="absolute z-9999 w-full flex px-3 bottom-3">
         <input
           type="text"
-          className="w-full rounded-3xl font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656] p-3 h-14"
+          className="w-full focus:outline-none rounded-3xl font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656] p-3 h-14"
           placeholder="여기에 메세지를 입력하세요.."
           onChange={(e) => setInput(e.target.value)}
           value={input}
