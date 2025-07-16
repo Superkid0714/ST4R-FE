@@ -10,13 +10,19 @@ export default function SearchBar({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [validationError, setValidationError] = useState('');
   const dropdownRef = useRef(null);
 
   const searchTypeOptions = [
-    { value: 'title', label: '제목' },
-    { value: 'content', label: '내용' },
-    { value: 'titleAndContent', label: '제목+내용' },
-    { value: 'author', label: '작성자' },
+    { value: 'title', label: '제목', minLength: 1, maxLength: 100 },
+    { value: 'content', label: '내용', minLength: 10, maxLength: 5000 },
+    {
+      value: 'titleAndContent',
+      label: '제목+내용',
+      minLength: 1,
+      maxLength: 100,
+    },
+    { value: 'author', label: '작성자', minLength: 1, maxLength: 20 },
   ];
 
   // 외부 클릭 시 드롭다운 닫기
@@ -35,8 +41,47 @@ export default function SearchBar({
     }
   }, [showTypeMenu]);
 
+  // 검색어 유효성 검사
+  const validateSearchQuery = (query, searchType) => {
+    const trimmedQuery = query.trim();
+    const currentType = searchTypeOptions.find(
+      (option) => option.value === searchType
+    );
+
+    if (!currentType) return { isValid: true, error: '' };
+
+    if (trimmedQuery.length === 0) {
+      return { isValid: true, error: '' }; // 빈 검색어는 허용 (전체 목록 표시)
+    }
+
+    if (trimmedQuery.length < currentType.minLength) {
+      return {
+        isValid: false,
+        error: `${currentType.label} 검색은 ${currentType.minLength}자 이상 입력해주세요.`,
+      };
+    }
+
+    if (trimmedQuery.length > currentType.maxLength) {
+      return {
+        isValid: false,
+        error: `${currentType.label} 검색은 ${currentType.maxLength}자 이하로 입력해주세요.`,
+      };
+    }
+
+    return { isValid: true, error: '' };
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const validation = validateSearchQuery(searchQuery, currentSearchType);
+
+    if (!validation.isValid) {
+      setValidationError(validation.error);
+      return;
+    }
+
+    setValidationError('');
 
     if (onSearch) {
       onSearch(searchQuery.trim());
@@ -45,6 +90,7 @@ export default function SearchBar({
 
   const handleClear = () => {
     setSearchQuery('');
+    setValidationError('');
     if (onSearch) {
       onSearch('');
     }
@@ -53,6 +99,11 @@ export default function SearchBar({
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
+
+    // 입력 중에는 에러 메시지 제거
+    if (validationError) {
+      setValidationError('');
+    }
   };
 
   const handleSearchTypeSelect = (type) => {
@@ -60,6 +111,10 @@ export default function SearchBar({
       onSearchTypeChange(type);
     }
     setShowTypeMenu(false);
+
+    // 검색 타입 변경 시 현재 검색어 재검증
+    const validation = validateSearchQuery(searchQuery, type);
+    setValidationError(validation.isValid ? '' : validation.error);
   };
 
   const getCurrentTypeLabel = () => {
@@ -68,6 +123,14 @@ export default function SearchBar({
         ?.label || '제목+내용'
     );
   };
+
+  const getCurrentTypeInfo = () => {
+    return searchTypeOptions.find(
+      (option) => option.value === currentSearchType
+    );
+  };
+
+  const currentTypeInfo = getCurrentTypeInfo();
 
   return (
     <div className="w-full">
@@ -130,6 +193,7 @@ export default function SearchBar({
             value={searchQuery}
             onChange={handleInputChange}
             disabled={isLoading}
+            maxLength={currentTypeInfo?.maxLength || 100}
           />
 
           {/* 오른쪽: 클리어 버튼 + 검색 버튼 */}
@@ -159,12 +223,20 @@ export default function SearchBar({
             )}
 
             {/* 검색(돋보기) 버튼 */}
-            <button type="submit" className="p-1.5 ml-1" disabled={isLoading}>
+            <button
+              type="submit"
+              className="p-1.5 ml-1"
+              disabled={isLoading || !!validationError}
+            >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <svg
-                  className="w-5 h-5 text-yellow-500 hover:text-yellow-400 transition-colors"
+                  className={`w-5 h-5 transition-colors ${
+                    validationError
+                      ? 'text-red-400'
+                      : 'text-yellow-500 hover:text-yellow-400'
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -180,6 +252,28 @@ export default function SearchBar({
             </button>
           </div>
         </div>
+
+        {/* 유효성 검사 에러 메시지만 표시 */}
+        {validationError && (
+          <div className="mt-2 px-1">
+            <div className="flex items-center text-red-400 text-sm">
+              <svg
+                className="w-4 h-4 mr-1 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              {validationError}
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
