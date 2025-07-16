@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import BackButton from '../components/common/BackButton';
-import uploadImagesToS3 from '../api/imgupload';
+import BackButton from '../../components/common/BackButton';
+import uploadImagesToS3 from '../../api/imgupload';
 
 // 사용자 정보 조회 API
 const useUserInfo = () => {
