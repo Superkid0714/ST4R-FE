@@ -7,30 +7,40 @@ import { useEffect, useRef, useState } from 'react';
 import { useGetGroupDetail } from '../../api/getGroupDetail';
 import SockJs from 'sockjs-client';
 import Stomp from 'stompjs';
+import ChatBlock from '../../components/ChatBlock';
+import { useGetGroupMembers } from '../../api/getGroupMembers';
 
 export default function ChatPage() {
   const { id } = useParams();
+  const clientRef = useRef(null);
+  const [messagelist, setMessagelist] = useState([]); 
+  const [input, setInput] = useState(''); // 보내는 메세지 내용
+
+  // 모임 상세 정보
   const {
     data: groupDetail,
     isLoading,
     isError: groupDetailError,
   } = useGetGroupDetail(id);
 
-  const clientRef = useRef(null);
+  // 모임 구성원 정보
+  const {data: members} = useGetGroupMembers(id);
+  console.log(members);
 
+  
+
+  // 채팅 히스토리
   const {
     data: chatHistory,
     isLoading: isChatHistoryLoading,
     isError,
   } = useGetChatHistory(id);
 
-  const [messagelist, setMessagelist] = useState([]);
-  const [input, setInput] = useState('');
-
   // 기존 채팅 히스토리 설정
   useEffect(() => {
     if (chatHistory) {
-      setMessagelist(chatHistory);
+      console.log(chatHistory.content);
+      setMessagelist(chatHistory.content);
     }
   }, [chatHistory]);
 
@@ -121,14 +131,24 @@ export default function ChatPage() {
       </div>
 
       {/* 채팅 메세지 목록 */}
+      {messagelist.map((msg, i)=>{
+        const senderInfo  = members.find(m => m.isMe == true) // 보낸사람 정보
+        console.log(senderInfo);
+        const prev = messagelist[i-1];
+        const isFirstOfSender = !prev || prev.sender.id !== msg.sender.id; // 연속된 채팅을 보냈을 경우 가장 첫 메세지
+        return(
+        <ChatBlock
+          key={i}
+          message={msg.message}
+          isMe={msg.sender.id === senderInfo.id}
+          sender = {isFirstOfSender ? msg.sender : null}
+        ></ChatBlock>)
+})}
+
       {isChatHistoryLoading && (
         <div className="mx-auto mt-10 w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
       )}
 
-      {/* 
-      {messagelist.map((message, i)=>(
-        <div ></div>
-      ))} */}
 
       {/* 메세지 입력 칸 */}
       <div className="absolute w-full flex p-3 bottom-3">
