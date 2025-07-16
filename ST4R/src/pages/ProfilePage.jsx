@@ -53,7 +53,7 @@ const CONSTELLATION_NAMES = {
   PISCES: '물고기자리',
 };
 
-// 사용자 정보 조회 API - 엔드포인트 수정
+// 사용자 정보 조회 API
 const useUserInfo = () => {
   return useQuery({
     queryKey: ['userInfo'],
@@ -64,7 +64,7 @@ const useUserInfo = () => {
       }
 
       const response = await axios.get(
-        'http://eridanus.econo.mooo.com:8080/my', // 엔드포인트 변경
+        'http://eridanus.econo.mooo.com:8080/my',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -73,16 +73,12 @@ const useUserInfo = () => {
       );
 
       console.log('사용자 정보 조회 성공:', response.data);
-
-      // 받은 사용자 정보를 로컬 스토리지에 저장
       localStorage.setItem('user', JSON.stringify(response.data));
-
       return response.data;
     },
-    enabled: !!localStorage.getItem('token'), // 토큰이 있을 때만 요청
-    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
+    enabled: !!localStorage.getItem('token'),
+    staleTime: 1000 * 60 * 10,
     retry: (failureCount, error) => {
-      // 401 에러는 재시도하지 않음
       if (error?.response?.status === 401) return false;
       return failureCount < 2;
     },
@@ -108,6 +104,11 @@ export default function ProfilePage() {
     if (window.confirm('정말로 로그아웃 하시겠습니까?')) {
       logoutMutation.mutate();
     }
+  };
+
+  // 프로필 수정 페이지로 이동
+  const handleProfileEdit = () => {
+    navigate('/profile/edit');
   };
 
   // 별자리 이름 표시 함수
@@ -231,11 +232,29 @@ export default function ProfilePage() {
 
         {/* 사용자 정보 섹션 */}
         <div className="bg-[#1D1D1D] rounded-[10px] mb-4">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center space-x-3">
-              <ProfileIcon />
-              <div className="flex flex-col">
-                <span className="text-white text-lg">
+          <div
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-[#2A2A2A] transition-colors"
+            onClick={handleProfileEdit}
+          >
+            <div className="flex items-center space-x-4">
+              {/* 프로필 이미지 또는 아이콘 */}
+              <div className="flex-shrink-0">
+                {userInfo.profileImageUrl ? (
+                  <img
+                    src={userInfo.profileImageUrl}
+                    alt="프로필 이미지"
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center">
+                    <ProfileIcon className="w-6 h-6" />
+                  </div>
+                )}
+              </div>
+
+              {/* 사용자 정보 */}
+              <div className="flex flex-col min-w-0">
+                <span className="text-white text-lg font-medium truncate">
                   {userInfo.nickname || userInfo.name || '사용자'}님
                 </span>
                 {userInfo.constellation && (
@@ -245,7 +264,11 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
-            <ArrowIcon />
+
+            {/* 화살표 아이콘 */}
+            <div className="flex-shrink-0">
+              <ArrowIcon />
+            </div>
           </div>
         </div>
 
@@ -254,21 +277,21 @@ export default function ProfilePage() {
           <h2 className="text-[#8F8F8F] text-sm p-4 pb-0">게시글 설정</h2>
           <div className="p-4 pt-4 space-y-4">
             <button
-              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
+              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors p-2 rounded-lg"
               onClick={() => navigate('/profile/my-posts')}
             >
               <span className="text-[#D3D3D3]">내가 쓴 글 보기</span>
               <ArrowIcon />
             </button>
             <button
-              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
+              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors p-2 rounded-lg"
               onClick={() => navigate('/profile/liked-posts')}
             >
               <span className="text-[#D3D3D3]">내가 좋아한 글 보기</span>
               <ArrowIcon />
             </button>
             <button
-              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
+              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors p-2 rounded-lg"
               onClick={() => navigate('/profile/liked-groups')}
             >
               <span className="text-[#D3D3D3]">내가 찜한 모임 보기</span>
@@ -321,14 +344,14 @@ export default function ProfilePage() {
           <h2 className="text-[#8F8F8F] text-sm p-4 pb-0">법적 정보 및 기타</h2>
           <div className="p-4 pt-4 space-y-4">
             <button
-              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
+              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors p-2 rounded-lg"
               onClick={() => navigate('/legal/terms')}
             >
               <span className="text-[#D3D3D3]">약관 및 개인정보 처리 동의</span>
               <ArrowIcon />
             </button>
             <button
-              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors"
+              className="w-full flex items-center justify-between hover:bg-[#2A2A2A] transition-colors p-2 rounded-lg"
               onClick={() => navigate('/legal/privacy')}
             >
               <span className="text-[#D3D3D3]">개인정보 처리방침</span>
