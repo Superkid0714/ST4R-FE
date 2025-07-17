@@ -154,13 +154,25 @@ export default function ChatPage() {
         {messagelist.map((msg, i) => {
           const senderInfo = members.find((m) => m.isMe == true); // 보낸사람 정보
           const prev = messagelist[i - 1];
+          const next = messagelist[i + 1];
+
+          const currTime = new Date(msg.chattedAt);
+          const nextTime = next ? new Date(next.chattedAt) : null;
           const isFirstOfSender = !prev || prev.sender.id !== msg.sender.id; // 연속된 채팅을 보냈을 경우 가장 첫 메세지
+
+          const showTime =         
+            !next ||   // 1. 이후 메시지 없음
+            (next && next.sender.id !== msg.sender.id) || // 2. 다른 사람이 보냄
+            (!isFirstOfSender && next && nextTime- currTime > 60 * 1000); // 3. 같은 사람이지만 1분 이상 지남
+
           return (
             <ChatBlock
               key={i}
               message={msg.message}
               isMe={msg.sender.id === senderInfo.id}
               nickname={isFirstOfSender ? msg.sender.nickname : null}
+              imageUrl={isFirstOfSender ? msg.sender.imageurl: null}
+              chattedAt={showTime? msg.chattedAt : null}
             ></ChatBlock>
           );
         })}
