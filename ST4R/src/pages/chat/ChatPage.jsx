@@ -110,7 +110,7 @@ export default function ChatPage() {
         if (alreadyExists) return [...prev];
 
         return [...prev, newMessage]; // 메시지 리스트 업데이트
-      }); 
+      });
     }
   };
 
@@ -148,7 +148,7 @@ export default function ChatPage() {
 
       {/* 채팅 메세지 목록 */}
       <div
-        className="pt-2 mb-[76px] flex flex-col gap-2 mx-3 pr-2 overflow-y-auto"
+        className="pt-2 pb-2 mb-[76px] flex flex-col gap-[6px] mx-3 pr-2 overflow-y-auto"
         ref={messageListRef}
       >
         {messagelist.map((msg, i) => {
@@ -156,23 +156,33 @@ export default function ChatPage() {
           const prev = messagelist[i - 1];
           const next = messagelist[i + 1];
 
-          const currTime = new Date(msg.chattedAt);
-          const nextTime = next ? new Date(next.chattedAt) : null;
-          const isFirstOfSender = !prev || prev.sender.id !== msg.sender.id; // 연속된 채팅을 보냈을 경우 가장 첫 메세지
+          const getTimeString = (date) => {
+            const d = new Date(date);
+            return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`; 
+          };
 
-          const showTime =         
-            !next ||   // 1. 이후 메시지 없음
+          const prevTime = prev ? getTimeString(prev.chattedAt) : null;
+          const currTime = getTimeString(msg.chattedAt);
+          const nextTime = next ? getTimeString(next.chattedAt) : null;
+        
+          const showTime =
+            !next || // 1. 이후 메시지 없음
             (next && next.sender.id !== msg.sender.id) || // 2. 다른 사람이 보냄
-            (!isFirstOfSender && next && nextTime- currTime > 60 * 1000); // 3. 같은 사람이지만 1분 이상 지남
+            nextTime !== currTime; // 3. 같은 사람이지만 분 단위가 바뀜
+
+          const showprofile =
+            !prev || // 1. 이전 메시지 없음
+            (prev && prev.sender.id !== msg.sender.id) || // 2. 다른 사람이 보냄
+            prevTime !== currTime ; // 3. 같은 사람이지만 분 단위가 바뀜
 
           return (
             <ChatBlock
               key={i}
               message={msg.message}
               isMe={msg.sender.id === senderInfo.id}
-              nickname={isFirstOfSender ? msg.sender.nickname : null}
-              imageUrl={isFirstOfSender ? msg.sender.imageurl: null}
-              chattedAt={showTime? msg.chattedAt : null}
+              nickname={showprofile ? msg.sender.nickname : null}
+              imageUrl={showprofile ? msg.sender.imageurl : null}
+              chattedAt={showTime ? msg.chattedAt : null}
             ></ChatBlock>
           );
         })}
