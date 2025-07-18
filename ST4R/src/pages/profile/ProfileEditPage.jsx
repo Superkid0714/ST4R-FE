@@ -53,7 +53,9 @@ const useCheckNicknameMutation = () => {
   });
 };
 
-// 프로필 수정 API - 백엔드 스펙에 맞게 수정
+// ProfileEditPage.jsx의 프로필 수정 API 부분만 수정
+
+// 프로필 수정 API - localStorage 업데이트 추가
 const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
 
@@ -80,9 +82,36 @@ const useUpdateProfileMutation = () => {
       console.log('프로필 수정 응답:', response.data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (responseData, variables) => {
       // 사용자 정보 캐시 무효화
       queryClient.invalidateQueries(['userInfo']);
+
+      // localStorage의 user 정보도 업데이트
+      const currentUser = localStorage.getItem('user');
+      if (currentUser) {
+        try {
+          const parsedUser = JSON.parse(currentUser);
+
+          // 프로필 이미지가 변경된 경우
+          if (
+            variables.changeProfileImage &&
+            variables.profileImageUrlToChange !== undefined
+          ) {
+            parsedUser.profileImageUrl = variables.profileImageUrlToChange;
+          }
+
+          // 닉네임이 변경된 경우
+          if (variables.changeNickname && variables.nicknameToChange) {
+            parsedUser.nickname = variables.nicknameToChange;
+          }
+
+          // 업데이트된 정보를 localStorage에 저장
+          localStorage.setItem('user', JSON.stringify(parsedUser));
+        } catch (error) {
+          console.error('localStorage 업데이트 실패:', error);
+        }
+      }
+
       console.log('프로필 수정 성공');
     },
     onError: (error) => {

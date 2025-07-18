@@ -54,18 +54,8 @@ export const useDeleteMemberMutation = () => {
       } else if (error.response?.status === 400) {
         console.error('400 에러 상세 정보:', error.response?.data);
         const errorData = error.response?.data;
-
-        // 모임장 권한으로 인한 탈퇴 불가 에러 처리
-        if (errorData?.errorCode === 'MEMBER_400_002') {
-          const message =
-            errorData.message || '모임장은 회원 탈퇴할 수 없습니다.';
-          alert(
-            `⚠️ 회원 탈퇴할 수 없습니다\n\n${message}\n\n모임장 권한을 다른 사용자에게 위임한 후 다시 시도해주세요.`
-          );
-        } else {
-          const errorMessage = errorData?.message || '잘못된 요청입니다.';
-          alert(`회원 탈퇴 요청이 거부되었습니다: ${errorMessage}`);
-        }
+        const errorMessage = errorData?.message || '잘못된 요청입니다.';
+        alert(`회원 탈퇴 요청이 거부되었습니다: ${errorMessage}`);
       } else if (error.response?.status === 403) {
         alert('회원 탈퇴 권한이 없습니다.');
       } else if (error.response?.status === 404) {

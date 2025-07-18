@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../api/auth';
 import { useDeleteMemberMutation } from '../api/deleteMember';
-import { useMyManagedGroups } from '../api/myManagedGroups'; // 새로 추가
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
@@ -97,14 +96,34 @@ const useUserInfo = () => {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation();
-  const deleteMemberMutation = useDeleteMemberMutation(); // 회원 탈퇴 mutation 추가
+  const deleteMemberMutation = useDeleteMemberMutation();
+
+  // 로컬 상태로 프로필 이미지 관리
+  const [localProfileImage, setLocalProfileImage] = useState('');
 
   // API를 통해 사용자 정보 조회
   const { data: userInfo, isLoading, error, refetch } = useUserInfo();
 
-  // 내가 모임장인 모임 목록 조회
-  const { data: managedGroupsData } = useMyManagedGroups();
-  const managedGroups = managedGroupsData?.content || [];
+  // localStorage에서 프로필 이미지 확인
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser.profileImageUrl) {
+          setLocalProfileImage(parsedUser.profileImageUrl);
+        }
+      } catch (e) {
+        console.error('localStorage 파싱 에러:', e);
+      }
+    }
+  }, []);
+
+  // 프로필 이미지 가져오기 함수
+  const getProfileImageUrl = () => {
+    // API 응답에서 확인하고, 없으면 localStorage에서 확인
+    return userInfo?.profileImageUrl || localProfileImage;
+  };
 
   // 로그아웃 핸들러
   const handleLogout = () => {
@@ -115,21 +134,6 @@ export default function ProfilePage() {
 
   // 회원 탈퇴 핸들러
   const handleDeleteMember = () => {
-    // 모임장인 모임이 있는지 확인
-    if (managedGroups.length > 0) {
-      const groupNames = managedGroups
-        .map((group) => `• ${group.name}`)
-        .join('\n');
-
-      alert(`⚠️ 회원 탈퇴할 수 없습니다
-
-다음 모임의 모임장으로 되어 있습니다:
-${groupNames}
-
-모임장 권한을 다른 사용자에게 위임한 후 다시 시도해주세요.`);
-      return;
-    }
-
     const confirmMessage = `정말로 회원 탈퇴를 하시겠습니까?
 
 회원 탈퇴 시 다음 사항들이 영구적으로 삭제됩니다:
@@ -282,11 +286,15 @@ ${groupNames}
             <div className="flex items-center space-x-4">
               {/* 프로필 이미지 또는 아이콘 */}
               <div className="flex-shrink-0">
-                {userInfo.profileImageUrl ? (
+                {getProfileImageUrl() ? (
                   <img
-                    src={userInfo.profileImageUrl}
+                    src={getProfileImageUrl()}
                     alt="프로필 이미지"
                     className="w-12 h-12 rounded-full object-cover"
+                    onError={() => {
+                      // 에러 시 로컬 이미지 제거
+                      setLocalProfileImage('');
+                    }}
                   />
                 ) : (
                   <div className="w-12 h-12 flex items-center justify-center">
@@ -298,9 +306,9 @@ ${groupNames}
               {/* 사용자 정보 */}
               <div className="flex flex-col min-w-0">
                 <span className="text-white text-lg font-medium truncate">
-                  {userInfo.nickname || userInfo.name || '사용자'}님
+                  {userInfo?.nickname || userInfo?.name || '사용자'}님
                 </span>
-                {userInfo.constellation && (
+                {userInfo?.constellation && (
                   <span className="text-[#8F8F8F] text-sm">
                     {getConstellationName(userInfo.constellation)}
                   </span>
@@ -421,22 +429,13 @@ ${groupNames}
             <button
               onClick={handleDeleteMember}
               disabled={deleteMemberMutation.isLoading}
-              className={`w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 rounded-lg ${
-                managedGroups.length > 0 ? 'opacity-60' : ''
-              }`}
+              className="w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 rounded-lg"
             >
-              <div className="flex flex-col items-start">
-                <span className="text-[#FF4343]">
-                  {deleteMemberMutation.isLoading
-                    ? '탈퇴 처리 중...'
-                    : '회원 탈퇴하기'}
-                </span>
-                {managedGroups.length > 0 && (
-                  <span className="text-xs text-[#FFA500] mt-1">
-                    모임장 권한이 있어 탈퇴할 수 없습니다
-                  </span>
-                )}
-              </div>
+              <span className="text-[#FF4343]">
+                {deleteMemberMutation.isLoading
+                  ? '탈퇴 처리 중...'
+                  : '회원 탈퇴하기'}
+              </span>
               <ArrowIcon />
             </button>
           </div>
