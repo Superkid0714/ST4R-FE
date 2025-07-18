@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../api/auth';
+import { useDeleteMemberMutation } from '../api/deleteMember';
+import { useMyManagedGroups } from '../api/myManagedGroups'; // 새로 추가
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
@@ -95,14 +97,55 @@ const useUserInfo = () => {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation();
+  const deleteMemberMutation = useDeleteMemberMutation(); // 회원 탈퇴 mutation 추가
 
   // API를 통해 사용자 정보 조회
   const { data: userInfo, isLoading, error, refetch } = useUserInfo();
+
+  // 내가 모임장인 모임 목록 조회
+  const { data: managedGroupsData } = useMyManagedGroups();
+  const managedGroups = managedGroupsData?.content || [];
 
   // 로그아웃 핸들러
   const handleLogout = () => {
     if (window.confirm('정말로 로그아웃 하시겠습니까?')) {
       logoutMutation.mutate();
+    }
+  };
+
+  // 회원 탈퇴 핸들러
+  const handleDeleteMember = () => {
+    // 모임장인 모임이 있는지 확인
+    if (managedGroups.length > 0) {
+      const groupNames = managedGroups
+        .map((group) => `• ${group.name}`)
+        .join('\n');
+
+      alert(`⚠️ 회원 탈퇴할 수 없습니다
+
+다음 모임의 모임장으로 되어 있습니다:
+${groupNames}
+
+모임장 권한을 다른 사용자에게 위임한 후 다시 시도해주세요.`);
+      return;
+    }
+
+    const confirmMessage = `정말로 회원 탈퇴를 하시겠습니까?
+
+회원 탈퇴 시 다음 사항들이 영구적으로 삭제됩니다:
+• 작성한 모든 게시글 및 댓글
+• 참여한 모임 및 채팅 기록
+• 프로필 정보 및 활동 내역
+
+이 작업은 되돌릴 수 없습니다.`;
+
+    if (window.confirm(confirmMessage)) {
+      // 한 번 더 확인
+      if (
+        window.confirm('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.')
+      ) {
+        deleteMemberMutation.mutate();
+      }
     }
   };
 
@@ -360,16 +403,43 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 로그아웃 버튼 */}
+        {/* 계정 관리 섹션 */}
         <div className="bg-[#1D1D1D] rounded-[10px] mb-4">
-          <button
-            onClick={handleLogout}
-            disabled={logoutMutation.isLoading}
-            className="w-full flex items-center justify-between p-4 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
-          >
-            <span className="text-[#D3D3D3]">로그아웃하기</span>
-            <ArrowIcon />
-          </button>
+          <h2 className="text-[#8F8F8F] text-sm p-4 pb-0">계정 관리</h2>
+          <div className="p-4 pt-4 space-y-4">
+            {/* 로그아웃 버튼 */}
+            <button
+              onClick={handleLogout}
+              disabled={logoutMutation.isLoading}
+              className="w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 rounded-lg"
+            >
+              <span className="text-[#D3D3D3]">로그아웃하기</span>
+              <ArrowIcon />
+            </button>
+
+            {/* 회원 탈퇴 버튼 */}
+            <button
+              onClick={handleDeleteMember}
+              disabled={deleteMemberMutation.isLoading}
+              className={`w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 rounded-lg ${
+                managedGroups.length > 0 ? 'opacity-60' : ''
+              }`}
+            >
+              <div className="flex flex-col items-start">
+                <span className="text-[#FF4343]">
+                  {deleteMemberMutation.isLoading
+                    ? '탈퇴 처리 중...'
+                    : '회원 탈퇴하기'}
+                </span>
+                {managedGroups.length > 0 && (
+                  <span className="text-xs text-[#FFA500] mt-1">
+                    모임장 권한이 있어 탈퇴할 수 없습니다
+                  </span>
+                )}
+              </div>
+              <ArrowIcon />
+            </button>
+          </div>
         </div>
 
         {/* 하단 여백 (네비게이션 바 공간) */}
