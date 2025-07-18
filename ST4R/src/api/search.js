@@ -17,8 +17,8 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
         // 검색 타입에 따른 길이 제한 검사
         switch (options.searchType) {
           case 'title':
-            // 제목 검색 - 최소 1자
-            if (trimmedQuery.length >= 1) {
+            // 제목 검색
+            if (trimmedQuery.length >= 2) {
               params.append('title', trimmedQuery);
             } else {
               // 검색어가 너무 짧으면 빈 결과 반환
@@ -26,13 +26,13 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
             }
             break;
           case 'content':
-            // 내용 검색 - 최소 10자 필요
-            if (trimmedQuery.length >= 10 && trimmedQuery.length <= 5000) {
+            // 내용 검색
+            if (trimmedQuery.length >= 2 && trimmedQuery.length <= 5000) {
               params.append('content', trimmedQuery);
             } else {
               // 길이 제한에 맞지 않으면 에러 표시
-              if (trimmedQuery.length < 10) {
-                throw new Error('내용 검색은 10자 이상 입력해주세요.');
+              if (trimmedQuery.length < 2) {
+                throw new Error('내용 검색은 2자 이상 입력해주세요.');
               } else if (trimmedQuery.length > 5000) {
                 throw new Error('내용 검색은 5000자 이하로 입력해주세요.');
               }
@@ -41,7 +41,7 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
             break;
           case 'titleAndContent':
             // 제목+내용 검색
-            if (trimmedQuery.length >= 1) {
+            if (trimmedQuery.length >= 2) {
               params.append('title', trimmedQuery);
               params.append('content', trimmedQuery);
             } else {
@@ -49,16 +49,16 @@ export const useBackendSearchPosts = (searchQuery, options = {}) => {
             }
             break;
           case 'author':
-            // 작성자 검색 - 최소 1자
-            if (trimmedQuery.length >= 1) {
+            // 작성자 검색
+            if (trimmedQuery.length >= 2) {
               params.append('authorName', trimmedQuery);
             } else {
               return { boardPeeks: { content: [] } };
             }
             break;
           default:
-            // 기본값: 제목+내용 검색과 동일
-            if (trimmedQuery.length >= 1) {
+            // 기본값
+            if (trimmedQuery.length >= 2) {
               params.append('title', trimmedQuery);
               params.append('content', trimmedQuery);
             } else {

@@ -14,15 +14,15 @@ export default function SearchBar({
   const dropdownRef = useRef(null);
 
   const searchTypeOptions = [
-    { value: 'title', label: '제목', minLength: 1, maxLength: 100 },
-    { value: 'content', label: '내용', minLength: 10, maxLength: 5000 },
+    { value: 'title', label: '제목', minLength: 2, maxLength: 100 },
+    { value: 'content', label: '내용', minLength: 2, maxLength: 5000 },
     {
       value: 'titleAndContent',
       label: '제목+내용',
-      minLength: 1,
+      minLength: 2,
       maxLength: 100,
     },
-    { value: 'author', label: '작성자', minLength: 1, maxLength: 20 },
+    { value: 'author', label: '작성자', minLength: 2, maxLength: 20 },
   ];
 
   // 외부 클릭 시 드롭다운 닫기
