@@ -100,7 +100,7 @@ export default function Header({
     }
 
     if (isLocationLoading) {
-      return '위치 확인 중...';
+      return '위치 확인중';
     }
 
     return '광주광역시'; // 기본값
@@ -111,8 +111,8 @@ export default function Header({
     if (isWeatherLoading) {
       return (
         <div className="flex items-center">
-          <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin mr-2"></div>
-          날씨 확인 중...
+          <div className="w-2 h-2 border border-gray-400 border-t-transparent rounded-full animate-spin mr-1"></div>
+          로딩중
         </div>
       );
     }
@@ -190,11 +190,11 @@ export default function Header({
 
         {/* 위치와 날씨 정보 */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {/* 위치 정보 */}
-            <div className="flex items-center bg-[#2A2A2A] rounded-full px-3 py-2 text-gray-300 text-sm">
+            <div className="flex items-center bg-[#2A2A2A] rounded-full px-2 py-1 text-gray-300 text-xs">
               <svg
-                className="w-4 h-4 mr-2"
+                className="w-3 h-3 mr-1"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -216,9 +216,9 @@ export default function Header({
             </div>
 
             {/* 날씨 정보 */}
-            <div className="flex items-center bg-[#2A2A2A] rounded-full px-3 py-2 text-gray-300 text-sm">
+            <div className="flex items-center bg-[#2A2A2A] rounded-full px-2 py-1 text-gray-300 text-xs">
               <svg
-                className="w-4 h-4 mr-2"
+                className="w-3 h-3 mr-1"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
