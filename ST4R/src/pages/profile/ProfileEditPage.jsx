@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
 import uploadImagesToS3 from '../../api/imgupload';
+import ModalPotal from '../../components/common/ModalPortal';
+import ProfileUpdateSuccessModal from '../../components/modals/ProfileUpdateSuccessModal';
 
 // 사용자 정보 조회 API
 const useUserInfo = () => {
@@ -132,7 +134,9 @@ const useUpdateProfileMutation = () => {
 export default function ProfileEditPage() {
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
-  const queryClient = useQueryClient();
+
+  // 모달 상태 관리
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 사용자 정보 조회
   const { data: userInfo, isLoading, error } = useUserInfo();
@@ -162,6 +166,12 @@ export default function ProfileEditPage() {
       setProfileImagePreview(userInfo.profileImageUrl || '');
     }
   }, [userInfo]);
+
+  // 모달 핸들러
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    navigate('/profile');
+  };
 
   // 프로필 이미지 변경 핸들러
   const handleImageClick = () => {
@@ -347,8 +357,8 @@ export default function ProfileEditPage() {
 
       await updateProfileMutation.mutateAsync(updateData);
 
-      alert('프로필이 수정되었습니다.');
-      navigate('/profile');
+      // 성공 모달 표시
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('프로필 수정 중 오류:', error);
 
@@ -629,6 +639,16 @@ export default function ProfileEditPage() {
         {/* 하단 여백 */}
         <div className="h-10"></div>
       </div>
+
+      {/* 성공 모달 */}
+      {showSuccessModal && (
+        <ModalPotal>
+          <ProfileUpdateSuccessModal
+            onClose={handleCloseSuccessModal}
+            onNavigateToProfile={handleCloseSuccessModal}
+          />
+        </ModalPotal>
+      )}
     </div>
   );
 }
