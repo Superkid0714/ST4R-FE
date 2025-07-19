@@ -18,6 +18,7 @@ export default function ChatPage() {
   const clientRef = useRef(null);
   const messageListRef = useRef(null);
   const [input, setInput] = useState(''); // 보내는 메세지 내용
+  const [LastReadTimes, setLastReadTimes] = useState([]);
 
   // 모임 상세 정보
   const {
@@ -30,9 +31,15 @@ export default function ChatPage() {
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
 
-  // 모임 구성원의 가장 최근에 읽은 시간
+  // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
-  console.log(initialLastReadTimes);
+
+  useEffect(()=>{
+    if(initialLastReadTimes){
+      setLastReadTimes(initialLastReadTimes); // 초기값 설정
+    }
+  },[initialLastReadTimes])  
+
   const {
     data,
     fetchNextPage,
@@ -49,7 +56,7 @@ export default function ChatPage() {
   });
 
   const messagelist = data?.pages
-    ? [...data.pages].flatMap((page) => page.content).reverse()
+    ? [...data.pages].flatMap((page) => page.content).reverse() // 오래된순-> 최신순으로 뒤집기
     : [];
 
   const stompDebugLogger = (str) => {
@@ -125,10 +132,12 @@ export default function ChatPage() {
         console.log('✅ STOMP 연결됨');
         clientRef.current = stompClient;
         stompClient.subscribe(`/subscribe/${id}`, (message) => {
+          // markAsRead(); //읽음 요청
           const data = JSON.parse(message.body);
-          markAsRead(); //읽음 요청
           handleIncomingMessage(data); //받은 데이터 처리 함수
+        
         });
+        markAsRead();
       },
       (error) => {
         console.error('❌ stomp 연결 실패:', error);
@@ -145,9 +154,9 @@ export default function ChatPage() {
     };
   }, [id]);
 
-  // 메세지를 받았을 경우 useInfiniteQuery의 캐시 데이터에 추가
+  // 웹소켓으로 메세지를 받았을 경우
   const handleIncomingMessage = (receivedData) => {
-    if (receivedData.messageType === 'general') {
+    if (receivedData.messageType === 'general') { // 메세지 type이 general일때: useInfiniteQuery의 캐시 데이터에 추가
       markAsRead();
       const newMessage = receivedData.message;
 
@@ -170,7 +179,7 @@ export default function ChatPage() {
         if (!alreadyExists) {
           updatedPages[lastPageIndex] = {
             ...updatedPages[lastPageIndex],
-            content: [...updatedPages[lastPageIndex].content, newMessage],
+            content: [ newMessage, ...updatedPages[lastPageIndex].content],
           };
         }
 
@@ -180,7 +189,17 @@ export default function ChatPage() {
         };
       });
     }
-    if (receivedData.messageType === 'updateReadTime') {
+    if (receivedData.messageType === 'updateReadTime') { //메세지 type이 updateReadTime일때: 읽은 시간 생신
+      const newMessage = receivedData.message;  
+      setLastReadTimes((prev) => {
+            const index = prev.findIndex((p) => p.memberId === newMessage.memberId);
+            const updated = [...prev];
+            updated[index] = {
+              ...updated[index],
+              readTime: newMessage.updateReadTime,
+            };
+            return updated;
+          });
     }
   };
   //읽음 상태 전송
@@ -189,7 +208,7 @@ export default function ChatPage() {
       console.warn('❗ STOMP 클라이언트가 아직 연결되지 않았습니다.');
       return;
     }
-    stompClient.send(`/markAsRead/${id}`, {}, {});
+    clientRef.current.send(`/markAsRead/${id}`, {}, '');
   }
 
   //메세지 전송
@@ -232,7 +251,7 @@ export default function ChatPage() {
           <div className="mx-auto my-2 w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
         )}
         {messagelist.map((msg, i) => {
-          const senderInfo = members.find((m) => m.isMe == true); // 보낸사람 정보
+          const senderInfo = members && members.find((m) => m.isMe == true); // 보낸사람 정보
           const prev = messagelist[i - 1];
           const next = messagelist[i + 1];
 

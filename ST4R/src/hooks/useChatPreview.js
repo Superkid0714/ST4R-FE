@@ -40,6 +40,7 @@ export function connectChatPreview({ setChatPreviews }) {
             const updated = [...prev];
             updated[index] = {
               ...updated[index],
+              unreadCount: newPreview.unreadCount,
               recentMessage: newPreview.recentMessage,
             };
             return updated;
