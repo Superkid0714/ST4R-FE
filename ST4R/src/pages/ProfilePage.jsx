@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLogoutMutation } from '../api/auth';
-import { useDeleteMemberMutation } from '../api/deleteMember';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import ModalPortal from '../components/common/ModalPortal';
+import LogoutModal from '../components/modals/LogoutModal';
+import DeleteMemberModal from '../components/modals/DeleteMemberModal';
 
 // 프로필 아이콘 컴포넌트
 const ProfileIcon = ({ className = 'w-[18px] h-[18px]' }) => (
@@ -95,8 +96,10 @@ const useUserInfo = () => {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const logoutMutation = useLogoutMutation();
-  const deleteMemberMutation = useDeleteMemberMutation();
+
+  // 모달 상태 관리
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteMemberModal, setShowDeleteMemberModal] = useState(false);
 
   // 로컬 상태로 프로필 이미지 관리
   const [localProfileImage, setLocalProfileImage] = useState('');
@@ -127,30 +130,12 @@ export default function ProfilePage() {
 
   // 로그아웃 핸들러
   const handleLogout = () => {
-    if (window.confirm('정말로 로그아웃 하시겠습니까?')) {
-      logoutMutation.mutate();
-    }
+    setShowLogoutModal(true);
   };
 
   // 회원 탈퇴 핸들러
   const handleDeleteMember = () => {
-    const confirmMessage = `정말로 회원 탈퇴를 하시겠습니까?
-
-회원 탈퇴 시 다음 사항들이 영구적으로 삭제됩니다:
-• 작성한 모든 게시글 및 댓글
-• 참여한 모임 및 채팅 기록
-• 프로필 정보 및 활동 내역
-
-이 작업은 되돌릴 수 없습니다.`;
-
-    if (window.confirm(confirmMessage)) {
-      // 한 번 더 확인
-      if (
-        window.confirm('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.')
-      ) {
-        deleteMemberMutation.mutate();
-      }
-    }
+    setShowDeleteMemberModal(true);
   };
 
   // 프로필 수정 페이지로 이동
@@ -418,8 +403,7 @@ export default function ProfilePage() {
             {/* 로그아웃 버튼 */}
             <button
               onClick={handleLogout}
-              disabled={logoutMutation.isLoading}
-              className="w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 rounded-lg"
+              className="w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors rounded-lg"
             >
               <span className="text-[#D3D3D3]">로그아웃하기</span>
               <ArrowIcon />
@@ -428,14 +412,9 @@ export default function ProfilePage() {
             {/* 회원 탈퇴 버튼 */}
             <button
               onClick={handleDeleteMember}
-              disabled={deleteMemberMutation.isLoading}
-              className="w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 rounded-lg"
+              className="w-full flex items-center justify-between p-2 hover:bg-[#2A2A2A] transition-colors rounded-lg"
             >
-              <span className="text-[#FF4343]">
-                {deleteMemberMutation.isLoading
-                  ? '탈퇴 처리 중...'
-                  : '회원 탈퇴하기'}
-              </span>
+              <span className="text-[#FF4343]">회원 탈퇴하기</span>
               <ArrowIcon />
             </button>
           </div>
@@ -444,6 +423,19 @@ export default function ProfilePage() {
         {/* 하단 여백 (네비게이션 바 공간) */}
         <div className="h-10"></div>
       </div>
+
+      {/* 모달들 */}
+      {showLogoutModal && (
+        <ModalPortal>
+          <LogoutModal onClose={() => setShowLogoutModal(false)} />
+        </ModalPortal>
+      )}
+
+      {showDeleteMemberModal && (
+        <ModalPortal>
+          <DeleteMemberModal onClose={() => setShowDeleteMemberModal(false)} />
+        </ModalPortal>
+      )}
     </div>
   );
 }
