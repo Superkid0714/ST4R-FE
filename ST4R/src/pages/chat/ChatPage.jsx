@@ -9,6 +9,7 @@ import SockJs from 'sockjs-client';
 import Stomp from 'stompjs';
 import ChatBlock from '../../components/ChatBlock';
 import { useGetGroupMembers } from '../../api/getGroupMembers';
+import { useGetInitialLastReadTimes } from '../../api/getInitialLastReadTimes';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function ChatPage() {
@@ -17,7 +18,6 @@ export default function ChatPage() {
   const clientRef = useRef(null);
   const messageListRef = useRef(null);
   const [input, setInput] = useState(''); // 보내는 메세지 내용
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true); //스크롤이 맨 아래에 있는지 추적
 
   // 모임 상세 정보
   const {
@@ -30,6 +30,9 @@ export default function ChatPage() {
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
 
+  // 모임 구성원의 가장 최근에 읽은 시간
+  const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
+  console.log(initialLastReadTimes);
   const {
     data,
     fetchNextPage,
@@ -40,20 +43,14 @@ export default function ChatPage() {
   } = useInfiniteQuery({
     queryKey: ['chatHistory', id],
     queryFn: ({ pageParam = 0 }) => getChatHistory(id, pageParam),
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.last) {
-        return undefined; 
-      }
-      return allPages.length;
-    }, 
-    select: (data) => ({
-      pages: data.pages.map((page) => page.content).flat(), // pages 배열 안의 각 page 객체에서 'content' 배열만 뽑아서 평탄화
-      pageParams: data.pageParams,
-    }),
+    getNextPageParam: (page) => {
+      return page.last ? undefined : page.number + 1;
+    },
   });
 
-  const messagelist = data?.pages || [];
-  console.log('Current Messagelist:', messagelist);
+  const messagelist = data?.pages
+    ? [...data.pages].flatMap((page) => page.content).reverse()
+    : [];
 
   const stompDebugLogger = (str) => {
     console.log('[STOMP DEBUG]', str);
@@ -64,28 +61,10 @@ export default function ChatPage() {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   };
+
   useEffect(() => {
     scrollToBottom();
-  }, [id]);
-
-  useEffect(() => {
-    const chatContainer = messageListRef.current;
-    if (!chatContainer) return;
-
-    const handleScroll = () => {
-      // 스크롤이 거의 맨 아래에 있는지 확인 
-      const atBottom =
-        chatContainer.scrollHeight -
-          chatContainer.scrollTop -
-          chatContainer.clientHeight <
-        100;
-      setIsScrolledToBottom(atBottom);
-    };
-
-    handleScroll();
-    chatContainer.addEventListener('scroll', handleScroll);
-    return () => chatContainer.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [messagelist]);
 
   // 스크롤 컨테이너의 맨 위에 놓을 빈 div
   const observerTarget = useRef(null);
@@ -102,25 +81,24 @@ export default function ChatPage() {
           console.log('최상단에 닿았어요! 다음 페이지를 불러옵니다.');
           const prevScrollHeight = currentMessageListRef.scrollHeight;
           fetchNextPage().then(() => {
-      
             requestAnimationFrame(() => {
               const newScrollHeight = currentMessageListRef.scrollHeight;
-              
+
               currentMessageListRef.scrollTop +=
                 newScrollHeight - prevScrollHeight;
             });
-          }); 
+          });
         }
       },
       { root: messageListRef.current, threshold: 0.1 } // 10% 정도 보이면 콜백 실행
     );
 
-    observer.observe(currentObserverTarget); 
+    observer.observe(currentObserverTarget);
 
     return () => {
       observer.disconnect(); // 컴포넌트 언마운트 시 관찰 중지
     };
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]); 
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   //웹소켓으로 채팅하기
   useEffect(() => {
@@ -148,6 +126,7 @@ export default function ChatPage() {
         clientRef.current = stompClient;
         stompClient.subscribe(`/subscribe/${id}`, (message) => {
           const data = JSON.parse(message.body);
+          markAsRead(); //읽음 요청
           handleIncomingMessage(data); //받은 데이터 처리 함수
         });
       },
@@ -169,6 +148,7 @@ export default function ChatPage() {
   // 메세지를 받았을 경우 useInfiniteQuery의 캐시 데이터에 추가
   const handleIncomingMessage = (receivedData) => {
     if (receivedData.messageType === 'general') {
+      markAsRead();
       const newMessage = receivedData.message;
 
       queryClient.setQueryData(['chatHistory', id], (oldData) => {
@@ -195,19 +175,23 @@ export default function ChatPage() {
         }
 
         return {
-          ...oldData, 
-          pages: updatedPages, 
+          ...oldData,
+          pages: updatedPages,
         };
       });
-
-      if (isScrolledToBottom) {
-          requestAnimationFrame(() => {
-            scrollToBottom();
-          });
-        ;
-      }
+    }
+    if (receivedData.messageType === 'updateReadTime') {
     }
   };
+  //읽음 상태 전송
+  function markAsRead() {
+    if (!clientRef.current) {
+      console.warn('❗ STOMP 클라이언트가 아직 연결되지 않았습니다.');
+      return;
+    }
+    stompClient.send(`/markAsRead/${id}`, {}, {});
+  }
+
   //메세지 전송
   const sendMessage = () => {
     if (!input.trim()) return;
@@ -225,8 +209,6 @@ export default function ChatPage() {
 
     setInput(''); // 전송 후 다시 초기화
   };
-
-  console.log(messagelist);
 
   return (
     <div className="h-screen flex flex-col">
