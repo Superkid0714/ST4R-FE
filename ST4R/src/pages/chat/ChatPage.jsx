@@ -1,4 +1,4 @@
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useNavigate} from 'react-router-dom';
 import { getChatHistory } from '../../api/getChatHistory';
 import BackButton from '../../components/common/BackButton';
 import threelines from '../../assets/icons/threelines.svg';
@@ -15,6 +15,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 export default function ChatPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const clientRef = useRef(null);
   const messageListRef = useRef(null);
   const [input, setInput] = useState(''); // 보내는 메세지 내용
@@ -37,12 +38,12 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (initialLastReadTimes) {
-      setLastReadTimes(initialLastReadTimes); // 초기값 설정
+      setLastReadTimes(initialLastReadTimes); // 초기 읽은시간 설정
     }
   }, [initialLastReadTimes]);
 
   const {
-    data,
+    data, //무한 스크롤로 불러온 전체 데이터
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage, // 다음 페이지를 불러오는 중인지 여부
@@ -64,12 +65,14 @@ export default function ChatPage() {
     console.log('[STOMP DEBUG]', str);
   };
 
+  //스크롤 내리기
   const scrollToBottom = () => {
     if (messageListRef.current) {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   };
 
+  //새로운 메세지가 오면 스크롤 아래로 
   useEffect(() => {
     scrollToBottom();
   }, [messagelist]);
@@ -85,8 +88,7 @@ export default function ChatPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          console.log('최상단에 닿았어요! 다음 페이지를 불러옵니다.');
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) { //스크롤이 최상단에 닿음
           const prevScrollHeight = currentMessageListRef.scrollHeight;
           fetchNextPage().then(() => {
             requestAnimationFrame(() => {
@@ -205,6 +207,7 @@ export default function ChatPage() {
       console.log(lastReadTimes);
     }
   };
+
   //읽음 상태 전송
   function markAsRead() {
     if (!clientRef.current) {
@@ -214,6 +217,7 @@ export default function ChatPage() {
     clientRef.current.send(`/markAsRead/${id}`, {}, '');
   }
 
+  //안읽은 사람 수 계산
   function calculateUnreadCount(chattedAt, lastReadTimes) {
     const messageTime = new Date(chattedAt).getTime();
 
@@ -241,6 +245,8 @@ export default function ChatPage() {
     setInput(''); // 전송 후 다시 초기화
   };
 
+
+
   return (
     <div className="h-screen flex flex-col">
       {/* 상단바 */}
@@ -249,7 +255,7 @@ export default function ChatPage() {
         <div className="mx-auto mt-3 text-2xl text-[#8F8F8F] font-['Pretendard']">
           {groupDetail?.name}
         </div>
-        <img className="mr-4 mt-2 w-12 h-12 " src={threelines} />
+        <img className="mr-4 mt-2 w-12 h-12 " src={threelines} onClick={()=>{navigate(`/groups/${id}/members`)}} />
       </div>
       <div className="h-[1px] w-full bg-[#2F2F2F]"></div>
 
