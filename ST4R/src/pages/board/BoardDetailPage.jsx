@@ -2,11 +2,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCallback } from 'react';
 import { useBoardDetail, useComments } from '../../api/boardDetail';
 import ImageViewer from '../../components/common/ImageViewer';
+import ModalPortal from '../../components/common/ModalPortal';
 
 // 분리된 컴포넌트들
 import BoardDetailHeader from '../../components/board/BoardDetailHeader';
 import BoardDetailContent from '../../components/board/BoardDetailContent';
 import BoardDetailComments from '../../components/board/BoardDetailComments';
+
+// 모달 컴포넌트들
+import {
+  BoardDeleteModal,
+  CommentDeleteModal,
+  LoginRequiredModal,
+  ShareModal,
+} from '../../components/modals/BoardModals';
 
 // 커스텀 훅들
 import { useBoardDetailAuth } from '../../hooks/useBoardDetailAuth';
@@ -45,6 +54,18 @@ export default function BoardDetailPage() {
     handleShare,
     handleBack,
     likeBoardMutation,
+    deleteBoardMutation,
+    // 모달 상태들
+    showDeleteModal,
+    setShowDeleteModal,
+    showLoginModal,
+    setShowLoginModal,
+    showShareModal,
+    setShowShareModal,
+    loginModalMessage,
+    // 모달 액션들
+    confirmDelete,
+    handleLoginRedirect,
   } = useBoardDetailActions(id, post, isLoggedIn, navigate);
 
   // 댓글 관련 훅
@@ -62,6 +83,13 @@ export default function BoardDetailPage() {
     createCommentMutation,
     updateCommentMutation,
     deleteCommentMutation,
+    // 댓글 모달 관련
+    showDeleteModal: showCommentDeleteModal,
+    setShowDeleteModal: setShowCommentDeleteModal,
+    showLoginModal: showCommentLoginModal,
+    setShowLoginModal: setShowCommentLoginModal,
+    confirmDeleteComment,
+    handleLoginRedirect: handleCommentLoginRedirect,
   } = useBoardDetailComments(id, isLoggedIn, navigate);
 
   // 작성자 이름 표시 함수
@@ -156,6 +184,61 @@ export default function BoardDetailPage() {
         isOpen={isImageViewerOpen}
         onClose={handleCloseImageViewer}
       />
+
+      {/* 게시글 삭제 모달 */}
+      {showDeleteModal && (
+        <ModalPortal>
+          <BoardDeleteModal
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={confirmDelete}
+            isLoading={deleteBoardMutation.isLoading}
+          />
+        </ModalPortal>
+      )}
+
+      {/* 게시글 관련 로그인 필요 모달 */}
+      {showLoginModal && (
+        <ModalPortal>
+          <LoginRequiredModal
+            onClose={() => setShowLoginModal(false)}
+            onLogin={handleLoginRedirect}
+            message={loginModalMessage}
+          />
+        </ModalPortal>
+      )}
+
+      {/* 공유 모달 */}
+      {showShareModal && (
+        <ModalPortal>
+          <ShareModal
+            onClose={() => setShowShareModal(false)}
+            postTitle={post.title}
+            shareUrl={window.location.href}
+          />
+        </ModalPortal>
+      )}
+
+      {/* 댓글 삭제 모달 */}
+      {showCommentDeleteModal && (
+        <ModalPortal>
+          <CommentDeleteModal
+            onClose={() => setShowCommentDeleteModal(false)}
+            onConfirm={confirmDeleteComment}
+            isLoading={deleteCommentMutation.isLoading}
+          />
+        </ModalPortal>
+      )}
+
+      {/* 댓글 관련 로그인 필요 모달 */}
+      {showCommentLoginModal && (
+        <ModalPortal>
+          <LoginRequiredModal
+            onClose={() => setShowCommentLoginModal(false)}
+            onLogin={handleCommentLoginRedirect}
+            message="댓글 작성을 하려면 로그인이 필요합니다."
+          />
+        </ModalPortal>
+      )}
     </div>
   );
 }
@@ -170,7 +253,7 @@ function LoadingState() {
 }
 
 // 에러 상태 컴포넌트
-function ErrorState({ error, isLoggedIn, boardId, navigate, onBack }) {
+function ErrorState({ error, isLoggedIn, navigate, onBack }) {
   // 401 에러이고 로그인된 상태인 경우 (토큰 만료)
   if ((error.response?.status === 401 || error.isAuthError) && isLoggedIn) {
     return (

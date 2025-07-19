@@ -1,4 +1,24 @@
-import { useState } from 'react';
+// 기본 프로필 아이콘
+const DefaultProfileIcon = ({ size = 8 }) => (
+  <svg
+    width={size * 3.6}
+    height={size * 3.6}
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <g clipPath="url(#clip0_3312_1842)">
+      <rect width="36" height="36" rx="17.3325" fill="#2F2F2F" />
+      <circle cx="18" cy="34" r="12" fill="#5F5F5F" />
+      <circle cx="18" cy="13" r="6" fill="#5F5F5F" />
+    </g>
+    <defs>
+      <clipPath id="clip0_3312_1842">
+        <rect width="36" height="36" rx="17.3325" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
 
 export default function BoardDetailComments({
   comments,
@@ -204,19 +224,28 @@ function CommentItem({
 
   return (
     <div className="flex space-x-3">
-      <div className="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center text-white font-medium text-xs">
-        <svg
-          className="w-5 h-5 text-gray-300"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path
-            fillRule="evenodd"
-            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-            clipRule="evenodd"
+      {/* 프로필 이미지 또는 기본 아이콘 */}
+      <div className="flex-shrink-0">
+        {comment.author?.imageUrl ? (
+          <img
+            src={comment.author.imageUrl}
+            alt={`${getAuthorDisplayName(comment.author)} 프로필`}
+            className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => {
+              // 이미지 로딩 실패 시 기본 아이콘으로 대체
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
           />
-        </svg>
+        ) : null}
+        <div
+          className="w-8 h-8 flex items-center justify-center"
+          style={{ display: comment.author?.imageUrl ? 'none' : 'block' }}
+        >
+          <DefaultProfileIcon size={8} />
+        </div>
       </div>
+
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
           <span className="font-medium text-sm">

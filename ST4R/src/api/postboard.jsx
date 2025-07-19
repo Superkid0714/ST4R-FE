@@ -7,24 +7,30 @@ export const useCreateBoardMutation = () => {
     mutationFn: async (data) => {
       console.log('받은 프론트엔드 데이터:', data);
 
-      // imageUrls 안전하게 처리
+      // imageUrls 처리 - null, undefined, 빈 배열 모두 처리
       let finalImageUrls = null;
       if (
         data.imageUrls &&
         Array.isArray(data.imageUrls) &&
         data.imageUrls.length > 0
       ) {
-        finalImageUrls = data.imageUrls;
+        // 빈 문자열이나 null 값들을 필터링
+        const validUrls = data.imageUrls.filter(
+          (url) => url && url.trim() !== ''
+        );
+        if (validUrls.length > 0) {
+          finalImageUrls = validUrls;
+        }
       }
 
       console.log('처리된 이미지 URLs:', finalImageUrls);
 
       // 프론트엔드 데이터
       const transformedData = {
-        title: data.title,
-        imageUrls: finalImageUrls,
+        title: data.title?.trim() || '',
+        imageUrls: finalImageUrls, // null이면 null로, 배열이면 배열로
         content: {
-          text: data.content,
+          text: data.content?.trim() || '',
           map: data.location
             ? {
                 marker: {
@@ -39,6 +45,15 @@ export const useCreateBoardMutation = () => {
         },
         category: data.category ? data.category.toLowerCase() : 'general',
       };
+
+      // 필수 필드 검증
+      if (!transformedData.title) {
+        throw new Error('제목을 입력해주세요.');
+      }
+
+      if (!transformedData.content.text) {
+        throw new Error('내용을 입력해주세요.');
+      }
 
       console.log('백엔드로 전송할 데이터:', transformedData);
 
@@ -58,8 +73,8 @@ export const useCreateBoardMutation = () => {
     },
     onSuccess: (data) => {
       console.log('게시글 작성 성공:', data);
-      alert('게시글 작성 완료');
-      window.location.href = '/home';
+      // 성공 시에는 모달을 표시하도록 변경
+      return { success: true, data };
     },
     onError: (error) => {
       console.error('게시글 작성 실패:', error);
@@ -70,15 +85,32 @@ export const useCreateBoardMutation = () => {
         message: error.message,
       });
 
+      // 구체적인 에러 메시지 처리
+      if (
+        error.message === '제목을 입력해주세요.' ||
+        error.message === '내용을 입력해주세요.'
+      ) {
+        throw error; // 에러를 다시 던져서 컴포넌트에서 처리
+      }
+
       if (error.response?.status === 401) {
-        alert('로그인이 필요합니다.');
-        window.location.href = '/login';
+        // 로그인 필요 알림 제거하고 홈으로 리다이렉트
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/home';
       } else if (error.response?.status === 400) {
-        alert('잘못된 데이터입니다. 모든 필드를 확인해주세요.');
+        const errorMessage =
+          error.response?.data?.message ||
+          '잘못된 데이터입니다. 모든 필드를 확인해주세요.';
+        throw new Error(errorMessage);
+      } else if (error.response?.status === 422) {
+        const errorMessage =
+          error.response?.data?.message || '입력한 데이터가 올바르지 않습니다.';
+        throw new Error(errorMessage);
       } else if (error.message.includes('imageUrls')) {
-        alert('이미지 처리 중 오류가 발생했습니다.');
+        throw new Error('이미지 처리 중 오류가 발생했습니다.');
       } else {
-        alert('게시글 작성에 실패했습니다. 다시 시도해주세요.');
+        throw new Error('게시글 작성에 실패했습니다. 다시 시도해주세요.');
       }
     },
   });
@@ -86,7 +118,7 @@ export const useCreateBoardMutation = () => {
 
 export const usePostBoardMutation = useCreateBoardMutation;
 
-// 로그아웃 (기존과 동일)
+// 로그아웃
 export const useLogoutMutation = () => {
   return useMutation({
     mutationFn: async () => {
@@ -103,10 +135,15 @@ export const useLogoutMutation = () => {
     },
     onSuccess: () => {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      window.location.href = '/home'; // 홈으로 리다이렉트
     },
     onError: (error) => {
       console.error('로그아웃 실패', error);
+      // 에러가 발생해도 로컬 데이터는 삭제하고 홈으로 이동
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/home';
     },
   });
 };

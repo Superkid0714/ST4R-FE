@@ -1,7 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useLikeBoard, useDeleteBoard } from '../api/boardDetail';
 
 export function useBoardDetailActions(boardId, post, isLoggedIn, navigate) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [loginModalMessage, setLoginModalMessage] = useState('');
+
   const likeBoardMutation = useLikeBoard();
   const deleteBoardMutation = useDeleteBoard();
 
@@ -14,16 +19,13 @@ export function useBoardDetailActions(boardId, post, isLoggedIn, navigate) {
   // 좋아요 처리
   const handleLike = useCallback(() => {
     if (!isLoggedIn) {
-      if (
-        window.confirm('로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?')
-      ) {
-        navigate('/login');
-      }
+      setLoginModalMessage('좋아요 기능을 사용하려면 로그인이 필요합니다.');
+      setShowLoginModal(true);
       return;
     }
 
     likeBoardMutation.mutate(boardId);
-  }, [isLoggedIn, navigate, likeBoardMutation, boardId]);
+  }, [isLoggedIn, likeBoardMutation, boardId]);
 
   // 게시글 수정
   const handleEdit = useCallback(() => {
@@ -32,27 +34,32 @@ export function useBoardDetailActions(boardId, post, isLoggedIn, navigate) {
 
   // 게시글 삭제
   const handleDelete = useCallback(() => {
-    if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
-      deleteBoardMutation.mutate(boardId);
-    }
+    setShowDeleteModal(true);
+  }, []);
+
+  // 게시글 삭제 확인
+  const confirmDelete = useCallback(() => {
+    deleteBoardMutation.mutate(boardId, {
+      onSuccess: () => {
+        setShowDeleteModal(false);
+      },
+    });
   }, [deleteBoardMutation, boardId]);
 
   // 공유하기
   const handleShare = useCallback(() => {
-    if (navigator.share && post) {
-      navigator.share({
-        title: post.title,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('링크가 클립보드에 복사되었습니다.');
-    }
-  }, [post]);
+    setShowShareModal(true);
+  }, []);
 
   // 뒤로가기
   const handleBack = useCallback(() => {
     navigate(-1);
+  }, [navigate]);
+
+  // 로그인 페이지로 이동
+  const handleLoginRedirect = useCallback(() => {
+    setShowLoginModal(false);
+    navigate('/login');
   }, [navigate]);
 
   return {
@@ -64,5 +71,18 @@ export function useBoardDetailActions(boardId, post, isLoggedIn, navigate) {
     handleBack,
     likeBoardMutation,
     deleteBoardMutation,
+
+    // 모달 상태들
+    showDeleteModal,
+    setShowDeleteModal,
+    showLoginModal,
+    setShowLoginModal,
+    showShareModal,
+    setShowShareModal,
+    loginModalMessage,
+
+    // 모달 액션들
+    confirmDelete,
+    handleLoginRedirect,
   };
 }

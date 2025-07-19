@@ -1,13 +1,16 @@
+// src/pages/board/BoardEditPage.jsx
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 import camera from '../../assets/icons/camera.svg';
 import dropDown from '../../assets/icons/drop_down.svg';
 import BackButton from '../../components/common/BackButton';
+import ModalPortal from '../../components/common/ModalPortal';
 import uploadImagesToS3 from '../../api/imgupload';
 import Kakaomap from '../../components/common/Kakaomap';
 import { useBoardDetail } from '../../api/boardDetail';
-import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
+import { BoardUpdateSuccessModal } from '../../components/modals/BoardModals';
 
 // 게시글 수정 API
 const useUpdateBoardMutation = () => {
@@ -63,8 +66,7 @@ const useUpdateBoardMutation = () => {
     },
     onSuccess: (data, variables) => {
       console.log('게시글 수정 성공:', data);
-      alert('게시글이 수정되었습니다.');
-      window.location.href = `/boards/${variables.id}`;
+      return { success: true, data, boardId: variables.id };
     },
     onError: (error) => {
       console.error('게시글 수정 실패:', error);
@@ -76,15 +78,13 @@ const useUpdateBoardMutation = () => {
       });
 
       if (error.response?.status === 401) {
-        alert('로그인이 필요합니다.');
-        window.location.href = '/login';
+        throw new Error('로그인이 필요합니다.');
       } else if (error.response?.status === 403) {
-        alert('수정 권한이 없습니다.');
-        window.location.href = `/boards/${variables.id}`;
+        throw new Error('수정 권한이 없습니다.');
       } else if (error.response?.status === 400) {
-        alert('잘못된 데이터입니다. 모든 필드를 확인해주세요.');
+        throw new Error('잘못된 데이터입니다. 모든 필드를 확인해주세요.');
       } else {
-        alert('게시글 수정에 실패했습니다. 다시 시도해주세요.');
+        throw new Error('게시글 수정에 실패했습니다. 다시 시도해주세요.');
       }
     },
   });
@@ -102,6 +102,7 @@ export default function BoardEditPage() {
   const [category, setCategory] = useState('GENERAL');
   const [content, setContent] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 지도 관련 상태
   const [lat, setLat] = useState(null);
@@ -283,7 +284,26 @@ export default function BoardEditPage() {
       }
 
       console.log('최종 수정 데이터:', updateData);
-      updateBoardMutation.mutate({ id, data: updateData });
+
+      updateBoardMutation.mutate(
+        { id, data: updateData },
+        {
+          onSuccess: () => {
+            setShowSuccessModal(true);
+          },
+          onError: (error) => {
+            if (error.message === '로그인이 필요합니다.') {
+              alert(error.message);
+              window.location.href = '/login';
+            } else if (error.message === '수정 권한이 없습니다.') {
+              alert(error.message);
+              window.location.href = `/boards/${id}`;
+            } else {
+              alert(error.message || '게시글 수정에 실패했습니다.');
+            }
+          },
+        }
+      );
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
       alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
@@ -295,6 +315,11 @@ export default function BoardEditPage() {
       categoryOptions.find((option) => option.value === category)?.label ||
       '자유글'
     );
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    window.location.href = `/boards/${id}`;
   };
 
   // 로딩 상태
@@ -480,6 +505,13 @@ export default function BoardEditPage() {
         {/* 하단 여백 */}
         <div className="h-20"></div>
       </div>
+
+      {/* 수정 성공 모달 */}
+      {showSuccessModal && (
+        <ModalPortal>
+          <BoardUpdateSuccessModal onClose={handleSuccessModalClose} />
+        </ModalPortal>
+      )}
     </div>
   );
 }

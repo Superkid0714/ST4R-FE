@@ -10,6 +10,11 @@ export function useBoardDetailComments(boardId, isLoggedIn, navigate) {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState('');
 
+  // 모달 상태들
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
+
   const createCommentMutation = useCreateComment();
   const updateCommentMutation = useUpdateComment();
   const deleteCommentMutation = useDeleteComment();
@@ -17,11 +22,7 @@ export function useBoardDetailComments(boardId, isLoggedIn, navigate) {
   // 댓글 작성
   const handleCommentSubmit = useCallback(() => {
     if (!isLoggedIn) {
-      if (
-        window.confirm('로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?')
-      ) {
-        navigate('/login');
-      }
+      setShowLoginModal(true);
       return;
     }
 
@@ -46,7 +47,7 @@ export function useBoardDetailComments(boardId, isLoggedIn, navigate) {
         },
       }
     );
-  }, [isLoggedIn, navigate, newComment, createCommentMutation, boardId]);
+  }, [isLoggedIn, newComment, createCommentMutation, boardId]);
 
   // 댓글 수정 시작
   const handleEditComment = useCallback((comment) => {
@@ -93,22 +94,37 @@ export function useBoardDetailComments(boardId, isLoggedIn, navigate) {
     [boardId, editingCommentContent, updateCommentMutation]
   );
 
-  // 댓글 삭제
-  const handleDeleteComment = useCallback(
-    (commentId) => {
-      if (window.confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
-        deleteCommentMutation.mutate(
-          { boardId, commentId },
-          {
-            onError: (error) => {
-              console.error('댓글 삭제 실패:', error);
-            },
-          }
-        );
-      }
-    },
-    [boardId, deleteCommentMutation]
-  );
+  // 댓글 삭제 (모달 표시)
+  const handleDeleteComment = useCallback((commentId) => {
+    setCommentToDelete(commentId);
+    setShowDeleteModal(true);
+  }, []);
+
+  // 댓글 삭제 확인
+  const confirmDeleteComment = useCallback(() => {
+    if (commentToDelete) {
+      deleteCommentMutation.mutate(
+        { boardId, commentId: commentToDelete },
+        {
+          onSuccess: () => {
+            setShowDeleteModal(false);
+            setCommentToDelete(null);
+          },
+          onError: (error) => {
+            console.error('댓글 삭제 실패:', error);
+            setShowDeleteModal(false);
+            setCommentToDelete(null);
+          },
+        }
+      );
+    }
+  }, [boardId, commentToDelete, deleteCommentMutation]);
+
+  // 로그인 페이지로 이동
+  const handleLoginRedirect = useCallback(() => {
+    setShowLoginModal(false);
+    navigate('/login');
+  }, [navigate]);
 
   return {
     newComment,
@@ -124,5 +140,14 @@ export function useBoardDetailComments(boardId, isLoggedIn, navigate) {
     createCommentMutation,
     updateCommentMutation,
     deleteCommentMutation,
+
+    // 모달 관련
+    showDeleteModal,
+    setShowDeleteModal,
+    showLoginModal,
+    setShowLoginModal,
+    commentToDelete,
+    confirmDeleteComment,
+    handleLoginRedirect,
   };
 }

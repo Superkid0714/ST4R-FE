@@ -1,10 +1,31 @@
 import BoardDetailMap from '../common/BoardDetailMap';
 
+// 기본 프로필 아이콘 컴포넌트
+const DefaultProfileIcon = ({ size = 10 }) => (
+  <svg
+    width={size * 3.6}
+    height={size * 3.6}
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <g clipPath="url(#clip0_3312_1842)">
+      <rect width="36" height="36" rx="17.3325" fill="#2F2F2F" />
+      <circle cx="18" cy="34" r="12" fill="#5F5F5F" />
+      <circle cx="18" cy="13" r="6" fill="#5F5F5F" />
+    </g>
+    <defs>
+      <clipPath id="clip0_3312_1842">
+        <rect width="36" height="36" rx="17.3325" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
 export default function BoardDetailContent({
   post,
   likeCount,
   getAuthorDisplayName,
-  onImageClick,
 }) {
   if (!post) return null;
 
@@ -66,19 +87,28 @@ function AuthorInfo({ post, likeCount, getAuthorDisplayName }) {
   return (
     <div className="mb-6">
       <div className="flex space-x-3">
-        <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
-          <svg
-            className="w-6 h-6 text-gray-300"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-              clipRule="evenodd"
+        {/* 프로필 이미지 또는 기본 아이콘 */}
+        <div className="flex-shrink-0">
+          {post.author?.imageUrl ? (
+            <img
+              src={post.author.imageUrl}
+              alt={`${getAuthorDisplayName(post.author)} 프로필`}
+              className="w-10 h-10 rounded-full object-cover"
+              onError={(e) => {
+                // 이미지 로딩 실패 시 기본 아이콘으로 대체
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'block';
+              }}
             />
-          </svg>
+          ) : null}
+          <div
+            className="w-10 h-10 flex items-center justify-center"
+            style={{ display: post.author?.imageUrl ? 'none' : 'block' }}
+          >
+            <DefaultProfileIcon size={10} />
+          </div>
         </div>
+
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-1">
             <p className="font-medium">{getAuthorDisplayName(post.author)}</p>
