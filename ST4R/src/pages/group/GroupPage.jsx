@@ -1,9 +1,12 @@
 import SearchBar from '../../components/common/SearchBar';
 import { useNavigate } from 'react-router-dom';
 import GroupCard from '../../components/GroupCard';
+import ChatRoomCard from '../../components/ChatRoomCard';
 import { useSearchGroups, useGetGroups } from '../../api/getgroup';
 import FilterBar from '../../components/FilterBar(group)';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useGetMyChats, useGetInitialChatPreviews } from '../../api/getMyChats';
+import { connectChatPreview } from '../../hooks/useChatPreview';
 
 export default function GroupPage() {
   const navigate = useNavigate();
@@ -14,6 +17,33 @@ export default function GroupPage() {
   const [currentDirection, setCurrentDirection] = useState('desc'); //방향 기본값: 내림차순
   const [currentPeriod, setCurrentPeriod] = useState('daily'); //기간 기본값: 일별
 
+  //채팅 목록 가져오기
+  const {
+    data: myChats,
+    isLoading: isMyChatsLoading,
+    error: myChatsError,
+  } = useGetMyChats();
+
+  //초기 채팅 미리보기 데이터 설정
+  const [chatPreviews, setChatPreviews] = useState([]);
+
+  //채팅 미리보기 내용 가져오기(http)
+  const {
+    data: initialChatPreviews,
+    isLoading: isInitialPreviewLoading,
+  } = useGetInitialChatPreviews();
+
+  //채팅 미리보기 내용 가져오기(웹소켓)
+  connectChatPreview({setChatPreviews});
+  console.log(chatPreviews);
+
+  useEffect(()=>{
+    if(initialChatPreviews){
+      setChatPreviews(initialChatPreviews);
+    }
+  },[initialChatPreviews])  
+
+  //모임 목록 가져오기
   const {
     data: groupsData,
     isLoading: isGruopsLoading,
@@ -29,7 +59,7 @@ export default function GroupPage() {
     ? searchResults
     : groupsData?.content || [];
 
-  // 검색 결과 처리
+  //검색 결과 처리
   const handleSearchResults = (results, searchQuery = '') => {
     setSearchResults(results);
     setIsSearchMode(searchQuery.trim().length > 0);
@@ -78,26 +108,18 @@ export default function GroupPage() {
             나의 모임
           </div>
 
-          <div
-            key="1"
-            className=" relative w-full h-20 sm:h-[105px] bg-[#1D1D1D] rounded-[10px]"
-          >
-            <img
-              className="absolute w-14 sm:w-20 h-auto left-2 top-3 rounded-xl"
-              src="https://placehold.co/70x70"
-            />
-            <div className="absolute left-[74px] sm:left-[100px] top-4 sm:top-6 justify-start text-base sm:text-xl font-normal font-['Pretendard'] leading-normal">
-              여수 돌산에서 별보실분
-            </div>
-            <div className="absolute left-[74px] sm:left-[100px] top-11 sm:top-[55px] justify-start text-[#8F8F8F] text-xs sm:text-base font-normal font-['Pretendard'] leading-none">
-              김김김111: 저희 그럼 11시에 보도록 하죠
-            </div>
-            <div className="absolute w-14 sm:w-18 h-9 sm:h-10 right-3 sm:right-5 top-6 sm:top-8 bg-[#FFBB02] rounded-3xl ">
-              <div className="absolute left-4 sm:left-4 top-1.5 text-center text-[#000000] text-base sm:text-lg font-semibold font-['Pretendard']">
-                99+
-              </div>
-            </div>
-          </div>
+          {isMyChatsLoading && <div>채팅방 로딩 중...</div>}
+          {myChatsError && <div>채팅방을 불러오는 데 실패했습니다.</div>}
+
+          {/* 채팅방 박스 목록 */}
+          {myChats && 
+            myChats.map((chatRoom, i) => (
+              <ChatRoomCard
+                key={chatRoom.id}
+                chatRoom={chatRoom}
+                chatPreview={chatPreviews[i]}
+              ></ChatRoomCard>
+            ))}
         </div>
 
         {/* 모임 목록 */}
@@ -124,10 +146,10 @@ export default function GroupPage() {
               <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
-          
-          {groupsError && (<div>값을 불러오는데 에러가 생겼습니다.</div>)}
 
-          {/* 모임 박스 1개 */}
+          {groupsError && <div>값을 불러오는데 에러가 생겼습니다.</div>}
+
+          {/* 모임 박스 목록*/}
           {displayGroups.map((group) => (
             <GroupCard key={group.id} group={group}></GroupCard>
           ))}
