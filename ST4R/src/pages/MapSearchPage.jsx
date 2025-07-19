@@ -35,29 +35,49 @@ export default function MapSearchPage() {
     }
   }, [initialRadius]);
 
-  // 원만 업데이트하는 별도 함수
-  const updateCircle = useCallback((locPosition, radius) => {
-    const map = mapRef.current;
-
-    // 기존 원 제거
-    if (circleRef.current) {
-      circleRef.current.setMap(null);
-    }
-
-    // 새로운 원 생성 (범위 표시)
-    const circle = new kakao.maps.Circle({
-      center: locPosition,
-      radius: radius,
-      strokeWeight: 3,
-      strokeColor: '#FFBB02',
-      strokeOpacity: 1,
-      fillColor: '#FFBB02',
-      fillOpacity: 0.15,
-    });
-
-    circle.setMap(map);
-    circleRef.current = circle;
+  // 반경에 따른 적절한 지도 레벨 계산 함수
+  const getMapLevelForRadius = useCallback((radius) => {
+    // 원이 화면에서 벗어나지 않도록 최소한의 레벨 조정
+    // 반경에 따른 적절한 지도 레벨 반환
+    if (radius <= 200) return 4; // 200m 이하
+    if (radius <= 500) return 5; // 500m 이하
+    if (radius <= 1000) return 6; // 1km 이하
+    if (radius <= 2000) return 7; // 2km 이하
+    if (radius <= 3000) return 8; // 3km 이하
+    if (radius <= 5000) return 9; // 5km 이하
+    if (radius <= 7000) return 10; // 7km 이하
+    return 11; // 7km 초과
   }, []);
+  // 원만 업데이트하는 별도 함수
+  const updateCircle = useCallback(
+    (locPosition, radius) => {
+      const map = mapRef.current;
+
+      // 기존 원 제거
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+      }
+
+      // 새로운 원 생성 (범위 표시)
+      const circle = new kakao.maps.Circle({
+        center: locPosition,
+        radius: radius,
+        strokeWeight: 2,
+        strokeColor: '#FFBB02',
+        strokeOpacity: 0.8,
+        fillColor: '#FFBB02',
+        fillOpacity: 0.1,
+      });
+
+      circle.setMap(map);
+      circleRef.current = circle;
+
+      // 반경에 따라 지도 레벨 자동 조정
+      const newLevel = getMapLevelForRadius(radius);
+      map.setLevel(newLevel);
+    },
+    [getMapLevelForRadius]
+  );
 
   // 마커와 범위 원 표시 함수
   const displayMarker = useCallback(
@@ -65,6 +85,9 @@ export default function MapSearchPage() {
       const map = mapRef.current;
       const infowindow = infowindowRef.current;
 
+      if (!map || !infowindow) return;
+
+      // 마커 생성 또는 위치 업데이트
       if (markerRef.current) {
         markerRef.current.setPosition(locPosition);
       } else {
@@ -75,11 +98,17 @@ export default function MapSearchPage() {
         markerRef.current = marker;
       }
 
-      // 원 업데이트
-      updateCircle(locPosition, radius);
-
-      // 지도 중심을 마커 위치로 설정 (위치 변경 시에만)
+      // 지도 중심을 마커 위치로 설정
       map.setCenter(locPosition);
+
+      // 적절한 줌 레벨 설정
+      const newLevel = getMapLevelForRadius(radius);
+      map.setLevel(newLevel);
+
+      // 원 업데이트 (줌 레벨 설정 후에)
+      setTimeout(() => {
+        updateCircle(locPosition, radius);
+      }, 300); // 지도 레벨 변경 후 원 그리기
 
       const message = `
       <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
@@ -98,20 +127,20 @@ export default function MapSearchPage() {
       infowindow.setContent(message);
       infowindow.open(map, markerRef.current);
     },
-    [updateCircle]
+    [updateCircle, getMapLevelForRadius]
   );
 
   // 지도 초기화
   useEffect(() => {
     if (!kakao || !mapContainer.current) return;
 
-    // 초기 좌표 설정 (URL 파라미터 우선, 없으면 광주광역시)
+    // 초기 좌표 설정
     const defaultLat = initialLat ? parseFloat(initialLat) : 35.1595454;
     const defaultLng = initialLng ? parseFloat(initialLng) : 126.8526012;
 
     const options = {
       center: new kakao.maps.LatLng(defaultLat, defaultLng),
-      level: 3,
+      level: 6,
     };
 
     const map = new kakao.maps.Map(mapContainer.current, options);
@@ -122,7 +151,7 @@ export default function MapSearchPage() {
     geocoderRef.current = geocoder;
     infowindowRef.current = infowindow;
 
-    // 초기 위치가 있으면 마커 표시
+    // 초기 위치가 있으면 마커 표시하고 해당 위치로 이동
     if (initialLat && initialLng) {
       const initLocation = {
         lat: parseFloat(initialLat),
@@ -131,11 +160,18 @@ export default function MapSearchPage() {
         roadAddress: initialRoadAddress || '주소 정보 없음',
       };
       setSelectedLocation(initLocation);
-      displayMarker(
-        new kakao.maps.LatLng(initLocation.lat, initLocation.lng),
-        initLocation,
-        searchRadius
+
+      // 지도 중심을 초기 위치로 이동하고 적절한 레벨 설정
+      const initPosition = new kakao.maps.LatLng(
+        initLocation.lat,
+        initLocation.lng
       );
+      map.setCenter(initPosition);
+      const initLevel = getMapLevelForRadius(searchRadius);
+      map.setLevel(initLevel);
+
+      // 마커와 원 표시
+      displayMarker(initPosition, initLocation, searchRadius);
     }
 
     // 지도 클릭 이벤트
@@ -158,13 +194,73 @@ export default function MapSearchPage() {
               roadAddress: addressText,
             };
 
-            setSelectedLocation(locationData);
-            // 현재 설정된 searchRadius 값을 사용
-            displayMarker(clickedLatLng, locationData, searchRadius);
+            console.log('지도 클릭 - 새로운 위치:', locationData); // 디버그용
+
+            // 위치 정보 업데이트 (강제로 새 객체 생성)
+            setSelectedLocation({ ...locationData });
+
+            // 새로운 위치를 중심으로 마커와 원 표시
+            setTimeout(() => {
+              displayMarker(clickedLatLng, locationData, searchRadius);
+            }, 100);
           }
         }
       );
     });
+
+    // 현재 위치 가져오기 (초기화 시 한 번만)
+    if (!initialLat && !initialLng) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const locPosition = new kakao.maps.LatLng(lat, lng);
+
+            geocoder.coord2Address(lng, lat, (result, status) => {
+              if (status === kakao.maps.services.Status.OK) {
+                const road = result[0].road_address?.address_name;
+                const jibun = result[0].address?.address_name;
+                const addressText = road || jibun || '주소 정보 없음';
+
+                const currentLocationData = {
+                  lat,
+                  lng,
+                  locationName: '현재 위치',
+                  roadAddress: addressText,
+                };
+
+                setSelectedLocation(currentLocationData);
+
+                // displayMarker 함수 사용
+                displayMarker(locPosition, currentLocationData, searchRadius);
+              } else {
+                // 주소 조회 실패 시에도 현재 위치로 이동
+                const currentLocationData = {
+                  lat,
+                  lng,
+                  locationName: '현재 위치',
+                  roadAddress: '주소 정보 없음',
+                };
+
+                setSelectedLocation(currentLocationData);
+                displayMarker(locPosition, currentLocationData, searchRadius);
+              }
+            });
+          },
+          (error) => {
+            console.log('현재 위치를 가져올 수 없습니다:', error);
+            // 현재 위치 조회 실패 시 기본 위치(광주)로 설정
+            const defaultPosition = new kakao.maps.LatLng(
+              35.1595454,
+              126.8526012
+            );
+            map.setCenter(defaultPosition);
+            map.setLevel(getMapLevelForRadius(searchRadius));
+          }
+        );
+      }
+    }
 
     // 컴포넌트 언마운트 시 정리
     return () => {
@@ -181,119 +277,9 @@ export default function MapSearchPage() {
     initialLocationName,
     initialRoadAddress,
     displayMarker,
+    getMapLevelForRadius,
+    searchRadius,
   ]);
-
-  // 현재 위치 가져오기 (초기화 시 한 번만)
-  useEffect(() => {
-    // URL에서 초기 위치가 있으면 현재 위치를 가져오지 않음
-    if (initialLat && initialLng) {
-      return;
-    }
-
-    // 현재 위치 가져오기
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const locPosition = new kakao.maps.LatLng(lat, lng);
-
-          // 현재 위치의 주소 정보 가져오기
-          if (geocoderRef.current) {
-            geocoderRef.current.coord2Address(lng, lat, (result, status) => {
-              if (status === kakao.maps.services.Status.OK) {
-                const road = result[0].road_address?.address_name;
-                const jibun = result[0].address?.address_name;
-                const addressText = road || jibun || '주소 정보 없음';
-
-                const currentLocationData = {
-                  lat,
-                  lng,
-                  locationName: '현재 위치',
-                  roadAddress: addressText,
-                };
-
-                setSelectedLocation(currentLocationData);
-
-                // displayMarker 함수를 직접 호출하지 않고 필요한 로직만 실행
-                if (mapRef.current && markerRef.current) {
-                  markerRef.current.setPosition(locPosition);
-                  updateCircle(locPosition, searchRadius);
-                  mapRef.current.setCenter(locPosition);
-
-                  const infowindow = infowindowRef.current;
-                  if (infowindow) {
-                    const message = `
-                      <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
-                        <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
-                          ${currentLocationData.locationName}
-                        </div>
-                        <div style="color: #666; font-size: 12px;">
-                          ${currentLocationData.roadAddress}
-                        </div>
-                        <div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">
-                          ${searchRadius >= 1000 ? `${searchRadius / 1000}km` : `${searchRadius}m`} 반경
-                        </div>
-                      </div>
-                    `;
-                    infowindow.setContent(message);
-                    infowindow.open(mapRef.current, markerRef.current);
-                  }
-                } else if (mapRef.current) {
-                  // 마커가 없으면 생성
-                  const marker = new kakao.maps.Marker({
-                    map: mapRef.current,
-                    position: locPosition,
-                  });
-                  markerRef.current = marker;
-                  updateCircle(locPosition, searchRadius);
-                  mapRef.current.setCenter(locPosition);
-                }
-              } else {
-                // 주소를 가져올 수 없는 경우
-                const currentLocationData = {
-                  lat,
-                  lng,
-                  locationName: '현재 위치',
-                  roadAddress: '주소 정보 없음',
-                };
-
-                setSelectedLocation(currentLocationData);
-
-                if (mapRef.current && markerRef.current) {
-                  markerRef.current.setPosition(locPosition);
-                  updateCircle(locPosition, searchRadius);
-                  mapRef.current.setCenter(locPosition);
-                } else if (mapRef.current) {
-                  const marker = new kakao.maps.Marker({
-                    map: mapRef.current,
-                    position: locPosition,
-                  });
-                  markerRef.current = marker;
-                  updateCircle(locPosition, searchRadius);
-                  mapRef.current.setCenter(locPosition);
-                }
-              }
-            });
-          }
-        },
-        () => {
-          if (mapRef.current) {
-            const defaultPosition = new kakao.maps.LatLng(
-              35.1595454,
-              126.8526012
-            );
-            mapRef.current.setCenter(defaultPosition);
-          }
-        }
-      );
-    } else {
-      if (mapRef.current) {
-        const defaultPosition = new kakao.maps.LatLng(35.1595454, 126.8526012);
-        mapRef.current.setCenter(defaultPosition);
-      }
-    }
-  }, [initialLat, initialLng]);
 
   // 장소 검색 함수
   const searchPlaces = useCallback(() => {
@@ -315,6 +301,8 @@ export default function MapSearchPage() {
   // 장소 선택 핸들러
   const handlePlaceClick = useCallback(
     (place) => {
+      console.log('장소 선택:', place.place_name); // 디버그용
+
       const lat = parseFloat(place.y);
       const lng = parseFloat(place.x);
       const locPosition = new kakao.maps.LatLng(lat, lng);
@@ -326,75 +314,73 @@ export default function MapSearchPage() {
         roadAddress: place.road_address_name || place.address_name,
       };
 
-      setSelectedLocation(locationData);
-      displayMarker(locPosition, locationData, searchRadius);
+      console.log('새로운 위치 데이터:', locationData); // 디버그용
+
+      // 검색 결과 창 즉시 닫기
       setShowPlaceList(false);
       setKeyword('');
+      setPlacelist([]);
+
+      // 위치 정보 업데이트 (강제로 새 객체 생성)
+      setSelectedLocation({ ...locationData });
+
+      // 지도에 마커 표시 (새로운 위치를 중심으로)
+      setTimeout(() => {
+        displayMarker(locPosition, locationData, searchRadius);
+      }, 100); // 상태 업데이트 후 마커 표시
     },
     [displayMarker, searchRadius]
   );
 
-  // 검색 반경 변경 핸들러 (슬라이더용)
+  // 검색 반경 변경 핸들러
   const handleRadiusChange = useCallback(
     (newRadius) => {
+      console.log('반경 변경:', newRadius, '선택된 위치:', selectedLocation); // 디버그용
       setSearchRadius(newRadius);
 
-      // 기존 위치가 있으면 해당 위치를 중심으로 원만 업데이트
-      if (
-        selectedLocation &&
-        selectedLocation.lat &&
-        selectedLocation.lng &&
-        mapRef.current
-      ) {
+      // 현재 선택된 위치가 있는지 확인
+      if (selectedLocation && selectedLocation.lat && selectedLocation.lng) {
         const locPosition = new kakao.maps.LatLng(
           selectedLocation.lat,
           selectedLocation.lng
         );
 
-        // 기존 원 제거
-        if (circleRef.current) {
-          circleRef.current.setMap(null);
+        // 지도 레벨 조정
+        const newLevel = getMapLevelForRadius(newRadius);
+        if (mapRef.current) {
+          mapRef.current.setLevel(newLevel);
+
+          // 원 업데이트 (즉시 실행)
+          updateCircle(locPosition, newRadius);
+
+          // 인포윈도우 업데이트
+          const infowindow = infowindowRef.current;
+          if (infowindow && markerRef.current) {
+            const message = `
+            <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
+              <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
+                ${selectedLocation.locationName}
+              </div>
+              <div style="color: #666; font-size: 12px;">
+                ${selectedLocation.roadAddress}
+              </div>
+              <div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">
+                ${newRadius >= 1000 ? `${newRadius / 1000}km` : `${newRadius}m`} 반경
+              </div>
+            </div>
+          `;
+            infowindow.setContent(message);
+            infowindow.open(mapRef.current, markerRef.current);
+          }
         }
-
-        // 새로운 원 생성 (선택된 위치 중심으로)
-        const circle = new kakao.maps.Circle({
-          center: locPosition,
-          radius: newRadius,
-          strokeWeight: 3,
-          strokeColor: '#FFBB02',
-          strokeOpacity: 1,
-          fillColor: '#FFBB02',
-          fillOpacity: 0.15,
-        });
-
-        circle.setMap(mapRef.current);
-        circleRef.current = circle;
-
-        // 인포윈도우 업데이트
-        const infowindow = infowindowRef.current;
-        if (infowindow && markerRef.current) {
-          const message = `
-          <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
-            <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
-              ${selectedLocation.locationName}
-            </div>
-            <div style="color: #666; font-size: 12px;">
-              ${selectedLocation.roadAddress}
-            </div>
-            <div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">
-              ${newRadius >= 1000 ? `${newRadius / 1000}km` : `${newRadius}m`} 반경
-            </div>
-          </div>
-        `;
-          infowindow.setContent(message);
-          infowindow.open(mapRef.current, markerRef.current);
-        }
+      } else {
+        console.log('선택된 위치가 없습니다.'); // 디버그용
       }
     },
-    [selectedLocation]
+    [selectedLocation, updateCircle, getMapLevelForRadius]
   );
 
-  // 홈으로 돌아가기 (선택된 위치 정보와 함께)
+  // 홈으로 돌아가기
   const handleGoHome = () => {
     if (selectedLocation) {
       const params = new URLSearchParams({
@@ -415,9 +401,22 @@ export default function MapSearchPage() {
     if (e.key === 'Enter') {
       searchPlaces();
     }
+    // ESC 키로 검색 결과 창 닫기
+    if (e.key === 'Escape') {
+      setShowPlaceList(false);
+      setKeyword('');
+    }
   };
 
-  // 반경 값을 적절한 단위로 표시하는 함수 (소수점 제거)
+  // 검색창 외부 클릭 시 검색 결과 창 닫기
+  const handleInputBlur = () => {
+    // 약간의 지연을 두어 클릭 이벤트가 먼저 처리되도록 함
+    setTimeout(() => {
+      setShowPlaceList(false);
+    }, 150);
+  };
+
+  // 반경 값을 적절한 단위로 표시하는 함수
   const formatRadius = (radius) => {
     if (radius >= 1000) {
       const km = radius / 1000;
@@ -429,7 +428,7 @@ export default function MapSearchPage() {
   return (
     <div className="h-screen bg-black text-white flex flex-col">
       {/* 헤더 */}
-      <div className="p-4 border-b border-gray-800 flex-shrink-0">
+      <div className="p-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <BackButton />
@@ -454,6 +453,13 @@ export default function MapSearchPage() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={handleKeyDown}
+              onBlur={handleInputBlur}
+              onFocus={() => {
+                // 검색어가 있고 결과가 있으면 다시 보여주기
+                if (keyword.trim() && placelist.length > 0) {
+                  setShowPlaceList(true);
+                }
+              }}
               className="flex-1 bg-[#1A1A1A] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
             <button
@@ -480,10 +486,10 @@ export default function MapSearchPage() {
           {showPlaceList && placelist.length > 0 && (
             <div className="absolute top-full left-0 right-0 bg-[#1A1A1A] border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto z-50">
               {placelist.map((place) => (
-                <button
+                <div
                   key={place.id}
                   onClick={() => handlePlaceClick(place)}
-                  className="w-full text-left p-3 hover:bg-[#2A2A2A] transition-colors border-b border-gray-700 last:border-b-0"
+                  className="w-full text-left p-3 hover:bg-[#2A2A2A] transition-colors border-b border-gray-700 last:border-b-0 cursor-pointer"
                 >
                   <div className="font-medium text-white">
                     {place.place_name}
@@ -491,17 +497,48 @@ export default function MapSearchPage() {
                   <div className="text-sm text-gray-400 mt-1">
                     {place.road_address_name || place.address_name}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* 검색 반경 슬라이더 설정 */}
-        <div className="mb-4">
+        {/* 선택된 위치 정보 */}
+        {selectedLocation && (
+          <div className="bg-[#1A1A1A] rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm text-yellow-500 font-medium">
+                선택된 위치
+              </div>
+              <div className="text-sm font-medium text-yellow-400">
+                {formatRadius(searchRadius)} 반경
+              </div>
+            </div>
+            <div className="font-medium text-white mb-1">
+              {selectedLocation.locationName}
+            </div>
+            <div className="text-sm text-gray-400">
+              {selectedLocation.roadAddress}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 지도 영역 */}
+      <div className="flex-1 px-4">
+        <div
+          ref={mapContainer}
+          className="w-full h-full rounded-xl overflow-hidden shadow-lg"
+          style={{ minHeight: '300px' }}
+        />
+      </div>
+
+      {/* 검색 반경 슬라이더 */}
+      <div className="p-4 pt-2 bg-black">
+        <div className="bg-[#1A1A1A] rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm text-gray-400">검색 반경</div>
-            <div className="text-sm font-medium text-yellow-500">
+            <div className="text-sm font-medium text-white">검색 반경</div>
+            <div className="text-lg font-bold text-yellow-500">
               {formatRadius(searchRadius)}
             </div>
           </div>
@@ -515,99 +552,61 @@ export default function MapSearchPage() {
               step="100"
               value={searchRadius}
               onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-              style={{
-                background: `linear-gradient(to right, #FFBB02 0%, #FFBB02 ${((searchRadius - 100) / (10000 - 100)) * 100}%, #374151 ${((searchRadius - 100) / (10000 - 100)) * 100}%, #374151 100%)`,
-              }}
+              className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer range-slider"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <div className="flex justify-between text-xs text-gray-500 mt-2">
               <span>100m</span>
               <span>1km</span>
               <span>5km</span>
               <span>10km</span>
             </div>
           </div>
-
-          {/* 프리셋 버튼들 */}
-          <div className="flex space-x-2 mt-3">
-            {[500, 1000, 2000, 5000].map((radius) => (
-              <button
-                key={radius}
-                onClick={() => handleRadiusChange(radius)}
-                className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                  searchRadius === radius
-                    ? 'bg-yellow-500 text-black'
-                    : 'bg-[#1A1A1A] text-white hover:bg-[#2A2A2A]'
-                }`}
-              >
-                {formatRadius(radius)}
-              </button>
-            ))}
-          </div>
         </div>
-
-        {/* 선택된 위치 정보 */}
-        {selectedLocation && (
-          <div className="bg-[#1A1A1A] rounded-lg p-3">
-            <div className="text-sm text-yellow-500 mb-1">선택된 위치</div>
-            <div className="font-medium">{selectedLocation.locationName}</div>
-            <div className="text-sm text-gray-400">
-              {selectedLocation.roadAddress}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 지도 */}
-      <div className="relative flex-1">
-        <div ref={mapContainer} className="w-full h-full" />
-
-        {/* 지도 안내 텍스트 */}
-        <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-sm">
-          지도를 클릭하여 위치를 선택하세요
-        </div>
-
-        {/* 반경 표시 */}
-        {selectedLocation && (
-          <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-sm">
-            <div className="text-yellow-500 font-medium">
-              {formatRadius(searchRadius)} 반경
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 커스텀 슬라이더 스타일 */}
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
+      <style>
+        {`
+        .range-slider {
+          background: linear-gradient(
+            to right,
+            #ffbb02 0%,
+            #ffbb02 ${((searchRadius - 100) / (10000 - 100)) * 100}%,
+            #374151 ${((searchRadius - 100) / (10000 - 100)) * 100}%,
+            #374151 100%
+          );
+        }
+        
+        .range-slider::-webkit-slider-thumb {
           appearance: none;
-          height: 20px;
-          width: 20px;
+          height: 24px;
+          width: 24px;
           border-radius: 50%;
           background: #ffbb02;
           cursor: pointer;
-          border: 2px solid #000;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          border: 3px solid #000;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
-        .slider::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
+        .range-slider::-moz-range-thumb {
+          height: 24px;
+          width: 24px;
           border-radius: 50%;
           background: #ffbb02;
           cursor: pointer;
-          border: 2px solid #000;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          border: 3px solid #000;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
-        .slider:focus {
+        .range-slider:focus {
           outline: none;
         }
 
-        .slider:focus::-webkit-slider-thumb {
-          box-shadow: 0 0 0 3px rgba(255, 187, 2, 0.3);
+        .range-slider:focus::-webkit-slider-thumb {
+          box-shadow: 0 0 0 4px rgba(255, 187, 2, 0.3);
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }
