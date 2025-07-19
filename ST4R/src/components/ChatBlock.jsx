@@ -6,6 +6,7 @@ export default function ChatBlock({
   nickname,
   imageUrl,
   chattedAt,
+  date,
   unreadCount
 }) {
   const localDate = new Date(chattedAt);
@@ -17,6 +18,11 @@ export default function ChatBlock({
 
   return (
     <>
+      {date && (<div className='flex items-center'>
+        <div className='h-[1.5px] bg-[#1D1D1D] w-full'></div>
+        <div className="my-4 text-sm w-60 font-['Pretendard'] rounded-xl text-center">{date}</div>
+        <div className='h-[1.5px] bg-[#1D1D1D] w-full'></div>
+      </div>)}
       {nickname && !isMe && (
         <div className="flex gap-2">
           <img src={imageUrl || profile} className="w-8"></img>

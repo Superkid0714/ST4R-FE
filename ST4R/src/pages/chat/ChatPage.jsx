@@ -272,9 +272,17 @@ export default function ChatPage() {
             return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
           };
 
+          const getDateString = (date) => {
+            const d = new Date(date);
+            return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} `;
+          };
+
           const prevTime = prev ? getTimeString(prev.chattedAt) : null;
           const currTime = getTimeString(msg.chattedAt);
           const nextTime = next ? getTimeString(next.chattedAt) : null;
+
+          const prevDate = prev ? getDateString(prev.chattedAt) : null;
+          const currDate = getDateString(msg.chattedAt)
 
           const showTime =
             !next || // 1. 이후 메시지 없음
@@ -285,6 +293,8 @@ export default function ChatPage() {
             !prev || // 1. 이전 메시지 없음
             (prev && prev.sender.id !== msg.sender.id) || // 2. 다른 사람이 보냄
             prevTime !== currTime; // 3. 같은 사람이지만 분 단위가 바뀜
+
+          const showDate = (prevDate !== currDate) ? true : null;
 
           const unreadCount = calculateUnreadCount(
             msg.chattedAt,
@@ -298,6 +308,7 @@ export default function ChatPage() {
               nickname={showprofile ? msg.sender.nickname : null}
               imageUrl={showprofile ? msg.sender.imageurl : null}
               chattedAt={showTime ? msg.chattedAt : null}
+              date={showDate? currDate : null}
               unreadCount={unreadCount === 0 ? 'ㅤ' : unreadCount}
             ></ChatBlock>
           );
