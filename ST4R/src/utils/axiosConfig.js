@@ -75,10 +75,9 @@ axios.interceptors.response.use(
         '/profile',
       ];
 
-      // 현재 페이지가 로그인 필수 페이지인 경우
+      // 현재 페이지가 로그인 필수 페이지인 경우 홈으로 리다이렉트 (알림 없이)
       if (authRequiredPaths.some((path) => currentPath.startsWith(path))) {
-        alert('로그인이 필요합니다.');
-        window.location.href = '/login';
+        window.location.href = '/home';
         return Promise.reject(error);
       }
 

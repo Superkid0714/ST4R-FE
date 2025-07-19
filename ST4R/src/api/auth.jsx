@@ -17,10 +17,15 @@ export const useLogoutMutation = () => {
     },
     onSuccess: () => {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      window.location.href = '/home';
     },
     onError: (error) => {
       console.error('로그아웃 실패', error);
+      // 에러가 발생해도 로컬 데이터는 삭제하고 홈으로 이동
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/home';
     },
   });
 };
