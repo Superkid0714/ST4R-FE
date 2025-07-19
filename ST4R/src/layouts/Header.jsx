@@ -1,6 +1,12 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SearchBar from '../components/common/SearchBar';
 import FortuneIcon from '../assets/icons/fortune.svg?react';
+import {
+  useWeather,
+  useGeolocation,
+  getWeatherKorean,
+  getWeatherIcon,
+} from '../hooks/useWeather';
 
 export default function Header({
   onSearch,
@@ -17,6 +23,28 @@ export default function Header({
 
   // 지도 검색 활성 상태 확인 (URL 파라미터로)
   const isMapSearchActive = searchParams.has('lat') && searchParams.has('lng');
+
+  // 위치 정보 가져오기
+  const { data: location, isLoading: isLocationLoading } = useGeolocation();
+
+  // 지도 검색이 활성화된 경우 URL에서 위치 정보 사용, 아니면 현재 위치 사용
+  const weatherLocation = isMapSearchActive
+    ? {
+        latitude: parseFloat(searchParams.get('lat')),
+        longitude: parseFloat(searchParams.get('lng')),
+      }
+    : location;
+
+  // 날씨 정보 가져오기
+  const {
+    data: weatherData,
+    isLoading: isWeatherLoading,
+    error: weatherError,
+  } = useWeather(
+    weatherLocation?.latitude,
+    weatherLocation?.longitude,
+    !!weatherLocation // 위치 정보가 있을 때만 날씨 조회
+  );
 
   // 로그인 버튼 클릭 핸들러
   const handleLoginClick = () => {
@@ -58,6 +86,46 @@ export default function Header({
     if (onSearchTypeChange) {
       onSearchTypeChange(type);
     }
+  };
+
+  // 위치 정보 표시 로직
+  const getLocationDisplay = () => {
+    if (isMapSearchActive) {
+      return searchParams.get('locationName') || '선택된 위치';
+    }
+
+    if (weatherData?.address) {
+      const { level1, level2 } = weatherData.address;
+      return level2 ? `${level1} ${level2}` : level1;
+    }
+
+    if (isLocationLoading) {
+      return '위치 확인 중...';
+    }
+
+    return '광주광역시'; // 기본값
+  };
+
+  // 날씨 정보 표시 로직
+  const getWeatherDisplay = () => {
+    if (isWeatherLoading) {
+      return (
+        <div className="flex items-center">
+          <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+          날씨 확인 중...
+        </div>
+      );
+    }
+
+    if (weatherError || !weatherData) {
+      return '19°C / 맑음'; // 기본값
+    }
+
+    const temp = Math.round(weatherData.temp);
+    const weatherKorean = getWeatherKorean(weatherData.weather);
+    const weatherIcon = getWeatherIcon(weatherData.weather);
+
+    return `${temp}°C / ${weatherIcon} ${weatherKorean}`;
   };
 
   return (
@@ -123,6 +191,7 @@ export default function Header({
         {/* 위치와 날씨 정보 */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
+            {/* 위치 정보 */}
             <div className="flex items-center bg-[#2A2A2A] rounded-full px-3 py-2 text-gray-300 text-sm">
               <svg
                 className="w-4 h-4 mr-2"
@@ -143,10 +212,10 @@ export default function Header({
                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              {isMapSearchActive
-                ? searchParams.get('locationName') || '선택된 위치'
-                : '광주광역시'}
+              {getLocationDisplay()}
             </div>
+
+            {/* 날씨 정보 */}
             <div className="flex items-center bg-[#2A2A2A] rounded-full px-3 py-2 text-gray-300 text-sm">
               <svg
                 className="w-4 h-4 mr-2"
@@ -161,7 +230,7 @@ export default function Header({
                   d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
                 />
               </svg>
-              19°C / 맑음
+              {getWeatherDisplay()}
             </div>
           </div>
 
