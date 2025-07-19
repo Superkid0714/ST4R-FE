@@ -28,20 +28,17 @@ export default function GroupPage() {
   const [chatPreviews, setChatPreviews] = useState([]);
 
   //채팅 미리보기 내용 가져오기(http)
-  const {
-    data: initialChatPreviews,
-    isLoading: isInitialPreviewLoading,
-  } = useGetInitialChatPreviews();
+  const { data: initialChatPreviews, isLoading: isInitialPreviewLoading } =
+    useGetInitialChatPreviews();
 
   //채팅 미리보기 내용 가져오기(웹소켓)
-  connectChatPreview({setChatPreviews});
-  console.log(chatPreviews);
+  connectChatPreview({ setChatPreviews });
 
-  useEffect(()=>{
-    if(initialChatPreviews){
+  useEffect(() => {
+    if (initialChatPreviews) {
       setChatPreviews(initialChatPreviews);
     }
-  },[initialChatPreviews])  
+  }, [initialChatPreviews]);
 
   //모임 목록 가져오기
   const {
@@ -112,14 +109,19 @@ export default function GroupPage() {
           {myChatsError && <div>채팅방을 불러오는 데 실패했습니다.</div>}
 
           {/* 채팅방 박스 목록 */}
-          {myChats && 
-            myChats.map((chatRoom, i) => (
-              <ChatRoomCard
-                key={chatRoom.id}
-                chatRoom={chatRoom}
-                chatPreview={chatPreviews[i]}
-              ></ChatRoomCard>
-            ))}
+          {myChats &&
+            myChats.map((chatRoom, i) => {
+              const chatPreview = chatPreviews.find(
+                (prev) => prev.teamId === chatRoom.id
+              );
+              return (
+                <ChatRoomCard
+                  key={chatRoom.id}
+                  chatRoom={chatRoom}
+                  chatPreview={chatPreview}
+                ></ChatRoomCard>
+              );
+            })}
         </div>
 
         {/* 모임 목록 */}
