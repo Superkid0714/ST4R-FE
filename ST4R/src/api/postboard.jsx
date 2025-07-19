@@ -73,8 +73,8 @@ export const useCreateBoardMutation = () => {
     },
     onSuccess: (data) => {
       console.log('게시글 작성 성공:', data);
-      alert('게시글 작성 완료');
-      window.location.href = '/home';
+      // 성공 시에는 모달을 표시하도록 변경
+      return { success: true, data };
     },
     onError: (error) => {
       console.error('게시글 작성 실패:', error);
@@ -90,8 +90,7 @@ export const useCreateBoardMutation = () => {
         error.message === '제목을 입력해주세요.' ||
         error.message === '내용을 입력해주세요.'
       ) {
-        alert(error.message);
-        return;
+        throw error; // 에러를 다시 던져서 컴포넌트에서 처리
       }
 
       if (error.response?.status === 401) {
@@ -103,15 +102,15 @@ export const useCreateBoardMutation = () => {
         const errorMessage =
           error.response?.data?.message ||
           '잘못된 데이터입니다. 모든 필드를 확인해주세요.';
-        alert(errorMessage);
+        throw new Error(errorMessage);
       } else if (error.response?.status === 422) {
         const errorMessage =
           error.response?.data?.message || '입력한 데이터가 올바르지 않습니다.';
-        alert(errorMessage);
+        throw new Error(errorMessage);
       } else if (error.message.includes('imageUrls')) {
-        alert('이미지 처리 중 오류가 발생했습니다.');
+        throw new Error('이미지 처리 중 오류가 발생했습니다.');
       } else {
-        alert('게시글 작성에 실패했습니다. 다시 시도해주세요.');
+        throw new Error('게시글 작성에 실패했습니다. 다시 시도해주세요.');
       }
     },
   });

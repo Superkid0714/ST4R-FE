@@ -2,9 +2,11 @@ import { useState, useRef } from 'react';
 import camera from '../../assets/icons/camera.svg';
 import dropDown from '../../assets/icons/drop_down.svg';
 import BackButton from '../../components/common/BackButton';
+import ModalPortal from '../../components/common/ModalPortal';
 import uploadImagesToS3 from '../../api/imgupload';
 import { usePostBoardMutation } from '../../api/postboard';
 import Kakaomap from '../../components/common/Kakaomap';
+import { BoardCreateSuccessModal } from '../../components/modals/BoardModals';
 
 export default function BoardWritePage() {
   const imageInputRef = useRef(null);
@@ -15,6 +17,7 @@ export default function BoardWritePage() {
   const [category, setCategory] = useState('GENERAL'); // 기본값: 자유글
   const [content, setContent] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 지도 관련 상태
   const [lat, setLat] = useState(null);
@@ -81,7 +84,7 @@ export default function BoardWritePage() {
 
   const postBoard = usePostBoardMutation();
 
-  // 글 등록 핸들러 - imageUrls 에러 수정
+  // 글 등록 핸들러
   const handleSubmit = async () => {
     // 유효성 검사
     if (!title.trim()) {
@@ -139,7 +142,15 @@ export default function BoardWritePage() {
       }
 
       console.log('최종 전송 데이터:', postData);
-      postBoard.mutate(postData);
+
+      postBoard.mutate(postData, {
+        onSuccess: () => {
+          setShowSuccessModal(true);
+        },
+        onError: (error) => {
+          alert(error.message || '게시글 작성에 실패했습니다.');
+        },
+      });
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
       alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
@@ -151,6 +162,11 @@ export default function BoardWritePage() {
       categoryOptions.find((option) => option.value === category)?.label ||
       '자유글'
     );
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    window.location.href = '/home';
   };
 
   return (
@@ -280,6 +296,13 @@ export default function BoardWritePage() {
         {/* 하단 여백 */}
         <div className="h-20"></div>
       </div>
+
+      {/* 성공 모달 */}
+      {showSuccessModal && (
+        <ModalPortal>
+          <BoardCreateSuccessModal onClose={handleSuccessModalClose} />
+        </ModalPortal>
+      )}
     </div>
   );
 }

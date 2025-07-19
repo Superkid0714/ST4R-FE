@@ -274,7 +274,7 @@ export default function ProfileEditPage() {
     }
   };
 
-  // 프로필 수정 제출 - 백엔드 스펙에 맞게 수정
+  // 프로필 수정 제출
   const handleSubmit = async () => {
     // 토큰 확인
     const token = localStorage.getItem('token');
@@ -331,8 +331,6 @@ export default function ProfileEditPage() {
         // 이미지를 제거한 경우
         finalProfileImageUrl = '';
       }
-
-      // 백엔드 스펙에 맞는 데이터 구성
       const updateData = {
         changeNickname: hasNicknameChanged,
         changeProfileImage: hasImageChanged,
