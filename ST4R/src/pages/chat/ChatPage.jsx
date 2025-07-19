@@ -18,7 +18,7 @@ export default function ChatPage() {
   const clientRef = useRef(null);
   const messageListRef = useRef(null);
   const [input, setInput] = useState(''); // 보내는 메세지 내용
-  const [LastReadTimes, setLastReadTimes] = useState([]);
+  const [lastReadTimes, setLastReadTimes] = useState([]);
 
   // 모임 상세 정보
   const {
@@ -30,15 +30,16 @@ export default function ChatPage() {
 
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
+  console.log(members);
 
   // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
 
-  useEffect(()=>{
-    if(initialLastReadTimes){
+  useEffect(() => {
+    if (initialLastReadTimes) {
       setLastReadTimes(initialLastReadTimes); // 초기값 설정
     }
-  },[initialLastReadTimes])  
+  }, [initialLastReadTimes]);
 
   const {
     data,
@@ -135,7 +136,6 @@ export default function ChatPage() {
           // markAsRead(); //읽음 요청
           const data = JSON.parse(message.body);
           handleIncomingMessage(data); //받은 데이터 처리 함수
-        
         });
         markAsRead();
       },
@@ -156,7 +156,8 @@ export default function ChatPage() {
 
   // 웹소켓으로 메세지를 받았을 경우
   const handleIncomingMessage = (receivedData) => {
-    if (receivedData.messageType === 'general') { // 메세지 type이 general일때: useInfiniteQuery의 캐시 데이터에 추가
+    if (receivedData.messageType === 'general') {
+      // 메세지 type이 general일때: useInfiniteQuery의 캐시 데이터에 추가
       markAsRead();
       const newMessage = receivedData.message;
 
@@ -179,7 +180,7 @@ export default function ChatPage() {
         if (!alreadyExists) {
           updatedPages[lastPageIndex] = {
             ...updatedPages[lastPageIndex],
-            content: [ newMessage, ...updatedPages[lastPageIndex].content],
+            content: [newMessage, ...updatedPages[lastPageIndex].content],
           };
         }
 
@@ -189,17 +190,19 @@ export default function ChatPage() {
         };
       });
     }
-    if (receivedData.messageType === 'updateReadTime') { //메세지 type이 updateReadTime일때: 읽은 시간 생신
-      const newMessage = receivedData.message;  
+    if (receivedData.messageType === 'updateReadTime') {
+      //메세지 type이 updateReadTime일때: 읽은 시간 생신
+      const newMessage = receivedData.message;
       setLastReadTimes((prev) => {
-            const index = prev.findIndex((p) => p.memberId === newMessage.memberId);
-            const updated = [...prev];
-            updated[index] = {
-              ...updated[index],
-              readTime: newMessage.updateReadTime,
-            };
-            return updated;
-          });
+        const index = prev.findIndex((p) => p.memberId === newMessage.updateMemberId);
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          readTime: newMessage.updateReadTime,
+        };
+        return updated;
+      });
+      console.log(lastReadTimes);
     }
   };
   //읽음 상태 전송
@@ -209,6 +212,15 @@ export default function ChatPage() {
       return;
     }
     clientRef.current.send(`/markAsRead/${id}`, {}, '');
+  }
+
+  function calculateUnreadCount(chattedAt, lastReadTimes) {
+    const messageTime = new Date(chattedAt).getTime();
+
+    return lastReadTimes.reduce((count, { readTime }) => {
+      const readTimestamp = readTime ? new Date(readTime).getTime() : 0;
+      return messageTime > readTimestamp ? count + 1 : count;
+    }, 0);
   }
 
   //메세지 전송
@@ -274,6 +286,10 @@ export default function ChatPage() {
             (prev && prev.sender.id !== msg.sender.id) || // 2. 다른 사람이 보냄
             prevTime !== currTime; // 3. 같은 사람이지만 분 단위가 바뀜
 
+          const unreadCount = calculateUnreadCount(
+            msg.chattedAt,
+            lastReadTimes
+          );
           return (
             <ChatBlock
               key={i}
@@ -282,6 +298,7 @@ export default function ChatPage() {
               nickname={showprofile ? msg.sender.nickname : null}
               imageUrl={showprofile ? msg.sender.imageurl : null}
               chattedAt={showTime ? msg.chattedAt : null}
+              unreadCount={unreadCount === 0 ? 'ㅤ' : unreadCount}
             ></ChatBlock>
           );
         })}
