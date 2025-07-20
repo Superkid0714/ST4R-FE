@@ -5,7 +5,10 @@ import ChatRoomCard from '../../components/ChatRoomCard';
 import { useSearchGroups, useGetGroups } from '../../api/group/getgroup';
 import FilterBar from '../../components/FilterBar(group)';
 import { useEffect, useState } from 'react';
-import { useGetMyChats, useGetInitialChatPreviews } from '../../api/chat/getMyChats';
+import {
+  useGetMyChats,
+  useGetInitialChatPreviews,
+} from '../../api/chat/getMyChats';
 import { connectChatPreview } from '../../hooks/useChatPreview';
 
 export default function GroupPage() {
@@ -23,12 +26,14 @@ export default function GroupPage() {
     isLoading: isMyChatsLoading,
     error: myChatsError,
   } = useGetMyChats();
+  console.log(myChatsError);
 
   //초기 채팅 미리보기 데이터 설정
   const [chatPreviews, setChatPreviews] = useState([]);
 
   //채팅 미리보기 내용 가져오기(http)
-  const { data: initialChatPreviews, isLoading: isInitialPreviewLoading } = useGetInitialChatPreviews();
+  const { data: initialChatPreviews, isLoading: isInitialPreviewLoading } =
+    useGetInitialChatPreviews();
 
   //채팅 미리보기 내용 가져오기(웹소켓)
   connectChatPreview({ setChatPreviews });
@@ -38,6 +43,8 @@ export default function GroupPage() {
       setChatPreviews(initialChatPreviews);
     }
   }, [initialChatPreviews]);
+
+  console.log(chatPreviews);
 
   //모임 목록 가져오기
   const {
@@ -104,8 +111,13 @@ export default function GroupPage() {
             나의 모임
           </div>
 
-          {isMyChatsLoading && <div>채팅방 로딩 중...</div>}
-          {myChatsError && <div>채팅방을 불러오는 데 실패했습니다.</div>}
+          {isMyChatsLoading && (
+            <div className="mx-auto py-8">
+              <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+
+          {myChatsError?.status === 401 && <div className="text-[#8F8F8F] font-['Pretendard']">로그인 하고 모임에 가입하세요!</div> }
 
           {/* 채팅방 박스 목록 */}
           {myChats &&

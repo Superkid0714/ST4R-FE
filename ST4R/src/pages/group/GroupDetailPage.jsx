@@ -175,6 +175,7 @@ export default function GroupDetailPage() {
           <JoinModal
             onClose={() => setJoinModal(false)}
             hasPassword={groupDetail.isPublic}
+            isLogin = {localStorage.getItem('token')}
           ></JoinModal>
         </ModalPortal>
       ) : null}
