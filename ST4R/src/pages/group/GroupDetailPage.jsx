@@ -10,6 +10,7 @@ import DeleteModal from '../../components/modal/DeleteModal';
 import Carousel from '../../components/common/Carousel';
 import { useBookmarkMutation } from '../../api/group/postBookmark';
 import { useGetGroupDetail } from '../../api/group/getGroupDetail';
+import location from '../../assets/icons/location.svg';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -113,11 +114,11 @@ export default function GroupDetailPage() {
             style={{ height: '200px', borderRadius: '10px', margin: '8px 0' }}
           ></div>
           <div className="flex flex-col gap-0.5 p-3 2 bg-[#1D1D1D] rounded-[10px] justify-start">
-            <div className="flex-1 font-light text-sm font-['Pretendard']">
-              📍 {groupDetail.location.marker.locationName}
+            <div className="flex-1 flex font-light text-sm font-['Pretendard']">
+              <img src={location} className='pr-2'></img> {groupDetail.location.marker.roadAddress}
             </div>
-            <div className="flex-1 font-light text-sm font-['Pretendard']">
-              🗺️ {groupDetail.location.marker.roadAddress}
+            <div className="flex-1 font-light text-sm pl-8 font-['Pretendard']">
+             {groupDetail.location.marker.locationName}
             </div>
           </div>
         </div>
