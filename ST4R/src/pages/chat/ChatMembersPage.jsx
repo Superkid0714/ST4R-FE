@@ -7,10 +7,12 @@ import { useGetGroupMembers } from '../../api/getGroupMembers';
 import profile from '../../assets/profile.svg';
 import location from '../../assets/icons/location.svg';
 import out from '../../assets/icons/out.svg';
-import {usegroupOut}from '../../api/groupOut';
+import ModalPortal from '../../components/common/ModalPortal';
+import OutModal from '../../components/OutModal';
 
 export default function ChatMembersPage() {
   const { id } = useParams();
+  const [outModal, setOutModal] = useState(false);
 
   // 모임 상세 정보
   const {
@@ -23,6 +25,10 @@ export default function ChatMembersPage() {
   // 모임 구성원 정보
   const { data: members, isLoading: membersLoding } = useGetGroupMembers(id);
   console.log(members);
+  const myMember = members &&  members.find((member) => member.isMe === true);
+  const isLeader = myMember?.isLeader 
+
+  if (groupDetailLoading || !groupDetail) return null;
 
   const d = new Date(groupDetail.whenToMeet);
   const dateString = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -31,9 +37,6 @@ export default function ChatMembersPage() {
     minute: 'numeric',
     hour12: true,
   });
-
-  //모임 나가기
-  const groupOut = usegroupOut();
 
   return (
     <div className=" relative min-h-screen pb-[100px] flex flex-col gap-8 mx-2 font-['Pretendard']">
@@ -71,8 +74,15 @@ leading-loose">{groupDetail.name}</div>
           ))}
         </div>
       </div>
-      <div className='flex gap-2 items-center absolute bottom-2 w-full p-3 h-[60px] hover:cursor-pointer leading-[60px] text-lg rounded-[10px] bg-[#1D1D1D] text-[#FF4343]' onClick={()=>groupOut.mutate(id)}> <img src={out} className='w-7'></img>모임에서 나가기</div>
-     
+      <div className='flex gap-2 items-center absolute bottom-2 w-full p-3 h-[60px] hover:cursor-pointer leading-[60px] text-lg rounded-[10px] bg-[#1D1D1D] text-[#FF4343]' onClick={()=> setOutModal(true)}> <img src={out} className='w-7'></img>모임에서 나가기</div>
+      {outModal ? (
+              <ModalPortal>
+                <OutModal
+                  onClose={() => setOutModal(false)}
+                  isLeader={isLeader}
+                ></OutModal>
+              </ModalPortal>
+            ) : null}
     </div>
   );
 }
