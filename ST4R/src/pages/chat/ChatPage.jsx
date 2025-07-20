@@ -62,6 +62,13 @@ export default function ChatPage() {
     console.log('[STOMP DEBUG]', str);
   };
 
+  // 키보드 이벤트 핸들러
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  };
+
   //스크롤 내리기
   const scrollToBottom = () => {
     if (messageListRef.current) {
@@ -335,6 +342,7 @@ export default function ChatPage() {
           className="w-full focus:outline-none rounded-3xl font-['Pretendard'] bg-[#1D1D1D] placeholder:text-[#565656] p-3 h-14"
           placeholder="여기에 메세지를 입력하세요.."
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           value={input}
         />
         <img
