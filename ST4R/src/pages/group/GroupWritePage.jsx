@@ -102,7 +102,7 @@ export default function GroupWritePage() {
       alert('최대 30명까지 입력 가능합니다.');
       return;
     }
-    if (password.trim() !== null && password.trim().length < 4) {
+    if (password !== null && password.trim().length < 4) {
       alert('비밀번호는 4자 이상이여야 합니다.');
       return;
     }

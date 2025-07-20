@@ -60,16 +60,8 @@ export default function GroupEditPage() {
   // 원래 정보 설정
   useEffect(() => {
     if (groupDetail) {
-      console.log(groupDetail);
       setName(groupDetail.name);
-      const when = groupDetail.whenToMeet;
-      const dt = new Date(
-        Number(when.slice(0, 4)), // year
-        Number(when.slice(5, 7)) - 1, // month
-        Number(when.slice(8, 10)), // day
-        Number(when.slice(11, 13)), // hour
-        Number(when.slice(14, 16)) // minute
-      );
+      const dt = new Date(groupDetail.whenToMeet); 
       setSelectedDate(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
       setSelectedTime(new Date(2000, 0, 1, dt.getHours(), dt.getMinutes()));
 
@@ -301,6 +293,7 @@ export default function GroupEditPage() {
                 onChange={(date) => {
                   setSelectedDate(date);
                 }}
+                bg='#1D1D1D'
               ></DateSelector>
             </div>
             <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
