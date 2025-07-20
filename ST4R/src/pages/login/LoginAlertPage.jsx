@@ -1,18 +1,34 @@
 import kakaotalk from '../../assets/icons/kakaotalk.svg';
 import error from '../../assets/icons/error.svg';
 import west from '../../assets/icons/west.svg';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginAlertPage() {
-  const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=http://localhost:5173`;
+  const navigate = useNavigate();
+
+  // 개발환경과 배포환경에 따라 리다이렉트 URL 설정
+  const isDevelopment = window.location.hostname === 'localhost';
+  const redirectUrl = isDevelopment
+    ? 'http://localhost:5173'
+    : window.location.origin;
+
+  const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=${redirectUrl}`;
 
   const kakaologinbutton = () => {
     window.location.href = loginUrl; // 카카오 로그인 창으로 이동
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   return (
     <div>
       <div className="absolute left-[12px] inline-flex justify-start items-center gap-[12px]">
-        <div className="p-2 bg-[#1D1D1D] rounded-[60px]">
+        <div
+          className="p-2 bg-[#1D1D1D] rounded-[60px] cursor-pointer hover:bg-[#2A2A2A] transition-colors"
+          onClick={handleBack}
+        >
           <img src={west} className="w-6 h-6" />
         </div>
       </div>
@@ -54,7 +70,7 @@ export default function LoginAlertPage() {
       {/* 카카오톡 로그인 버튼 */}
       <div
         onClick={kakaologinbutton}
-        className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px]"
+        className="absolute left-[12px] right-[12px] bottom-[40px] h-[60px] bg-[#FFBB02] rounded-[10px] cursor-pointer hover:bg-[#E6A500] transition-colors"
       >
         <div className="absolute flex gap-[12px] left-[20px] top-[18px] text-base font-extrabold font-['Pretendard']">
           <img
