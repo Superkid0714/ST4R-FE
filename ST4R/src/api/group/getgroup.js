@@ -8,64 +8,34 @@ export const useSearchGroups = (searchQuery, options = {}) => {
   return useQuery({
     queryKey: ['searchGroups', searchQuery, options],
     queryFn: async () => {
-      if (!searchQuery?.trim()) {
-        return { content: [] };
-      }
-
       const params = new URLSearchParams();
 
-      // 기간 옵션 (필수 파라미터)
-      const period = options.period || 'daily';
-      params.append('period', period);
+      // 검색어 유효성 검사 및 처리
+      const trimmedQuery = searchQuery?.trim();
 
-      // 정렬 옵션
-      const sort = options.sort || 'createdAt'; 
-      const direction = options.direction || 'desc'; 
-      params.append('sort', sort);
-      params.append('direction', direction);
-
-      // 페이징 옵션
-      if (options.size && options.size > 0) {
-        params.append('size', options.size);
+      // 검색어가 있을 때만 검색 파라미터 추가
+      if (trimmedQuery) {
+        // 검색 타입에 따른 길이 제한 검사
+        switch (options.searchType) {
+          case 'leaderName':
+            // 모임장 검색
+            if (trimmedQuery.length >= 2) {
+              params.append('leaderName', trimmedQuery);
+            } else {
+              return { content: [] };
+            }
+            break;
+          default:
+            // 제목 검색
+            if (trimmedQuery.length >= 2) {
+              params.append('name', trimmedQuery);
+            } else {
+              return { content: [] };
+            }
+        }
       }
-      if (options.page !== undefined && options.page >= 0) {
-        params.append('page', options.page);
-      }
 
-      // 검색어 파라미터 (추후 백엔드에서 지원 시 추가)
-      // params.append('query', searchQuery);
-
-      console.log('검색 API 요청:', `${BASE_URL}/groups?${params.toString()}`);
-
-      const response = await axios.get(`${BASE_URL}/groups?${params.toString()}`);
-
-      // 현재는 검색 기능이 없으므로 전체 결과에서 클라이언트 사이드 필터링
-      const allGroups = response.data.content || [];
-      const filteredGroups = allGroups.filter(
-        (group) =>
-          group.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          group.location.maker.lacationName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-      return {
-        ...response.data,
-        content: filteredGroups,
-      }
-    },
-    enabled: !!searchQuery?.trim(), // 검색어가 있을 때만 요청
-    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
-    retry: 2,
-  });
-};
-
-// 게시글 목록 조회
-export const useGetGroups = (options = {}) => {
-  return useQuery({
-    queryKey: ['groups', options],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-
-      // 기간 옵션 (필수 파라미터)
+      // 기간 옵션
       const period = options.period || 'daily';
       params.append('period', period);
 
@@ -75,7 +45,41 @@ export const useGetGroups = (options = {}) => {
       params.append('sort', sort);
       params.append('direction', direction);
 
-      // 페이징 옵션 
+      // 위치 기반 검색 옵션
+      if (options.location) {
+        if (options.location.latitude && options.location.longitude) {
+          params.append(
+            'location.latitude',
+            options.location.latitude.toString()
+          );
+          params.append(
+            'location.longitude',
+            options.location.longitude.toString()
+          );
+
+          // 거리 설정 (기본값: 1000m)
+          const distance = options.location.distanceInMeters || 1000;
+          params.append('location.distanceInMeters', distance.toString());
+
+          // 도로명 주소 추가
+          if (options.location.roadAddress) {
+            params.append('location.roadAddress', options.location.roadAddress);
+          }
+        }
+      }
+
+      if (options.meetBetween) {
+        params.append(
+            'meetBetweenStart',
+            options.meetBetween.start
+          );
+        params.append(
+          'meetBetweenEnd',
+          options.meetBetween.end
+        );
+      }
+
+      // 페이징 옵션
       if (options.size && options.size > 0) {
         params.append('size', options.size);
       }
@@ -83,15 +87,23 @@ export const useGetGroups = (options = {}) => {
         params.append('page', options.page);
       }
 
-      console.log('API 요청:', `${BASE_URL}/groups?${params.toString()}`);
+      //검색 요청
+      const requestUrl = `${BASE_URL}/groups?${params.toString()}`;
 
-      const response = await axios.get(`${BASE_URL}/groups?${params.toString()}`);
-
-      console.log('API 응답:', response.data);
-
+      const response = await axios.get(requestUrl);
       return response.data;
     },
-    staleTime: 1000 * 60 * 2, // 2분간 캐시 유지
-    retry: 2,
+    enabled: true,
+    staleTime: 1000 * 60 * 5,
+    onerror: (error) => {
+      console.error('검색 API 에러:', error);
+      if (error?.response?.status === 422) {
+        console.error('422 에러 상세:', error.response?.data);
+      }
+      if (error?.response?.status === 400) {
+        console.error('400 에러 상세:', error.response?.data);
+        console.error('요청 URL:', error.config?.url);
+      }
+    },
   });
 };
