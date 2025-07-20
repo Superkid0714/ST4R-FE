@@ -9,9 +9,9 @@ import profile from '../../assets/profile.svg';
 import location from '../../assets/icons/location.svg';
 import out from '../../assets/icons/out.svg';
 import ModalPortal from '../../components/common/ModalPortal';
-import OutModal from '../../components/modal/OutModal';
-import BanModal from '../../components/modal/BanModal';
-import ChangeLeaderModal from '../../components/modal/ChangeLeaderModal';
+import OutModal from '../../components/modals/OutModal';
+import BanModal from '../../components/modals/BanModal';
+import ChangeLeaderModal from '../../components/modals/ChangeLeaderModal';
 
 export default function ChatMembersPage() {
   const { id } = useParams();
@@ -24,7 +24,6 @@ export default function ChatMembersPage() {
   const {
     data: groupDetail,
     isLoading: groupDetailLoading,
-    isError: groupDetailError,
   } = useGetGroupDetail(id);
 
   // 모임 구성원 정보

@@ -24,13 +24,10 @@ export default function ChatPage() {
   // 모임 상세 정보
   const {
     data: groupDetail,
-    isLoading: groupDetailLoading,
-    isError: groupDetailError,
   } = useGetGroupDetail(id);
 
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
-  console.log(members);
 
   // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);

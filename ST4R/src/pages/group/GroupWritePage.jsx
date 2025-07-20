@@ -7,7 +7,7 @@ import {
   combine,
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
-import { usegroupMutation } from '../../api/group/postgroup';
+import { usePostGroupMutation } from '../../api/group/postgroup';
 import uploadImagesToS3 from '../../api/imgupload';
 
 export default function GroupWritePage() {
@@ -22,7 +22,7 @@ export default function GroupWritePage() {
 
   const [maxParticipantCount, setMaxParticipantCount] = useState(''); //최대 인원 수
 
-  const [password, setPassword] = useState(''); //비밀번호
+  const [password, setPassword] = useState(null); //비밀번호
 
   const [description, setDescription] = useState(''); //본문
 
@@ -79,7 +79,7 @@ export default function GroupWritePage() {
     setRoadAddress(roadAddress);
   };
 
-  const postgroup = usePostgroupMutation();
+  const postgroup = usePostGroupMutation();
 
   const handlepost = async () => {
     if (!name.trim()) {
@@ -102,7 +102,7 @@ export default function GroupWritePage() {
       alert('최대 30명까지 입력 가능합니다.');
       return;
     }
-    if (password.trim() !== '' && password.trim().length < 4) {
+    if (password.trim() !== null && password.trim().length < 4) {
       alert('비밀번호는 4자 이상이여야 합니다.');
       return;
     }

@@ -2,7 +2,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-export const usePostgroupMutation = () => {
+export const usePostGroupMutation = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 

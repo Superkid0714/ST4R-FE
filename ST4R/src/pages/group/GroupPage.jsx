@@ -160,8 +160,6 @@ export default function GroupPage() {
             </div>
           )}
 
-          {groupsError && <div>값을 불러오는데 에러가 생겼습니다.</div>}
-
           {/* 모임 박스 목록*/}
           {displayGroups.map((group) => (
             <GroupCard key={group.id} group={group}></GroupCard>
