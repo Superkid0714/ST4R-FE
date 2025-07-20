@@ -11,6 +11,7 @@ import Carousel from '../../components/common/Carousel';
 import { useBookmarkMutation } from '../../api/group/postBookmark';
 import { useGetGroupDetail } from '../../api/group/getGroupDetail';
 import location from '../../assets/icons/location.svg';
+import profile from '../../assets/profile.svg';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -83,27 +84,29 @@ export default function GroupDetailPage() {
 
       {groupDetail.imageUrls?.length === 0 && <div className="h-6"></div>}
 
-      <div className="p-2 flex flex-col gap-10">
+      <div className="p-4 flex flex-col gap-8 font-['Pretendard']">
         {/* 타이틀 영역 */}
-        <div>
+        <div className='flex flex-col gap-2'>
           <div className="text-sm text-[#8F8F8F] font-['Pretendard'] ">
-            {dateString}, 최대 {groupDetail.maxParticipants}명
+            모임날짜: {dateString}, 최대 {groupDetail.maxParticipants}명
           </div>
-          <div className="text-xl font-medium font-['Pretendard']">
+          <div className="text-2xl font-medium font-['Pretendard']">
             {groupDetail.name}
           </div>
         </div>
 
+        {/* 프로필 영역 */}
+        <div className='flex gap-4'>
+          <img src={groupDetail.author.imageUrl !== null ? groupDetail.author.imageUrl : profile} className='w-10 h-10 rounded-full'/>
+          <div className='flex flex-col gap-0.5'>
+            <div>{groupDetail.author.nickname}</div>
+            <div className='text-sm text-[#8F8F8F]'>{new Date(groupDetail.createdAt).toLocaleDateString('ko-KR')}</div>
+          </div>
+          </div>
+
         {/* 본문 영역 */}
         <div className="text-sm font-['Pretendard'] font-light ">
           {groupDetail.description}
-        </div>
-
-        {/* 프로필 영역 */}
-        <div className="relative text-sm text-[#8F8F8F] font-['Pretendard']">
-          작성자: {groupDetail.author.nickname}
-          <span className="absolute right-3">오리온자리</span>
-          <div className="mt-4 h-[1.5px] bg-[#565656]"></div>
         </div>
 
         {/* 지도 영역 */}
