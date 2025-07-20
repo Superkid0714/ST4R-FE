@@ -205,6 +205,7 @@ export default function GroupWritePage() {
                 onChange={(date) => {
                   setSelectedDate(date);
                 }}
+                bg='#1D1D1D'
               />
             </div>
             <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
