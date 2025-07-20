@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { usegroupOut } from '../api/groupOut';
-  import { usegroupDelete } from '../api/groupDelete';
+import { usegroupOut } from '../../api/group/groupOut';
+import { usegroupDelete } from '../../api/group/groupDelete';
 
 export default function OutModal({ onClose, isLeader }) {
   const { id } = useParams();
@@ -40,7 +40,7 @@ export default function OutModal({ onClose, isLeader }) {
           <div className="flex flex-col gap-2">
             <div className="text-xl ">팀장은 모임을 나갈 수 없어요!</div>
             <div className="text-sm text-[#8F8F8F]">
-              다른 사람에게 모임장을 위임하거나 모임을 삭제해주세요
+              다른 사람에게 모임장을 위임하거나 모임을 삭제해주세요.
             </div>
           </div>
           <div className="flex gap-2">

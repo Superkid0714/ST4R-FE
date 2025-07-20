@@ -1,18 +1,18 @@
 import { useParams } from 'react-router-dom';
-import { useMemberBan } from '../api/memberBan';
+import { usegroupDelete } from '../../api/group/groupDelete';
 
-export default function BanModal({ onClose, userId, nickname }) {
+// 모달 상세 내용
+export default function DeleteModal({ onClose }) {
   const { id } = useParams();
 
-  const memberBan = useMemberBan(id);
-  
+  const handleDelete = usegroupDelete();
+
   return (
     <div className="relative w-96 font-['Pretendard'] p-5 flex flex-col text-center gap-6 bg-[#1D1D1D] rounded-2xl">
       <div className="flex flex-col gap-2">
-        <div className="text-xl ">정말 {nickname}님을 강퇴하시겠어요?</div>
+        <div className="text-xl ">정말로 해당 모임을 삭제하시겠어요?</div>
         <div className="text-sm text-[#8F8F8F]">
-          <div>강퇴 후에는 채팅 및 모임 참가 접근이 차단됩니다.</div>
-          <div> 이 작업은 되돌릴 수 없습니다.</div>
+          삭제하시면 해당 모임은 더이상 이용하실 수 없어요
         </div>
       </div>
       <div className="flex gap-2">
@@ -24,11 +24,11 @@ export default function BanModal({ onClose, userId, nickname }) {
         </button>
         <button
           className="w-full h-14 hover:cursor-pointer leading-14 bg-[#FF4343] rounded-xl"
-          onClick={
-            () => {memberBan.mutate(userId)}
-          }
+          onClick={() => {
+            handleDelete.mutate(id);
+          }}
         >
-          강퇴하기
+          삭제하기
         </button>
       </div>
     </div>

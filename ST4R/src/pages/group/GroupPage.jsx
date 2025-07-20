@@ -2,10 +2,10 @@ import SearchBar from '../../components/common/SearchBar';
 import { useNavigate } from 'react-router-dom';
 import GroupCard from '../../components/GroupCard';
 import ChatRoomCard from '../../components/ChatRoomCard';
-import { useSearchGroups, useGetGroups } from '../../api/getgroup';
+import { useSearchGroups, useGetGroups } from '../../api/group/getgroup';
 import FilterBar from '../../components/FilterBar(group)';
 import { useEffect, useState } from 'react';
-import { useGetMyChats, useGetInitialChatPreviews } from '../../api/getMyChats';
+import { useGetMyChats, useGetInitialChatPreviews } from '../../api/chat/getMyChats';
 import { connectChatPreview } from '../../hooks/useChatPreview';
 
 export default function GroupPage() {
@@ -28,8 +28,7 @@ export default function GroupPage() {
   const [chatPreviews, setChatPreviews] = useState([]);
 
   //채팅 미리보기 내용 가져오기(http)
-  const { data: initialChatPreviews, isLoading: isInitialPreviewLoading } =
-    useGetInitialChatPreviews();
+  const { data: initialChatPreviews, isLoading: isInitialPreviewLoading } = useGetInitialChatPreviews();
 
   //채팅 미리보기 내용 가져오기(웹소켓)
   connectChatPreview({ setChatPreviews });

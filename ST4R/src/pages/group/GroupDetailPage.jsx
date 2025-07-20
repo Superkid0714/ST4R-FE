@@ -5,11 +5,11 @@ import BackButton from '../../components/common/BackButton';
 import Bookmark from '../../components/common/Bookmark';
 import ModalPortal from '../../components/common/ModalPortal';
 import { useEffect, useState } from 'react';
-import JoinModal from '../../components/JoinModal';
-import DeleteModal from '../../components/DeleteModal';
+import JoinModal from '../../components/modal/JoinModal';
+import DeleteModal from '../../components/modal/DeleteModal';
 import Carousel from '../../components/common/Carousel';
-import { useBookmarkMutation } from '../../api/postBookmark';
-import { useGetGroupDetail } from '../../api/getGroupDetail';
+import { useBookmarkMutation } from '../../api/group/postBookmark';
+import { useGetGroupDetail } from '../../api/group/getGroupDetail';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -151,7 +151,7 @@ export default function GroupDetailPage() {
               수정하기
             </div>
           </div>
-        ) : groupDetail.isJoinable ? (
+        ) : groupDetail.joinable ? (
           <div
             onClick={() => setJoinModal(true)} // 모달창 열림
             className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"

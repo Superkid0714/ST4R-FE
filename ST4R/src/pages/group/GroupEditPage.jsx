@@ -7,7 +7,7 @@ import {
   combine,
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
-import { usegroupEdit } from '../../api/groupEdit';
+import { usegroupEdit } from '../../api/group/groupEdit';
 import uploadImagesToS3 from '../../api/imgupload';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';

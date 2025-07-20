@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import error2 from '../assets/icons/error2.svg';
+import error2 from '../../assets/icons/error2.svg';
 
 // 모달 상세 내용
 export default function JoinModal({ onClose, hasPassword }) {

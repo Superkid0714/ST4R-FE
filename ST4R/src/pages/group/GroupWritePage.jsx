@@ -7,7 +7,7 @@ import {
   combine,
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
-import { usegroupMutation } from '../../api/postgroup';
+import { usegroupMutation } from '../../api/group/postgroup';
 import uploadImagesToS3 from '../../api/imgupload';
 
 export default function GroupWritePage() {

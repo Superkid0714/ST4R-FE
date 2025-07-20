@@ -1,15 +1,15 @@
-import { useParams, useNavigate} from 'react-router-dom';
-import { getChatHistory } from '../../api/getChatHistory';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getChatHistory } from '../../api/chat/getChatHistory';
 import BackButton from '../../components/common/BackButton';
 import threelines from '../../assets/icons/threelines.svg';
 import sendBotton from '../../assets/icons/send.svg';
 import { useEffect, useRef, useState } from 'react';
-import { useGetGroupDetail } from '../../api/getGroupDetail';
+import { useGetGroupDetail } from '../../api/group/getGroupDetail';
 import SockJs from 'sockjs-client';
 import Stomp from 'stompjs';
 import ChatBlock from '../../components/ChatBlock';
-import { useGetGroupMembers } from '../../api/getGroupMembers';
-import { useGetInitialLastReadTimes } from '../../api/getInitialLastReadTimes';
+import { useGetGroupMembers } from '../../api/chat/getGroupMembers';
+import { useGetInitialLastReadTimes } from '../../api/chat/getInitialLastReadTimes';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function ChatPage() {
@@ -34,6 +34,7 @@ export default function ChatPage() {
 
   // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
+  console.log(initialLastReadTimes);
 
   useEffect(() => {
     if (initialLastReadTimes) {
@@ -71,7 +72,7 @@ export default function ChatPage() {
     }
   };
 
-  //새로운 메세지가 오면 스크롤 아래로 
+  //새로운 메세지가 오면 스크롤 아래로
   useEffect(() => {
     scrollToBottom();
   }, [messagelist]);
@@ -87,7 +88,8 @@ export default function ChatPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) { //스크롤이 최상단에 닿음
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          //스크롤이 최상단에 닿음
           const prevScrollHeight = currentMessageListRef.scrollHeight;
           fetchNextPage().then(() => {
             requestAnimationFrame(() => {
@@ -195,7 +197,9 @@ export default function ChatPage() {
       //메세지 type이 updateReadTime일때: 읽은 시간 생신
       const newMessage = receivedData.message;
       setLastReadTimes((prev) => {
-        const index = prev.findIndex((p) => p.memberId === newMessage.updateMemberId);
+        const index = prev.findIndex(
+          (p) => p.memberId === newMessage.updateMemberId
+        );
         const updated = [...prev];
         updated[index] = {
           ...updated[index],
@@ -243,8 +247,6 @@ export default function ChatPage() {
     setInput(''); // 전송 후 다시 초기화
   };
 
-
-
   return (
     <div className="h-screen flex flex-col">
       {/* 상단바 */}
@@ -253,7 +255,13 @@ export default function ChatPage() {
         <div className="mx-auto mt-3 text-2xl text-[#8F8F8F] font-['Pretendard']">
           {groupDetail?.name}
         </div>
-        <img className="mr-4 mt-2 w-12 h-12 " src={threelines} onClick={()=>{navigate(`/groups/${id}/members`)}} />
+        <img
+          className="mr-4 mt-2 w-12 h-12 "
+          src={threelines}
+          onClick={() => {
+            navigate(`/groups/${id}/members`);
+          }}
+        />
       </div>
       <div className="h-[1px] w-full bg-[#2F2F2F]"></div>
 
@@ -278,7 +286,7 @@ export default function ChatPage() {
 
           const getDateString = (date) => {
             const d = new Date(date);
-            return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} `;
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} `;
           };
 
           const prevTime = prev ? getTimeString(prev.chattedAt) : null;
@@ -286,7 +294,7 @@ export default function ChatPage() {
           const nextTime = next ? getTimeString(next.chattedAt) : null;
 
           const prevDate = prev ? getDateString(prev.chattedAt) : null;
-          const currDate = getDateString(msg.chattedAt)
+          const currDate = getDateString(msg.chattedAt);
 
           const showTime =
             !next || // 1. 이후 메시지 없음
@@ -298,7 +306,7 @@ export default function ChatPage() {
             (prev && prev.sender.id !== msg.sender.id) || // 2. 다른 사람이 보냄
             prevTime !== currTime; // 3. 같은 사람이지만 분 단위가 바뀜
 
-          const showDate = (prevDate !== currDate) ? true : null;
+          const showDate = prevDate !== currDate ? true : null;
 
           const unreadCount = calculateUnreadCount(
             msg.chattedAt,
@@ -312,7 +320,7 @@ export default function ChatPage() {
               nickname={showprofile ? msg.sender.nickname : null}
               imageUrl={showprofile ? msg.sender.imageurl : null}
               chattedAt={showTime ? msg.chattedAt : null}
-              date={showDate? currDate : null}
+              date={showDate ? currDate : null}
               unreadCount={unreadCount === 0 ? 'ㅤ' : unreadCount}
             ></ChatBlock>
           );
