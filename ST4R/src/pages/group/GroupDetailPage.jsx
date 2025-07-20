@@ -16,11 +16,7 @@ export default function GroupDetailPage() {
   const navigate = useNavigate();
 
   //모임상세정보 가져오기
-  const {
-    data: groupDetail,
-    isLoading,
-    isError,
-  } = useGetGroupDetail(id);
+  const { data: groupDetail, isLoading, isError } = useGetGroupDetail(id);
 
   console.log(groupDetail);
 
@@ -70,7 +66,7 @@ export default function GroupDetailPage() {
   if (isError || !groupDetail) return <p>에러 발생</p>;
 
   const d = new Date(groupDetail.whenToMeet);
-  const dateString = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const dateString = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   return (
     <div className="flex flex-col gap-3">
@@ -158,7 +154,7 @@ export default function GroupDetailPage() {
           >
             모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
           </div>
-        ) : (
+        ) : groupDetail.joined ? (
           <div
             onClick={() => {
               navigate(`/groups/${id}/chats`); // 채팅방 이동
@@ -166,6 +162,10 @@ export default function GroupDetailPage() {
             className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
           >
             채팅방 입장하기
+          </div>
+        ) : (
+          <div className="h-[60px] leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]">
+            이 모임에 더 이상 참여하실 수 없어요.
           </div>
         )}
       </div>
