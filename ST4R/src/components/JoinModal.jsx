@@ -35,7 +35,7 @@ export default function JoinModal({ onClose, hasPassword }) {
       navigate(`/groups/${id}/chats`);
     },
     onError: (err) => {
-      if (err.response?.status === 403) {
+      if (err.response?.status === 400) {
         setPasswordError(true); // 비번 틀림
       } else {
         console.log(err);

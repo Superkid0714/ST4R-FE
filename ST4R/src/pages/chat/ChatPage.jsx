@@ -27,7 +27,6 @@ export default function ChatPage() {
     isLoading: groupDetailLoading,
     isError: groupDetailError,
   } = useGetGroupDetail(id);
-  console.log(groupDetail);
 
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
@@ -204,7 +203,6 @@ export default function ChatPage() {
         };
         return updated;
       });
-      console.log(lastReadTimes);
     }
   };
 
@@ -310,7 +308,7 @@ export default function ChatPage() {
             <ChatBlock
               key={i}
               message={msg.message}
-              isMe={msg.sender.id === senderInfo.id}
+              isMe={msg.sender?.id === senderInfo?.id}
               nickname={showprofile ? msg.sender.nickname : null}
               imageUrl={showprofile ? msg.sender.imageurl : null}
               chattedAt={showTime ? msg.chattedAt : null}
