@@ -111,7 +111,7 @@ leading-loose"
               {isLeader && !member.isLeader && (
                 <div className="flex gap-1.5">
                   <div
-                    className="text-xs text-[#FF4343]"
+                    className="text-xs text-[#FF4343] hover:cursor-pointer"
                     onClick={() => setBanModal(true)}
                   >
                     강퇴하기
@@ -126,7 +126,7 @@ leading-loose"
                     </ModalPortal>
                   ) : null}
                   <div className="text-xs text-[#bebebeff]">/</div>
-                  <div className="text-xs text-[#bebebeff]" onClick={() => setChangeLeaderModal(true)}>
+                  <div className="text-xs text-[#bebebeff] hover:cursor-pointer" onClick={() => setChangeLeaderModal(true)}>
                     모임장 위임하기
                   </div>
                   {changeLeaderModal ? (
@@ -145,7 +145,7 @@ leading-loose"
         </div>
       </div>
       <div
-        className="flex gap-2 items-center absolute bottom-2 w-full p-3 h-[60px] hover:cursor-pointer leading-[60px] text-lg rounded-[10px] bg-[#1D1D1D] text-[#FF4343]"
+        className="flex gap-2 items-center absolute hover:cursor-pointer bottom-2 w-full p-3 h-[60px] hover:cursor-pointer leading-[60px] text-lg rounded-[10px] bg-[#1D1D1D] text-[#FF4343]"
         onClick={() => setOutModal(true)}
       >
         <img src={out} className="w-7"></img>모임에서 나가기

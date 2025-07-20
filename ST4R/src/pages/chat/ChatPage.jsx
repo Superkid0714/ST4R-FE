@@ -256,7 +256,7 @@ export default function ChatPage() {
           {groupDetail?.name}
         </div>
         <img
-          className="mr-4 mt-2 w-12 h-12 "
+          className="mr-4 mt-2 w-12 h-12 hover:cursor-pointer "
           src={threelines}
           onClick={() => {
             navigate(`/groups/${id}/members`);

@@ -15,7 +15,7 @@ export default function GroupCard({ group }) {
   return (
     <div
       key={group.id}
-      className=" relative w-full h-20 sm:h-[105px] bg-[#1D1D1D] rounded-[10px]"
+      className=" relative hover:cursor-pointer w-full h-20 sm:h-[105px] bg-[#1D1D1D] rounded-[10px]"
       onClick={handleClick}
     >
       {group.imageUrls?.length === 0 ? (
