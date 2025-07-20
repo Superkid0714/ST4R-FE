@@ -7,7 +7,7 @@ export const useGetBannedMembers= (id) => {
     queryKey: ['bannedMember', id],
     queryFn: async () => {
       const res = await axios.get(
-        `${BASE_URL}/groups/${id}/bannedMembers`,
+        `${BASE_URL}/groups/${id}/members/bans`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
