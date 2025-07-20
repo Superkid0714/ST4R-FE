@@ -8,9 +8,9 @@ export default function GroupCard({ group }) {
     navigate(`/groups/${group.id}`);
   };
 
-  const month = group.whenToMeet.slice(5, 7);
-  const day = group.whenToMeet.slice(8, 10);
-  const time = group.whenToMeet.slice(11, 16);
+  const d = new Date(group.whenToMeet);
+  const dateString = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  
 
   return (
     <div
@@ -33,7 +33,7 @@ export default function GroupCard({ group }) {
         {group.name}
       </div>
       <div className="absolute right-16 left-[74px] sm:left-[100px] top-11 sm:top-[55px] justify-start text-[#8F8F8F] text-xs sm:text-base font-normal font-['Pretendard'] leading-none truncate">
-        {`${month}/${day} ${time}, ${group.location?.marker?.roadAddress}`}
+        {dateString} / {group.location?.marker?.roadAddress}
       </div>
       <div className="absolute w-14 sm:w-20 h-9 sm:h-14 right-3 top-6 sm:top-6 flex flex-col justify-center bg-[#101010] rounded-3xl ">
         <div className="text-center text-[#FFBB02] text-base sm:text-lg font-medium font-['Pretendard']">

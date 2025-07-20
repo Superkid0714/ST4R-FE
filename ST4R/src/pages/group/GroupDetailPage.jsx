@@ -69,12 +69,8 @@ export default function GroupDetailPage() {
     );
   if (isError || !groupDetail) return <p>에러 발생</p>;
 
-  //표시할 정보들
-  const year = groupDetail.whenToMeet.slice(0, 4);
-  const month = groupDetail.whenToMeet.slice(5, 7);
-  const day = groupDetail.whenToMeet.slice(8, 10);
-  const time = groupDetail.whenToMeet.slice(11, 16);
-  const nickname = groupDetail.author.nickname.split('@')[0];
+  const d = new Date(groupDetail.whenToMeet);
+  const dateString = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   return (
     <div className="flex flex-col gap-3">
@@ -94,7 +90,7 @@ export default function GroupDetailPage() {
         {/* 타이틀 영역 */}
         <div>
           <div className="text-sm text-[#8F8F8F] font-['Pretendard'] ">
-            {year}/{month}/{day}, {time}, 최대 {groupDetail.maxParticipants}명
+            {dateString}, 최대 {groupDetail.maxParticipants}명
           </div>
           <div className="text-xl font-medium font-['Pretendard']">
             {groupDetail.name}
@@ -108,7 +104,7 @@ export default function GroupDetailPage() {
 
         {/* 프로필 영역 */}
         <div className="relative text-sm text-[#8F8F8F] font-['Pretendard']">
-          작성자: {nickname}{' '}
+          작성자: {groupDetail.author.nickname}
           <span className="absolute right-3">오리온자리</span>
           <div className="mt-4 h-[1.5px] bg-[#565656]"></div>
         </div>
