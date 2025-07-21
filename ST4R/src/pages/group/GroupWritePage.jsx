@@ -1,16 +1,21 @@
 import camera from '../../assets/icons/camera.svg';
 import BackButton from '../../components/common/BackButton';
-import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useState, useRef } from 'react';
 import {
   DateSelector,
   TimeSelector,
   combine,
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
-import { usegroupMutation } from '../../api/postgroup';
+import { usePostGroupMutation } from '../../api/group/postgroup';
 import uploadImagesToS3 from '../../api/imgupload';
+import ModalPortal from '../../components/common/ModalPortal';
+import { GroupCreateSuccessModal } from '../../components/modals/GroupCreateSuccessModal';
 
 export default function GroupWritePage() {
+  const [groupCreateSuccessModal, setGroupCreateSuccessModal] = useState(false);
+  const navigate = useNavigate();
   const imageInputRef = useRef(''); //이미지 input 태그 연결
   const [images, setImages] = useState([]); // 이미지 배열
 
@@ -31,7 +36,7 @@ export default function GroupWritePage() {
   const [locationName, setLocationName] = useState(null); //장소명
   const [roadAddress, setRoadAddress] = useState(''); // 도로명주소(or 지번주소)
 
-  //이번트 핸들러 함수들
+  //이벤트 핸들러 함수들
   const handleIconClick = () => {
     imageInputRef.current.click(); //숨겨진 input 클릭
   };
@@ -79,30 +84,32 @@ export default function GroupWritePage() {
     setRoadAddress(roadAddress);
   };
 
-  const postgroup = usegroupMutation();
+  const postgroup = usePostGroupMutation();
+
   const handlepost = async () => {
-    if (!name) {
+    if (!name.trim()) {
       alert('제목을 입력해주세요.');
       return;
     }
-    if (name.length < 2) {
+    if (name.trim().length < 2) {
       alert('제목의 길이는 2자 이상이여야 합니다.');
+      return;
     }
     if (!selectedDate || !selectedTime) {
       alert('일정을 선택해주세요.');
       return;
     }
-    if (!maxParticipantCount) {
+    if (!maxParticipantCount.trim()) {
       alert('모임 인원을 입력해주세요.');
       return;
     }
     if (parseInt(maxParticipantCount, 10) > 30) {
       alert('최대 30명까지 입력 가능합니다.');
+      return;
     }
-    if (password !== null && password !== '') {
-      if (0 < password.length && password.length < 4) {
-        alert('비빌번호는 4자 이상이여야 합니다.');
-      }
+    if (password !== null && password.trim().length < 4) {
+      alert('비밀번호는 4자 이상이여야 합니다.');
+      return;
     }
 
     if (!lat || !lng || !roadAddress) {
@@ -111,7 +118,7 @@ export default function GroupWritePage() {
     }
 
     const imageUrls = await uploadImagesToS3(images);
-   
+
     postgroup.mutate({
       imageUrls: imageUrls,
       name: name,
@@ -132,7 +139,7 @@ export default function GroupWritePage() {
   };
 
   return (
-    <div className="px-3 py-2 max-w-screen w-full">
+    <div className="px-3 py-2 max-w-screen w-full min-h-screen bg-black">
       <div className="inline-flex justify-start items-center gap-3">
         <BackButton className="mt-2 hover:cursor-pointer" />
         <div className="text-[#8F8F8F] pt-1 text-2xl font-normal font-['Pretendard'] leading-loose">
@@ -159,7 +166,10 @@ export default function GroupWritePage() {
           />
           {images.map((img, idx) => (
             <div key={idx} className="relative">
-              <img src={img.previewUrl} className="w-20 h-20 rounded-xl" />
+              <img
+                src={img.previewUrl}
+                className="w-20 h-20 rounded-xl object-cover"
+              />
               <button
                 className="absolute top-[-8px] right-[-8px] text-[#000000] text-xs w-5 h-5 bg-[#8F8F8F] rounded-full flex items-center justify-center"
                 onClick={() => {
@@ -174,7 +184,9 @@ export default function GroupWritePage() {
 
         {/* 모임 제목 칸 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 제목</div>
+          <div className="text-lg font-['Pretendard'] text-white">
+            모임 제목
+          </div>
           <input
             type="text"
             placeholder="모임의 제목을 작성해보세요."
@@ -182,12 +194,15 @@ export default function GroupWritePage() {
             minLength={2}
             maxLength={30}
             onChange={(e) => setName(e.target.value)}
-            className="h-12 px-2 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm placeholder:text-[#565656] font-['Pretendard']"
+            className="h-12 px-2 bg-[#1D1D1D] rounded-[10px] focus:outline-none text-sm placeholder:text-[#565656] font-['Pretendard'] text-white"
           />
         </div>
+
         {/* 모임 일정 칸 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 일정</div>
+          <div className="text-lg font-['Pretendard'] text-white">
+            모임 일정
+          </div>
           <div className="flex gap-2">
             <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
               <DateSelector
@@ -195,7 +210,8 @@ export default function GroupWritePage() {
                 onChange={(date) => {
                   setSelectedDate(date);
                 }}
-              ></DateSelector>
+                bg="#1D1D1D"
+              />
             </div>
             <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
               <TimeSelector
@@ -204,13 +220,14 @@ export default function GroupWritePage() {
                   setSelectedTime(time);
                 }}
                 selectedDate={selectedDate}
-              ></TimeSelector>
+              />
             </div>
           </div>
         </div>
+
         {/* 모임 인원/비밀번호 칸 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">
+          <div className="text-lg font-['Pretendard'] text-white">
             모임 인원 / 입장 비밀번호
           </div>
           <div className="flex gap-2">
@@ -251,29 +268,51 @@ export default function GroupWritePage() {
             </div>
           </div>
         </div>
+
         {/* 모임 위치 칸 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 위치</div>
-          <Kakaomap onChange={handleMapChange}></Kakaomap>
+          <div className="text-lg font-['Pretendard'] text-white">
+            모임 위치
+          </div>
+          <Kakaomap onChange={handleMapChange} />
         </div>
+
         {/* 모임 설명 칸 */}
         <div className="flex flex-col gap-2.5">
-          <div className="text-lg font-['Pretendard']">모임 설명</div>
+          <div className="text-lg font-['Pretendard'] text-white">
+            모임 설명
+          </div>
           <textarea
-            type="text"
             placeholder={`모임 설명에 들어갈 내용을 자유롭게 작성해주세요\n(1000자 이내까지 작성 가능)`}
             value={description}
             maxLength={1000} // 최대 1000자
             onChange={(e) => setDescription(e.target.value)}
-            className="h-48 px-2 py-4 text-sm font-['Pretendard'] focus:outline-none bg-[#1D1D1D] rounded-[10px] placeholder:text-[#565656]"
+            className="h-48 px-2 py-4 text-sm font-['Pretendard'] focus:outline-none bg-[#1D1D1D] rounded-[10px] placeholder:text-[#565656] text-white resize-none"
           />
+          <div className="text-right text-xs text-[#8F8F8F] font-['Pretendard']">
+            {description.length}/1000
+          </div>
         </div>
+
         <div
-          onClick={handlepost}
+          onClick={() => {
+            handlepost();
+            setGroupCreateSuccessModal(true);
+          }}
           className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >
           모임 등록하기
         </div>
+        {groupCreateSuccessModal ? (
+          <ModalPortal>
+            <GroupCreateSuccessModal
+              onClose={() => {
+                setGroupCreateSuccessModal(false);
+                navigate('/groups')
+              }}
+            ></GroupCreateSuccessModal>
+          </ModalPortal>
+        ) : null}
       </div>
     </div>
   );

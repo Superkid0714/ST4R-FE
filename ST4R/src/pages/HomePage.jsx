@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useGetPosts } from '../api/search';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useBackendSearchPosts } from '../api/search';
 import Header from '../layouts/Header';
 import PostCard from '../components/PostCard';
 import FilterBar from '../components/FilterBar';
+import axios from 'axios';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // 검색 상태
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState('titleAndContent');
 
   // 백엔드 API에 전달할 옵션들
   const [currentSort, setCurrentSort] = useState('createdAt');
@@ -16,38 +20,114 @@ export default function HomePage() {
   const [currentPeriod, setCurrentPeriod] = useState('daily');
   const [currentCategory, setCurrentCategory] = useState('all');
 
-  // 백엔드에서 필터링된 게시글 목록 조회
-  const {
-    data: postsData,
-    isLoading: isPostsLoading,
-    error: postsError,
-  } = useGetPosts({
+  // 검색 에러 상태 추가
+  const [searchError, setSearchError] = useState('');
+
+  // 지도 검색 파라미터 추출
+  const mapSearchParams = {
+    lat: searchParams.get('lat'),
+    lng: searchParams.get('lng'),
+    locationName: searchParams.get('locationName'),
+    roadAddress: searchParams.get('roadAddress'),
+    searchRadius: searchParams.get('searchRadius'),
+  };
+
+  const isMapSearchActive = mapSearchParams.lat && mapSearchParams.lng;
+
+  // 백엔드 검색 API 옵션 구성
+  const searchOptions = {
+    searchType,
     sort: currentSort,
     direction: currentDirection,
     period: currentPeriod,
     category: currentCategory,
-  });
+  };
 
-  // 표시할 게시글 목록 결정
-  const displayPosts = isSearchMode
-    ? searchResults
-    : postsData?.boardPeeks?.content || [];
+  // 지도 검색이 활성화된 경우 위치 정보 추가
+  if (isMapSearchActive) {
+    searchOptions.location = {
+      latitude: parseFloat(mapSearchParams.lat),
+      longitude: parseFloat(mapSearchParams.lng),
+      distanceInMeters: parseInt(mapSearchParams.searchRadius) || 1000,
+      roadAddress: mapSearchParams.roadAddress, // 도로명 주소 추가
+    };
+  }
 
+  // 백엔드 검색 API 사용
+  const {
+    data: postsData,
+    isLoading: isPostsLoading,
+    error: postsError,
+  } = useBackendSearchPosts(searchQuery, searchOptions);
+
+  // 표시할 게시글 목록
+  const displayPosts = postsData?.boardPeeks?.content || [];
+
+  // 카카오 로그인 토큰 처리 및 회원가입 완료 확인
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('accessToken');
+    const handleKakaoLogin = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('accessToken');
 
-    if (token) {
-      localStorage.setItem('token', token);
-      console.log('토큰 저장 완료:', token);
-      navigate('/home', { replace: true });
-    }
+      if (token) {
+        try {
+          localStorage.setItem('token', token);
+
+          // 사용자 정보 확인 - 회원가입 완료 여부 체크
+          const userResponse = await axios.get(
+            'http://eridanus.econo.mooo.com:8080/my',
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          console.log('사용자 정보:', userResponse.data);
+
+          // 사용자 정보 저장
+          localStorage.setItem('user', JSON.stringify(userResponse.data));
+
+          // 닉네임이 없으면 회원가입 완료 페이지로 리다이렉트
+          if (
+            !userResponse.data.nickname ||
+            userResponse.data.nickname.trim() === ''
+          ) {
+            navigate('/complete-registration', { replace: true });
+            return;
+          }
+
+          // 회원가입이 완료된 사용자는 홈으로 이동
+          navigate('/home', { replace: true });
+        } catch (error) {
+          console.error('사용자 정보 조회 실패:', error);
+
+          if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/login', { replace: true });
+          } else if (error.response?.status === 404) {
+            navigate('/complete-registration', { replace: true });
+          } else {
+            navigate('/home', { replace: true });
+          }
+        }
+      }
+    };
+
+    handleKakaoLogin();
   }, [navigate]);
 
-  // 검색 결과 처리
-  const handleSearchResults = (results, searchQuery = '') => {
-    setSearchResults(results);
-    setIsSearchMode(searchQuery.trim().length > 0);
+  // 검색 처리 - 에러 처리 추가
+  const handleSearch = (query) => {
+    setSearchError(''); // 이전 에러 초기화
+    setSearchQuery(query);
+  };
+
+  // 검색 타입 변경
+  const handleSearchTypeChange = (type) => {
+    setSearchError(''); // 이전 에러 초기화
+    setSearchType(type);
   };
 
   // 기간 변경
@@ -65,51 +145,85 @@ export default function HomePage() {
     }
   };
 
-  console.log('현재 필터 옵션:', {
-    sort: currentSort,
-    direction: currentDirection,
-    period: currentPeriod,
-    category: currentCategory,
-  });
-  console.log('표시할 게시글 개수:', displayPosts.length);
-  console.log('검색 모드:', isSearchMode);
+  // 검색 에러 처리
+  useEffect(() => {
+    if (postsError) {
+      if (
+        postsError.message &&
+        (postsError.message.includes('자 이상') ||
+          postsError.message.includes('자 이하'))
+      ) {
+        setSearchError(postsError.message);
+      } else {
+        setSearchError('');
+      }
+    } else {
+      setSearchError('');
+    }
+  }, [postsError]);
 
   return (
     <div className="min-h-screen bg-black">
       {/* 헤더 컴포넌트 */}
       <Header
-        onSearchResults={handleSearchResults}
-        allPosts={postsData?.boardPeeks?.content || []}
+        onSearch={handleSearch}
+        onSearchTypeChange={handleSearchTypeChange}
+        isSearchLoading={isPostsLoading}
+        searchQuery={searchQuery}
+        searchType={searchType}
       />
 
       {/* 메인 컨텐츠 영역 */}
       <div className="px-2 pt-2">
         {/* FilterBar */}
-        {!isSearchMode && (
-          <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
             <span className="text-yellow-500 text-lg">⭐</span>
-            <div className="flex-shrink-0">
-              <FilterBar
-                currentPeriod={currentPeriod}
-                currentSort={currentSort}
-                currentDirection={currentDirection}
-                currentCategory={currentCategory}
-                onPeriodChange={handlePeriodChange}
-                onSortFilterChange={handleSortFilterChange}
-              />
+            <span className="text-white text-lg font-medium">게시글</span>
+          </div>
+          <div className="flex-shrink-0">
+            <FilterBar
+              currentPeriod={currentPeriod}
+              currentSort={currentSort}
+              currentDirection={currentDirection}
+              currentCategory={currentCategory}
+              onPeriodChange={handlePeriodChange}
+              onSortFilterChange={handleSortFilterChange}
+            />
+          </div>
+        </div>
+
+        {/* 검색 에러 표시 */}
+        {searchError && (
+          <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <svg
+                className="w-5 h-5 text-red-400 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="text-red-400 text-sm">{searchError}</span>
             </div>
           </div>
         )}
 
         {/* 로딩 상태 */}
-        {isPostsLoading && !isSearchMode && (
+        {isPostsLoading && (
           <div className="flex justify-center items-center py-8">
             <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
-        {/* 에러 상태 */}
-        {postsError && !isSearchMode && !isPostsLoading && (
+        {/* 에러 상태 - 검색 에러가 아닌 경우만 표시 */}
+        {postsError && !isPostsLoading && !searchError && (
           <div className="text-center py-8">
             <div className="text-red-400 mb-4">
               <svg
@@ -136,7 +250,7 @@ export default function HomePage() {
         )}
 
         {/* 게시글 목록 */}
-        {!postsError && !isPostsLoading && (
+        {!postsError && !isPostsLoading && !searchError && (
           <div className="space-y-6 mb-20">
             {displayPosts.map((post) => (
               <PostCard key={post.id} post={post} />
@@ -144,17 +258,68 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 게시글이 없을 때 (로딩도 아니고 에러도 아닌 경우에만) */}
-        {!postsError && !isPostsLoading && displayPosts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">해당하는 내용이 없습니다</p>
-            <p className="text-gray-500 text-sm mt-2">
-              {isSearchMode
-                ? '다른 키워드로 검색해보세요'
-                : '다른 조건으로 검색해보세요'}
-            </p>
-          </div>
-        )}
+        {/* 게시글이 없을 때 */}
+        {!postsError &&
+          !isPostsLoading &&
+          !searchError &&
+          displayPosts.length === 0 && (
+            <div className="text-center py-12">
+              {isMapSearchActive ? (
+                <div>
+                  <div className="text-gray-400 mb-4">
+                    <svg
+                      className="w-16 h-16 mx-auto mb-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery
+                      ? `"${searchQuery}"에 대한 검색 결과가 이 지역에 없습니다`
+                      : `${mapSearchParams.locationName} 근처에 게시글이 없습니다`}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    {searchQuery
+                      ? '다른 키워드로 검색하거나 검색 반경을 늘려보세요'
+                      : '검색 반경을 늘리거나 다른 지역을 선택해보세요'}
+                  </p>
+                  <button
+                    onClick={() => navigate('/map-search')}
+                    className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+                  >
+                    다른 지역 선택하기
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery
+                      ? `"${searchQuery}"에 대한 검색 결과가 없습니다`
+                      : '게시글이 없습니다'}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    {searchQuery
+                      ? '다른 키워드로 검색해보세요'
+                      : '첫 번째 게시글을 작성해보세요!'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
       </div>
     </div>
   );

@@ -5,31 +5,20 @@ import BackButton from '../../components/common/BackButton';
 import Bookmark from '../../components/common/Bookmark';
 import ModalPortal from '../../components/common/ModalPortal';
 import { useEffect, useState } from 'react';
-import JoinModal from '../../components/JoinModal';
-import DeleteModal from '../../components/DeleteModal';
+import JoinModal from '../../components/modals/JoinModal';
+import DeleteModal from '../../components/modals/DeleteModal';
 import Carousel from '../../components/common/Carousel';
-import { useBookmarkMutation } from '../../api/postBookmark';
+import { useBookmarkMutation } from '../../api/group/postBookmark';
+import { useGetGroupDetail } from '../../api/group/getGroupDetail';
+import location from '../../assets/icons/location.svg';
+import profile from '../../assets/profile.svg';
 
 export default function GroupDetailPage() {
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
   const { id } = useParams();
   const navigate = useNavigate();
 
   //모임상세정보 가져오기
-  const getGroupDetail = async (id) => {
-    const res = await axios.get(`${BASE_URL}/groups/${id}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    return res.data;
-  };
-
-  const {
-    data: groupDetail,
-    isLoading,
-    isError,
-  } = useQuery(['group', id], () => getGroupDetail(id), { enabled: !!id });
+  const { data: groupDetail, isLoading, isError } = useGetGroupDetail(id);
 
   console.log(groupDetail);
 
@@ -78,12 +67,8 @@ export default function GroupDetailPage() {
     );
   if (isError || !groupDetail) return <p>에러 발생</p>;
 
-  //표시할 정보들
-  const year = groupDetail.whenToMeet.slice(0, 4);
-  const month = groupDetail.whenToMeet.slice(5, 7);
-  const day = groupDetail.whenToMeet.slice(8, 10);
-  const time = groupDetail.whenToMeet.slice(11, 16);
-  const nickname = groupDetail.author.nickname.split('@')[0];
+  const d = new Date(groupDetail.whenToMeet);
+  const dateString = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   return (
     <div className="flex flex-col gap-3">
@@ -99,27 +84,29 @@ export default function GroupDetailPage() {
 
       {groupDetail.imageUrls?.length === 0 && <div className="h-6"></div>}
 
-      <div className="p-2 flex flex-col gap-10">
+      <div className="p-4 flex flex-col gap-8 font-['Pretendard']">
         {/* 타이틀 영역 */}
-        <div>
+        <div className='flex flex-col gap-2'>
           <div className="text-sm text-[#8F8F8F] font-['Pretendard'] ">
-            {year}/{month}/{day}, {time}, 최대 {groupDetail.maxParticipants}명
+            모임날짜: {dateString}, 최대 {groupDetail.maxParticipants}명
           </div>
-          <div className="text-xl font-medium font-['Pretendard']">
+          <div className="text-2xl font-medium font-['Pretendard']">
             {groupDetail.name}
           </div>
         </div>
 
+        {/* 프로필 영역 */}
+        <div className='flex gap-4'>
+          <img src={groupDetail.author.imageUrl !== null ? groupDetail.author.imageUrl : profile} className='w-10 h-10 rounded-full'/>
+          <div className='flex flex-col gap-0.5'>
+            <div>{groupDetail.author.nickname}</div>
+            <div className='text-sm text-[#8F8F8F]'>{new Date(groupDetail.createdAt).toLocaleDateString('ko-KR')}</div>
+          </div>
+          </div>
+
         {/* 본문 영역 */}
         <div className="text-sm font-['Pretendard'] font-light ">
           {groupDetail.description}
-        </div>
-
-        {/* 프로필 영역 */}
-        <div className="relative text-sm text-[#8F8F8F] font-['Pretendard']">
-          작성자: {nickname}{' '}
-          <span className="absolute right-3">오리온자리</span>
-          <div className="mt-4 h-[1.5px] bg-[#565656]"></div>
         </div>
 
         {/* 지도 영역 */}
@@ -130,11 +117,11 @@ export default function GroupDetailPage() {
             style={{ height: '200px', borderRadius: '10px', margin: '8px 0' }}
           ></div>
           <div className="flex flex-col gap-0.5 p-3 2 bg-[#1D1D1D] rounded-[10px] justify-start">
-            <div className="flex-1 font-light text-sm font-['Pretendard']">
-              📍 {groupDetail.location.marker.locationName}
+            <div className="flex-1 flex font-light text-sm font-['Pretendard']">
+              <img src={location} className='pr-2'></img> {groupDetail.location.marker.roadAddress}
             </div>
-            <div className="flex-1 font-light text-sm font-['Pretendard']">
-              🗺️ {groupDetail.location.marker.roadAddress}
+            <div className="flex-1 font-light text-sm pl-8 font-['Pretendard']">
+             {groupDetail.location.marker.locationName}
             </div>
           </div>
         </div>
@@ -164,14 +151,14 @@ export default function GroupDetailPage() {
               수정하기
             </div>
           </div>
-        ) : groupDetail.isJoinable ? (
+        ) : groupDetail.joinable ? (
           <div
             onClick={() => setJoinModal(true)} // 모달창 열림
             className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
           >
             모임 참가하기(현재 {groupDetail.nowParticipants}명 참가 중)
           </div>
-        ) : (
+        ) : groupDetail.joined ? (
           <div
             onClick={() => {
               navigate(`/groups/${id}/chats`); // 채팅방 이동
@@ -180,6 +167,10 @@ export default function GroupDetailPage() {
           >
             채팅방 입장하기
           </div>
+        ) : (
+          <div className="h-[60px] leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]">
+            이 모임에 더 이상 참여하실 수 없어요.
+          </div>
         )}
       </div>
       {joinModal ? (
@@ -187,6 +178,7 @@ export default function GroupDetailPage() {
           <JoinModal
             onClose={() => setJoinModal(false)}
             hasPassword={groupDetail.isPublic}
+            isLogin = {localStorage.getItem('token')}
           ></JoinModal>
         </ModalPortal>
       ) : null}
