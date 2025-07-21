@@ -32,6 +32,13 @@ export default function ChatMembersPage() {
   const myMember = members && members.find((member) => member.isMe === true);
   const isLeader = myMember?.isLeader;
 
+   useEffect(() => {
+    if (groupDetail && groupDetail.banned) {
+      alert('해당 모임에서 강퇴당하셨습니다.');
+      navigate('/groups');
+    }
+  }, [groupDetail, navigate]);
+
   // 강퇴한 모임 구성원 정보
   if(isLeader){
       const { data: bannedMembers, isLoading: bannedMembersLoading } =
@@ -81,7 +88,7 @@ leading-loose"
       <div className="flex flex-col gap-3">
         <div className="text-sm text-[#8F8F8F] ml-2"> 모임인원</div>
         <div className="flex flex-col p-3 gap-4 border-[#1D1D1D] border-2 rounded-xl">
-          {members.map((member) => (
+          {members && members.map((member) => (
             <div className="flex items-center justify-between">
               <div className="flex gap-3 items-center">
                 <img

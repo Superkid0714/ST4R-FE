@@ -26,8 +26,18 @@ export default function ChatPage() {
     data: groupDetail,
   } = useGetGroupDetail(id);
 
+  console.log(groupDetail);
+
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
+  
+ useEffect(() => {
+  if (groupDetail && groupDetail.banned) {
+    alert('해당 모임에서 강퇴당하셨습니다.');
+    navigate('/groups');
+  }
+}, [groupDetail, navigate]);
+
 
   // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
