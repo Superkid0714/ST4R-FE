@@ -21,7 +21,6 @@ export const usePostGroupMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
-      navigate('/groups');
     },
     onError: (error) => {
       console.error('요청 실패', error);
