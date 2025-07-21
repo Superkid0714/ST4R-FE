@@ -2,7 +2,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 
 export const useBookmarkMutation = () => {
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+  const BASE_URL = 'https://eridanus.econo.mooo.com';
   const config = {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -55,3 +55,4 @@ export const useBookmarkMutation = () => {
     },
   });
 };
+

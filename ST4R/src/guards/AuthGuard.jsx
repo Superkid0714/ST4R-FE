@@ -21,3 +21,4 @@ AuthGuard.propTypes = {
 };
 
 export default AuthGuard;
+

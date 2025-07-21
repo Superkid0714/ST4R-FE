@@ -9,7 +9,7 @@ export const usegroupDelete = () => {
   return useMutation({
     mutationFn: async (id) => {
       const res = await axios.delete(
-        `http://eridanus.econo.mooo.com:8080/groups/${id}`,
+        `https://eridanus.econo.mooo.com/groups/${id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -27,3 +27,4 @@ export const usegroupDelete = () => {
     },
   });
 };
+

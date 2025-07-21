@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+const BASE_URL = 'https://eridanus.econo.mooo.com';
 
 // 날씨 정보 조회 API
 export const useWeather = (latitude, longitude, enabled = true) => {
@@ -108,3 +108,4 @@ export const useGeolocation = () => {
     retry: 1,
   });
 };
+

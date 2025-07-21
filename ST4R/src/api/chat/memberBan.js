@@ -9,7 +9,7 @@ export const useMemberBan = (teamId) => {
   return useMutation({
     mutationFn: async (userId) => {
       const res = await axios.delete(
-        `http://eridanus.econo.mooo.com:8080/groups/${teamId}/members/${userId}`,
+        `https://eridanus.econo.mooo.com/groups/${teamId}/members/${userId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,

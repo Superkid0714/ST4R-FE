@@ -151,3 +151,4 @@ export function useBoardDetailComments(boardId, isLoggedIn, navigate) {
     handleLoginRedirect,
   };
 }
+

@@ -8,7 +8,7 @@ export const usegroupEdit = () => {
   return useMutation({
     mutationFn: async ({ data, id }) => {
       const res = await axios.put(
-        `http://eridanus.econo.mooo.com:8080/groups/${id}`,
+        `https://eridanus.econo.mooo.com/groups/${id}`,
         data,
         {
           headers: {
@@ -26,3 +26,4 @@ export const usegroupEdit = () => {
     },
   });
 };
+

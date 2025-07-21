@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 export const useGetBannedMembers= (id) => {
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+  const BASE_URL = 'https://eridanus.econo.mooo.com';
   return useQuery({
     queryKey: ['bannedMember', id],
     queryFn: async () => {
@@ -18,3 +18,4 @@ export const useGetBannedMembers= (id) => {
     },
   });
 };
+

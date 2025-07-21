@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
 
-const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+const BASE_URL = 'https://eridanus.econo.mooo.com';
 
 // 토큰 검증 및 정리 함수
 const validateAndCleanToken = () => {
@@ -520,3 +520,4 @@ export default function MyLikedPostsPage() {
     </div>
   );
 }
+

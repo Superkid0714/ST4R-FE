@@ -343,3 +343,4 @@ function LikeButton({ isLiked, onClick, isLoading }) {
     </button>
   );
 }
+

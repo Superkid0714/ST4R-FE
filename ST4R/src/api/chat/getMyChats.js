@@ -6,7 +6,7 @@ export const useGetMyChats = () => {
     queryKey: ['mychats'],
     queryFn: async () => {
       const res = await axios.get(
-        'http://eridanus.econo.mooo.com:8080/groups/my',
+        'https://eridanus.econo.mooo.com/groups/my',
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -23,7 +23,7 @@ export const useGetInitialChatPreviews = () => {
     queryKey: ['initialChatPreviews'],
     queryFn: async () => {
       const res = await axios.get(
-        'http://eridanus.econo.mooo.com:8080/groups/chats/preview',
+        'https://eridanus.econo.mooo.com/groups/chats/preview',
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -34,4 +34,5 @@ export const useGetInitialChatPreviews = () => {
     },
   });
 };
+
 

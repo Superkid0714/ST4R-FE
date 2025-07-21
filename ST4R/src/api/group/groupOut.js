@@ -9,7 +9,7 @@ export const usegroupOut = () => {
   return useMutation({
     mutationFn: async (id) => {
       const res = await axios.delete(
-        `http://eridanus.econo.mooo.com:8080/groups/${id}/members`,
+        `https://eridanus.econo.mooo.com/groups/${id}/members`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -27,3 +27,4 @@ export const usegroupOut = () => {
     },
   });
 };
+

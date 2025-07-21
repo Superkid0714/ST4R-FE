@@ -5,7 +5,7 @@ export const useLogoutMutation = () => {
   return useMutation({
     mutationFn: async () => {
       const res = await axios.post(
-        'http://eridanus.econo.mooo.com:8080/oauth/kakao/logout',
+        'https://eridanus.econo.mooo.com/oauth/kakao/logout',
         {},
         {
           headers: {
@@ -29,3 +29,4 @@ export const useLogoutMutation = () => {
     },
   });
 };
+

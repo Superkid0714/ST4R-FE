@@ -225,3 +225,4 @@ const router = createBrowserRouter([
 export default function Routes() {
   return <RouterProvider router={router} />;
 }
+

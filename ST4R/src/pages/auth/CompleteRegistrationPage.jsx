@@ -9,7 +9,7 @@ const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
       const response = await axios.get(
-        `http://eridanus.econo.mooo.com:8080/members/exists`,
+        `https://eridanus.econo.mooo.com/members/exists`,
         {
           params: { nickname },
           headers: {
@@ -29,7 +29,7 @@ const useCompleteRegistrationMutation = () => {
       console.log('회원가입 완료 요청:', data);
 
       const response = await axios.patch(
-        'http://eridanus.econo.mooo.com:8080/my/complete', // 엔드포인트 변경
+        'https://eridanus.econo.mooo.com/my/complete', // 엔드포인트 변경
         data,
         {
           headers: {
@@ -493,3 +493,4 @@ export default function CompleteRegistrationPage() {
     </div>
   );
 }
+

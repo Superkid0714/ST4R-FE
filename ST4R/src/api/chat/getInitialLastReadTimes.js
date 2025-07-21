@@ -6,7 +6,7 @@ export const useGetInitialLastReadTimes = (id) => {
     queryKey: ['lastReadTimes'],
     queryFn: async () => {
       const res = await axios.get(
-        `http://eridanus.econo.mooo.com:8080/groups/${id}/chats/lastReadTimes`,
+        `https://eridanus.econo.mooo.com/groups/${id}/chats/lastReadTimes`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,

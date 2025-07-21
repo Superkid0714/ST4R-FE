@@ -28,3 +28,4 @@ export function BoardDeleteModal({ onClose, onConfirm, isLoading }) {
     </div>
   );
 }
+

@@ -58,7 +58,7 @@ export const useCreateBoardMutation = () => {
       console.log('백엔드로 전송할 데이터:', transformedData);
 
       const response = await axios.post(
-        'http://eridanus.econo.mooo.com:8080/home/boards',
+        'https://eridanus.econo.mooo.com/home/boards',
         transformedData,
         {
           headers: {
@@ -123,7 +123,7 @@ export const useLogoutMutation = () => {
   return useMutation({
     mutationFn: async () => {
       const res = await axios.post(
-        'http://eridanus.econo.mooo.com:8080/oauth/kakao/logout',
+        'https://eridanus.econo.mooo.com/oauth/kakao/logout',
         {},
         {
           headers: {
@@ -147,3 +147,4 @@ export const useLogoutMutation = () => {
     },
   });
 };
+

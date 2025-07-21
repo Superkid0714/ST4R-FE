@@ -52,7 +52,7 @@ const useUpdateBoardMutation = () => {
       console.log('백엔드로 전송할 수정 데이터:', transformedData);
 
       const response = await axios.put(
-        `http://eridanus.econo.mooo.com:8080/home/boards/${id}`,
+        `https://eridanus.econo.mooo.com/home/boards/${id}`,
         transformedData,
         {
           headers: {
@@ -515,3 +515,4 @@ export default function BoardEditPage() {
     </div>
   );
 }
+

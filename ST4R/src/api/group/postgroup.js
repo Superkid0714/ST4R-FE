@@ -8,7 +8,7 @@ export const usePostGroupMutation = () => {
   return useMutation({
     mutationFn: async (data) => {
       const res = await axios.post(
-        'http://eridanus.econo.mooo.com:8080/groups',
+        'https://eridanus.econo.mooo.com/groups',
         data,
         {
           headers: {
@@ -26,3 +26,4 @@ export const usePostGroupMutation = () => {
     },
   });
 };
+
