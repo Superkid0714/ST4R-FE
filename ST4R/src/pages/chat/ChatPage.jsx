@@ -17,27 +17,34 @@ export default function ChatPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const clientRef = useRef(null);
+  const alertedRef = useRef(false);
   const messageListRef = useRef(null);
   const [input, setInput] = useState(''); // 보내는 메세지 내용
   const [lastReadTimes, setLastReadTimes] = useState([]);
 
   // 모임 상세 정보
-  const {
-    data: groupDetail,
-  } = useGetGroupDetail(id);
+  const { data: groupDetail } = useGetGroupDetail(id);
 
   console.log(groupDetail);
 
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
-  
- useEffect(() => {
-  if (groupDetail && groupDetail.banned) {
-    alert('해당 모임에서 강퇴당하셨습니다.');
-    navigate('/groups');
-  }
-}, [groupDetail, navigate]);
 
+  useEffect(() => {
+    if (groupDetail && groupDetail.banned) {
+      alert('해당 모임에서 강퇴당하셨습니다.');
+      navigate('/groups');
+    }
+  }, [groupDetail, navigate]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token') || false;
+    if (!token && !alertedRef.current) {
+      alertedRef.current = true;
+      alert('로그인이 되어있지 않아요!');
+      navigate('/groups');
+    }
+  }, [navigate]);
 
   // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
