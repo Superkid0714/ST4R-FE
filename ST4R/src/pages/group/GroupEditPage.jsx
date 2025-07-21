@@ -1,6 +1,7 @@
 import camera from '../../assets/icons/camera.svg';
 import BackButton from '../../components/common/BackButton';
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DateSelector,
   TimeSelector,
@@ -12,9 +13,13 @@ import uploadImagesToS3 from '../../api/imgupload';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import ModalPortal from '../../components/common/ModalPortal';
+import { GroupEditSuccessModal } from '../../components/modals/GroupEditSuccessModal';
 
 export default function GroupEditPage() {
   const { id } = useParams();
+  const [groupEditSuccessModal, setGroupEditSuccessModal] = useState(false);
+  const navigate = useNavigate();
   const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
 
   //수정 전 정보 가져오기
@@ -61,7 +66,7 @@ export default function GroupEditPage() {
   useEffect(() => {
     if (groupDetail) {
       setName(groupDetail.name);
-      const dt = new Date(groupDetail.whenToMeet); 
+      const dt = new Date(groupDetail.whenToMeet);
       setSelectedDate(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
       setSelectedTime(new Date(2000, 0, 1, dt.getHours(), dt.getMinutes()));
 
@@ -293,7 +298,7 @@ export default function GroupEditPage() {
                 onChange={(date) => {
                   setSelectedDate(date);
                 }}
-                bg='#1D1D1D'
+                bg="#1D1D1D"
               ></DateSelector>
             </div>
             <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
@@ -398,11 +403,24 @@ export default function GroupEditPage() {
           />
         </div>
         <div
-          onClick={handleEdit}
+          onClick={() => {
+            handleEdit();
+            setGroupEditSuccessModal(true);
+          }}
           className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >
           수정 완료
         </div>
+        {groupEditSuccessModal ? (
+          <ModalPortal>
+            <GroupEditSuccessModal
+              onClose={() => {
+                setGroupEditSuccessModal(false);
+                navigate('/groups');
+              }}
+            ></GroupEditSuccessModal>
+          </ModalPortal>
+        ) : null}
       </div>
     </div>
   );

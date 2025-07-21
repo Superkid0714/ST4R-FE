@@ -4,7 +4,6 @@ import axios from 'axios';
 
 export const usePostGroupMutation = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (data) => {

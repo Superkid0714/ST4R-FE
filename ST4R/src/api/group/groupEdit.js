@@ -4,7 +4,6 @@ import axios from 'axios';
 
 export const usegroupEdit = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async ({ data, id }) => {
@@ -21,7 +20,6 @@ export const usegroupEdit = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
-      navigate(`/groups`);
     },
     onError: (error) => {
       console.error('요청 실패', error);
