@@ -13,7 +13,7 @@ export const useDeleteMemberMutation = () => {
       console.log('회원 탈퇴 요청 시작');
 
       const response = await axios.delete(
-        'http://eridanus.econo.mooo.com:8080/members',
+        'https://eridanus.econo.mooo.com/members',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -76,3 +76,4 @@ export const useDeleteMemberMutation = () => {
     },
   });
 };
+

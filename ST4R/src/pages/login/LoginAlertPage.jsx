@@ -12,7 +12,7 @@ export default function LoginAlertPage() {
     ? 'http://localhost:5173'
     : window.location.origin;
 
-  const loginUrl = `http://eridanus.econo.mooo.com:8080/oauth/kakao?redirect=${redirectUrl}`;
+  const loginUrl = `https://eridanus.econo.mooo.com/oauth/kakao?redirect=${redirectUrl}`;
 
   const kakaologinbutton = () => {
     window.location.href = loginUrl; // 카카오 로그인 창으로 이동
@@ -84,3 +84,4 @@ export default function LoginAlertPage() {
     </div>
   );
 }
+

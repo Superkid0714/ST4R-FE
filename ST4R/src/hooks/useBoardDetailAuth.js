@@ -59,3 +59,4 @@ export function useBoardDetailAuth() {
 
   return { isLoggedIn, currentUser };
 }
+

@@ -66,7 +66,7 @@ const useUserInfo = () => {
       }
 
       const response = await axios.get(
-        'http://eridanus.econo.mooo.com:8080/my',
+        'https://eridanus.econo.mooo.com/my',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -439,3 +439,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

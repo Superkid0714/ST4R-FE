@@ -33,7 +33,7 @@ const getPresignedUrl = async (img) => {
 
   try {
     const res = await axios.get(
-      `http://eridanus.econo.mooo.com:8080/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
+      `https://eridanus.econo.mooo.com/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -46,7 +46,7 @@ const getPresignedUrl = async (img) => {
     console.error('Presigned URL 요청 실패:', error);
     console.error(
       '요청 URL:',
-      `http://eridanus.econo.mooo.com:8080/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`
+      `https://eridanus.econo.mooo.com/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`
     );
     throw error;
   }
@@ -144,3 +144,4 @@ export default async function uploadImagesToS3(images) {
   console.log('모든 이미지 업로드 완료:', imageUrls);
   return imageUrls;
 }
+

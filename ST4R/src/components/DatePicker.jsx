@@ -67,3 +67,4 @@ export function combine(date, time) {
 
   return `${year}-${month}-${day}T${hours}:${minutes}:00+09:00`
 }
+

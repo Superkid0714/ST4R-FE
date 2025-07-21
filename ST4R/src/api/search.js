@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+const BASE_URL = 'https://eridanus.econo.mooo.com';
 
 export const useBackendSearchPosts = (searchQuery, options = {}) => {
   return useQuery({
@@ -213,3 +213,4 @@ export const useMapSearchPosts = (location, options = {}) => {
     retry: 1,
   });
 };
+

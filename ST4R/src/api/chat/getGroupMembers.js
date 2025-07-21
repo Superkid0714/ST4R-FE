@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 export const useGetGroupMembers= (id) => {
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+  const BASE_URL = 'https://eridanus.econo.mooo.com';
   return useQuery({
     queryKey: ['members', id],
     queryFn: async () => {
@@ -18,4 +18,5 @@ export const useGetGroupMembers= (id) => {
     },
   });
 };
+
 

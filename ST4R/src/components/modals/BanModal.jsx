@@ -34,3 +34,4 @@ export default function BanModal({ onClose, userId, nickname }) {
     </div>
   );
 }
+

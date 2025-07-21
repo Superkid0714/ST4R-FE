@@ -139,7 +139,7 @@ export default function ChatPage() {
     }
     //sockjs연결
     const socket = new SockJs(
-      'http://eridanus.econo.mooo.com:8080/websocket/connect',
+      'https://eridanus.econo.mooo.com/websocket/connect',
       null,
       {
         debug: true, // SockJS 자체의 상세 로그 활성화
@@ -371,3 +371,4 @@ export default function ChatPage() {
     </div>
   );
 }
+

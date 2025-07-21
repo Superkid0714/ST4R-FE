@@ -18,7 +18,7 @@ const useUserInfo = () => {
       }
 
       const response = await axios.get(
-        'http://eridanus.econo.mooo.com:8080/my',
+        'https://eridanus.econo.mooo.com/my',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -42,7 +42,7 @@ const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
       const response = await axios.get(
-        `http://eridanus.econo.mooo.com:8080/members/exists`,
+        `https://eridanus.econo.mooo.com/members/exists`,
         {
           params: { nickname },
           headers: {
@@ -71,7 +71,7 @@ const useUpdateProfileMutation = () => {
       }
 
       const response = await axios.patch(
-        'http://eridanus.econo.mooo.com:8080/my/profile',
+        'https://eridanus.econo.mooo.com/my/profile',
         data,
         {
           headers: {
@@ -650,3 +650,4 @@ export default function ProfileEditPage() {
     </div>
   );
 }
+

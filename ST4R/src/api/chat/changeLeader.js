@@ -7,7 +7,7 @@ export const useChangeLeader = (teamId) => {
   return useMutation({
     mutationFn: async (userId) => {
       const res = await axios.patch(
-        `http://eridanus.econo.mooo.com:8080/groups/${teamId}/members/leader`,
+        `https://eridanus.econo.mooo.com/groups/${teamId}/members/leader`,
         {
           targetMemberId: userId,
         },
@@ -27,3 +27,4 @@ export const useChangeLeader = (teamId) => {
     },
   });
 };
+

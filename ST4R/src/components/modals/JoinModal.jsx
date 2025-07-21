@@ -9,7 +9,7 @@ export default function JoinModal({ onClose, hasPassword, isLogin }) {
   const passwordRef = useRef('');
   // const [passwordInput, setPasswordInput] = useState(null); //사용자가 입력한 비밀번호
   const [passworderror, setPasswordError] = useState(false);
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+  const BASE_URL = 'https://eridanus.econo.mooo.com';
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -124,3 +124,4 @@ export default function JoinModal({ onClose, hasPassword, isLogin }) {
     </div>
   );
 }
+

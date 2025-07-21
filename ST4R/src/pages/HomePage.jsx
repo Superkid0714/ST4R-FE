@@ -75,7 +75,7 @@ export default function HomePage() {
 
           // 사용자 정보 확인 - 회원가입 완료 여부 체크
           const userResponse = await axios.get(
-            'http://eridanus.econo.mooo.com:8080/my',
+            'https://eridanus.econo.mooo.com/my',
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -324,3 +324,4 @@ export default function HomePage() {
     </div>
   );
 }
+

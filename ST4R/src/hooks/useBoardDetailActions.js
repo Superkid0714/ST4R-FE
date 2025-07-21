@@ -86,3 +86,4 @@ export function useBoardDetailActions(boardId, post, isLoggedIn, navigate) {
     handleLoginRedirect,
   };
 }
+

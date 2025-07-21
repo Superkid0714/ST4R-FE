@@ -121,3 +121,4 @@ export function ShareModal({ onClose, postTitle, shareUrl }) {
     </div>
   );
 }
+

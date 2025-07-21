@@ -34,3 +34,4 @@ export default function ChangeLeaderModal({ onClose, userId, nickname }) {
     </div>
   );
 }
+

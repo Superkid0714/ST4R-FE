@@ -20,7 +20,7 @@ export default function GroupEditPage() {
   const { id } = useParams();
   const [groupEditSuccessModal, setGroupEditSuccessModal] = useState(false);
   const navigate = useNavigate();
-  const BASE_URL = 'http://eridanus.econo.mooo.com:8080';
+  const BASE_URL = 'https://eridanus.econo.mooo.com';
 
   //수정 전 정보 가져오기
   const getGroupDetail = async (id) => {
@@ -425,3 +425,4 @@ export default function GroupEditPage() {
     </div>
   );
 }
+
