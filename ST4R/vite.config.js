@@ -2,10 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import svgr from 'vite-plugin-svgr';
+import { nodePolyfills } from 'vite-plugin-node-polyfills'; // 추가
 
 export default defineConfig({
   plugins: [
     react(),
+    nodePolyfills(),
     svgr(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -39,6 +41,9 @@ export default defineConfig({
       },
     }),
   ],
+  define:{
+    global : 'window',
+  },
   server: {
     proxy: {
       '/api': {

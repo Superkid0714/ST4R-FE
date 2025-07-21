@@ -441,7 +441,9 @@ export default function MapSearchPage() {
       }
     };
   }, []);
-  const handleGoHome = () => {
+
+  const from = searchParams.get('from') || 'home'; 
+  const handleGoBack = () => {
     if (selectedLocation) {
       const params = new URLSearchParams({
         lat: selectedLocation.lat.toString(),
@@ -450,9 +452,9 @@ export default function MapSearchPage() {
         roadAddress: selectedLocation.roadAddress,
         searchRadius: searchRadius.toString(),
       });
-      navigate(`/home?${params.toString()}`);
+      navigate(`/${from}?${params.toString()}`);
     } else {
-      navigate('/home');
+      navigate(`/${from}`);
     }
   };
 
@@ -492,11 +494,11 @@ export default function MapSearchPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <BackButton />
-            <h1 className="text-xl font-bold">지도로 게시글 찾기</h1>
+            <h1 className="text-xl font-bold">지도로 {from == 'groups' ? <span>모임</span> : <span>게시글</span>} 찾기</h1>
           </div>
           {selectedLocation && (
             <button
-              onClick={handleGoHome}
+              onClick={handleGoBack}
               className="bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
             >
               적용하기

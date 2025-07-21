@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { usegroupDelete } from '../api/groupDelete';
+import { usegroupDelete } from '../../api/group/groupDelete';
 
 // 모달 상세 내용
 export default function DeleteModal({ onClose }) {

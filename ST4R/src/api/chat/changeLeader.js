@@ -1,16 +1,16 @@
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-export const usegroupEdit = () => {
+export const useChangeLeader = (teamId) => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: async ({ data, id }) => {
-      const res = await axios.put(
-        `http://eridanus.econo.mooo.com:8080/groups/${id}`,
-        data,
+    mutationFn: async (userId) => {
+      const res = await axios.patch(
+        `http://eridanus.econo.mooo.com:8080/groups/${teamId}/members/leader`,
+        {
+          targetMemberId: userId,
+        },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -20,8 +20,7 @@ export const usegroupEdit = () => {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
-      navigate(`/groups`);
+      queryClient.invalidateQueries({ queryKey: ['members'] });
     },
     onError: (error) => {
       console.error('요청 실패', error);

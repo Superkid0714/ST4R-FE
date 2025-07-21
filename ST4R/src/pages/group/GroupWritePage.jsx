@@ -1,5 +1,6 @@
 import camera from '../../assets/icons/camera.svg';
 import BackButton from '../../components/common/BackButton';
+import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import {
   DateSelector,
@@ -7,10 +8,14 @@ import {
   combine,
 } from '../../components/DatePicker';
 import Kakaomap from '../../components/common/Kakaomap';
-import { usePostgroupMutation } from '../../api/postgroup';
+import { usePostGroupMutation } from '../../api/group/postgroup';
 import uploadImagesToS3 from '../../api/imgupload';
+import ModalPortal from '../../components/common/ModalPortal';
+import { GroupCreateSuccessModal } from '../../components/modals/GroupCreateSuccessModal';
 
 export default function GroupWritePage() {
+  const [groupCreateSuccessModal, setGroupCreateSuccessModal] = useState(false);
+  const navigate = useNavigate();
   const imageInputRef = useRef(''); //이미지 input 태그 연결
   const [images, setImages] = useState([]); // 이미지 배열
 
@@ -22,7 +27,7 @@ export default function GroupWritePage() {
 
   const [maxParticipantCount, setMaxParticipantCount] = useState(''); //최대 인원 수
 
-  const [password, setPassword] = useState(''); //비밀번호
+  const [password, setPassword] = useState(null); //비밀번호
 
   const [description, setDescription] = useState(''); //본문
 
@@ -79,7 +84,7 @@ export default function GroupWritePage() {
     setRoadAddress(roadAddress);
   };
 
-  const postgroup = usePostgroupMutation();
+  const postgroup = usePostGroupMutation();
 
   const handlepost = async () => {
     if (!name.trim()) {
@@ -102,7 +107,7 @@ export default function GroupWritePage() {
       alert('최대 30명까지 입력 가능합니다.');
       return;
     }
-    if (password.trim() !== '' && password.trim().length < 4) {
+    if (password !== null && password.trim().length < 4) {
       alert('비밀번호는 4자 이상이여야 합니다.');
       return;
     }
@@ -113,7 +118,7 @@ export default function GroupWritePage() {
     }
 
     const imageUrls = await uploadImagesToS3(images);
-   
+
     postgroup.mutate({
       imageUrls: imageUrls,
       name: name,
@@ -205,6 +210,7 @@ export default function GroupWritePage() {
                 onChange={(date) => {
                   setSelectedDate(date);
                 }}
+                bg="#1D1D1D"
               />
             </div>
             <div className="pl-3 flex-1 h-12 bg-[#1D1D1D] rounded-[10px]">
@@ -289,11 +295,24 @@ export default function GroupWritePage() {
         </div>
 
         <div
-          onClick={handlepost}
+          onClick={() => {
+            handlepost();
+            setGroupCreateSuccessModal(true);
+          }}
           className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >
           모임 등록하기
         </div>
+        {groupCreateSuccessModal ? (
+          <ModalPortal>
+            <GroupCreateSuccessModal
+              onClose={() => {
+                setGroupCreateSuccessModal(false);
+                navigate('/groups')
+              }}
+            ></GroupCreateSuccessModal>
+          </ModalPortal>
+        ) : null}
       </div>
     </div>
   );

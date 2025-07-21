@@ -124,7 +124,6 @@ useEffect(() => {
         '<div style="padding:4px; color:black;">현재위치를 가져올 수 없어요</div>';
       displayMarker(locPosition, message);
     }
-  }
 
   // 마우스 클릭 시 이벤트 등록
   kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
@@ -140,7 +139,7 @@ useEffect(() => {
           const addressText = road || jibun || '주소 정보 없음';
 
           const message = `
-            <div class="p-2 h-4 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>
+            <div class="p-2 h-10 whitespace-nowrap text-sm text-[#000000]">주소: ${addressText}</div>
           `;
 
           displayMarker(clickedlatlng, message);
@@ -161,8 +160,8 @@ useEffect(() => {
         }
       }
     );
-  });
-}, [onChange, initialLat, initialLng, initialMap, initialRoadAddress, initialLocation]);
+  });}
+}, []);
   
   //장소 검색 함수
   function searchPlaces() {
