@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import svgr from 'vite-plugin-svgr';
-import { nodePolyfills } from 'vite-plugin-node-polyfills'; // 추가
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
   plugins: [
@@ -13,9 +13,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
-        name: 'ST4R FE',
-        short_name: 'ST4R',
-        description: '에코노베이션 FE 팀 프로젝트',
+        name: 'Starlight',
+        short_name: 'Starlight',
+        description: '별자리 스팟 공유 & 모임 커뮤니티 플랫폼 Starlight',
         start_url: '/',
         display: 'standalone',
         theme_color: '#ffffff',
@@ -41,8 +41,8 @@ export default defineConfig({
       },
     }),
   ],
-  define:{
-    global : 'window',
+  define: {
+    global: 'window',
   },
   server: {
     proxy: {
