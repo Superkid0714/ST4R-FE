@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const BASE_URL = 'https://eridanus.econo.mooo.com';
 
-// JWT 토큰 검증 함수
+// JWT 토큰 검증 함수 - 버퍼 시간 제거
 const isTokenValid = (token) => {
   if (!token) return false;
 
@@ -10,9 +10,8 @@ const isTokenValid = (token) => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const currentTime = Math.floor(Date.now() / 1000);
 
-    // 토큰 만료 5분 전에 미리 무효처리 (자동 갱신을 위해)
-    const bufferTime = 5 * 60; // 5분
-    if (payload.exp && payload.exp < currentTime + bufferTime) {
+    // 버퍼 시간 제거 - 실제 만료 시간만 확인
+    if (payload.exp && payload.exp < currentTime) {
       return false;
     }
 
@@ -42,7 +41,11 @@ const redirectToLogin = (reason = 'token_expired') => {
 
   // 현재 페이지 정보 저장 (로그인 후 돌아오기 위해)
   const returnUrl = window.location.pathname + window.location.search;
-  if (returnUrl !== '/login' && returnUrl !== '/login-alert') {
+  if (
+    returnUrl !== '/login' &&
+    returnUrl !== '/login-alert' &&
+    returnUrl !== '/register'
+  ) {
     sessionStorage.setItem('returnUrl', returnUrl);
   }
 
@@ -62,31 +65,14 @@ const redirectToLogin = (reason = 'token_expired') => {
 axios.defaults.baseURL = BASE_URL;
 axios.defaults.timeout = 10000; // 10초 타임아웃
 
-// Request 인터셉터
+// Request 인터셉터 - 단순화
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
 
-    // 토큰이 있으면 유효성 검사
+    // 토큰이 있으면 검증 없이 바로 사용 (서버에서 검증)
     if (token) {
-      if (isTokenValid(token)) {
-        config.headers.Authorization = `Bearer ${token}`;
-      } else {
-        // 토큰이 만료된 경우 정리하고 에러 발생
-        clearAuthData();
-
-        // 로그인이 필요한 요청인지 확인
-        const isAuthRequired =
-          config.url?.includes('/my') || config.headers?.Authorization;
-
-        if (isAuthRequired) {
-          return Promise.reject({
-            response: { status: 401 },
-            message: 'Token expired',
-            isTokenExpired: true,
-          });
-        }
-      }
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
@@ -97,7 +83,7 @@ axios.interceptors.request.use(
   }
 );
 
-// Response 인터셉터
+// Response 인터셉터 - 단순화
 axios.interceptors.response.use(
   (response) => {
     return response;
@@ -106,7 +92,7 @@ axios.interceptors.response.use(
     console.error('API 에러:', error.response?.status, error.config?.url);
 
     // 401 에러 처리
-    if (error.response?.status === 401 || error.isTokenExpired) {
+    if (error.response?.status === 401) {
       const hadToken = clearAuthData();
       const currentPath = window.location.pathname;
 
@@ -132,7 +118,7 @@ axios.interceptors.response.use(
         return Promise.reject(authError);
       }
 
-      // 인증이 필수인 페이지에서 토큰이 만료된 경우
+      // 인증이 필수인 페이지에서 401 에러
       if (authRequiredPaths.some((path) => currentPath.startsWith(path))) {
         if (hadToken) {
           // 토큰이 있었다면 자동으로 재로그인
@@ -156,6 +142,11 @@ axios.interceptors.response.use(
         authError.shouldRetryWithoutAuth = true;
         authError.originalError = error;
         return Promise.reject(authError);
+      }
+
+      // 회원가입 페이지에서는 에러를 그대로 전달 (회원가입 로직에서 처리)
+      if (currentPath === '/register') {
+        return Promise.reject(error);
       }
     }
 

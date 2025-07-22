@@ -71,7 +71,7 @@ export default function HomePage() {
   // 표시할 게시글 목록
   const displayPosts = postsData?.boardPeeks?.content || [];
 
-  // 토큰 유효성 검사 함수
+  // 토큰 유효성 검사 함수 - 단순화
   const validateToken = (token) => {
     if (!token) return false;
 
@@ -82,21 +82,9 @@ export default function HomePage() {
         return false;
       }
 
+      // 기본적인 payload 파싱 확인만 하고, 만료시간은 서버에서 검증
       const payload = JSON.parse(atob(parts[1]));
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      console.log('토큰 검증:', {
-        exp: payload.exp,
-        currentTime,
-        isValid: payload.exp > currentTime,
-        timeLeft: payload.exp - currentTime,
-      });
-
-      if (payload.exp && payload.exp < currentTime) {
-        console.log('토큰 만료됨');
-        return false;
-      }
-
+      console.log('토큰 검증 완료 - 서버에서 만료시간 확인 예정');
       return true;
     } catch (error) {
       console.error('토큰 파싱 에러:', error);
@@ -104,7 +92,7 @@ export default function HomePage() {
     }
   };
 
-  // 인증 상태 확인 함수
+  // 인증 상태 확인 함수 - 단순화
   const checkAuthStatus = () => {
     const token = localStorage.getItem('token');
     console.log('저장된 토큰:', token ? '존재함' : '없음');
@@ -114,15 +102,16 @@ export default function HomePage() {
       return;
     }
 
+    // 토큰 형식만 확인하고, 만료시간은 실제 API 호출시 서버에서 검증
     if (!validateToken(token)) {
-      console.log('유효하지 않은 토큰, 정리 중...');
+      console.log('유효하지 않은 토큰 형식, 정리 중...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setAuthChecked(true);
       return;
     }
 
-    console.log('유효한 토큰 확인됨');
+    console.log('토큰 형식 유효 - 서버 검증 대기 중');
     setAuthChecked(true);
   };
 
@@ -185,7 +174,7 @@ export default function HomePage() {
         userResponse.data.nickname.trim() === ''
       ) {
         console.log('닉네임 없음, 회원가입 완료 페이지로 이동');
-        navigate('/complete-registration', { replace: true });
+        navigate('/register', { replace: true });
         return;
       }
 
@@ -215,11 +204,16 @@ export default function HomePage() {
       localStorage.removeItem('user');
 
       // 에러 타입별 처리 - 401과 404 모두 회원가입 필요로 처리
-      if (error.response?.status === 401 || error.response?.status === 404) {
-        console.log('사용자 정보 없음 또는 인증 실패 - 회원가입 필요');
+      if (error.response?.status === 401) {
+        console.log('401 에러 - 회원가입 필요');
         // 토큰을 다시 저장하고 회원가입 페이지로
         localStorage.setItem('token', token);
-        navigate('/complete-registration', { replace: true });
+        navigate('/register', { replace: true });
+      } else if (error.response?.status === 404) {
+        console.log('404 에러 - 사용자 정보 없음, 회원가입 필요');
+        // 토큰을 다시 저장하고 회원가입 페이지로
+        localStorage.setItem('token', token);
+        navigate('/register', { replace: true });
       } else if (error.response?.status === 500) {
         console.log('서버 내부 오류');
         alert(

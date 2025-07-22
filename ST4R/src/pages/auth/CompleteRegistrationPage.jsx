@@ -42,10 +42,29 @@ const useCompleteRegistrationMutation = () => {
       console.log('회원가입 완료 응답:', response.data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       console.log('회원가입 완료 성공');
+
+      // 사용자 정보를 localStorage에 저장
+      if (data) {
+        localStorage.setItem('user', JSON.stringify(data));
+      }
+
       alert('회원가입이 완료되었습니다!');
-      window.location.href = '/home';
+
+      // returnUrl 확인 후 이동
+      const returnUrl = sessionStorage.getItem('returnUrl');
+      if (
+        returnUrl &&
+        returnUrl !== '/login' &&
+        returnUrl !== '/login-alert' &&
+        returnUrl !== '/register'
+      ) {
+        sessionStorage.removeItem('returnUrl');
+        window.location.href = returnUrl;
+      } else {
+        window.location.href = '/home';
+      }
     },
     onError: (error) => {
       console.error('회원가입 완료 실패:', error);
@@ -53,9 +72,14 @@ const useCompleteRegistrationMutation = () => {
 
       if (error.response?.status === 401) {
         alert('로그인이 필요합니다.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         window.location.href = '/login';
       } else if (error.response?.status === 400) {
-        alert('입력한 정보를 확인해주세요.');
+        const errorData = error.response?.data;
+        const errorMessage =
+          errorData?.message || '입력한 정보를 확인해주세요.';
+        alert(errorMessage);
       } else if (error.response?.status === 409) {
         // 409 Conflict 에러 처리 - 이미 회원가입이 완료된 상태일 수 있음
         const errorMessage =
@@ -64,6 +88,10 @@ const useCompleteRegistrationMutation = () => {
         alert(errorMessage);
         // 이미 완료된 경우 홈으로 이동
         window.location.href = '/home';
+      } else if (error.response?.status >= 500) {
+        alert(
+          '서버 오류로 회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
+        );
       } else {
         alert('회원가입 완료에 실패했습니다. 다시 시도해주세요.');
       }
@@ -96,16 +124,57 @@ export default function CompleteRegistrationPage() {
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
   const [nicknameCheckResult, setNicknameCheckResult] = useState('');
 
-  // URL에서 토큰 확인 및 저장
+  // 토큰 유효성 검사 - 단순화
+  const validateToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+      // JWT 구조 확인만 하고 만료 시간은 서버에서 검증하도록 함
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('잘못된 JWT 토큰 형식');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return false;
+      }
+
+      // 기본적인 payload 파싱 확인
+      JSON.parse(atob(parts[1]));
+      return true;
+    } catch (error) {
+      console.error('토큰 검증 실패:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return false;
+    }
+  };
+
+  // URL에서 토큰 확인 및 저장, 페이지 접근 권한 확인
   useEffect(() => {
     const token = searchParams.get('accessToken');
+
     if (token) {
+      // URL에서 토큰을 받은 경우
+      console.log('URL에서 토큰 확인됨');
       localStorage.setItem('token', token);
+
       // URL에서 토큰 제거
-      navigate('/register', { replace: true });
-    } else if (!localStorage.getItem('token')) {
-      // 토큰이 없으면 로그인 페이지로 이동
-      navigate('/login');
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('accessToken');
+      const newUrl = newSearchParams.toString()
+        ? `/register?${newSearchParams.toString()}`
+        : '/register';
+
+      window.history.replaceState({}, '', newUrl);
+    } else {
+      // URL에 토큰이 없는 경우, localStorage 확인
+      if (!validateToken()) {
+        console.log('유효한 토큰이 없음, 로그인 페이지로 이동');
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+        return;
+      }
     }
   }, [searchParams, navigate]);
 
@@ -186,6 +255,16 @@ export default function CompleteRegistrationPage() {
       return;
     }
 
+    // 닉네임 유효성 검사 (한글, 영문, 숫자만 허용)
+    const nicknameRegex = /^[가-힣a-zA-Z0-9]*$/;
+    if (!nicknameRegex.test(formData.nickname)) {
+      setErrors((prev) => ({
+        ...prev,
+        nickname: '닉네임은 한글, 영문, 숫자만 사용할 수 있습니다.',
+      }));
+      return;
+    }
+
     try {
       const response = await checkNicknameMutation.mutateAsync(
         formData.nickname
@@ -219,7 +298,13 @@ export default function CompleteRegistrationPage() {
     } catch (error) {
       console.error('닉네임 중복 확인 에러:', error);
 
-      if (error.response?.status === 404) {
+      if (error.response?.status === 401) {
+        alert('로그인이 필요합니다.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+        return;
+      } else if (error.response?.status === 404) {
         console.warn('닉네임 중복 확인 API 엔드포인트를 확인해주세요.');
         alert(
           '닉네임 중복 확인 기능을 사용할 수 없습니다. 고유한 닉네임을 입력해주세요.'
@@ -278,6 +363,13 @@ export default function CompleteRegistrationPage() {
 
   // 회원가입 완료 제출
   const handleSubmit = async () => {
+    // 토큰 재검증
+    if (!validateToken()) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -292,6 +384,9 @@ export default function CompleteRegistrationPage() {
         if (imageUrls && imageUrls.length > 0) {
           finalProfileImageUrl = imageUrls[0];
           console.log('프로필 이미지 업로드 완료:', finalProfileImageUrl);
+        } else {
+          console.warn('이미지 업로드 실패, 이미지 없이 진행');
+          finalProfileImageUrl = null;
         }
       }
 
@@ -302,10 +397,20 @@ export default function CompleteRegistrationPage() {
         profileImageUrl: finalProfileImageUrl || null,
       };
 
+      console.log('회원가입 완료 데이터:', submitData);
       completeRegistrationMutation.mutate(submitData);
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
-      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+      // 이미지 업로드 실패해도 회원가입은 진행
+      const submitData = {
+        nickname: formData.nickname.trim(),
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+        profileImageUrl: null,
+      };
+
+      console.log('이미지 없이 회원가입 완료 데이터:', submitData);
+      completeRegistrationMutation.mutate(submitData);
     }
   };
 
@@ -404,7 +509,7 @@ export default function CompleteRegistrationPage() {
                 disabled={
                   !formData.nickname.trim() || checkNicknameMutation.isLoading
                 }
-                className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {checkNicknameMutation.isLoading ? '확인중...' : '중복확인'}
               </button>
@@ -488,6 +593,11 @@ export default function CompleteRegistrationPage() {
           >
             {completeRegistrationMutation.isLoading ? '처리중...' : '가입 완료'}
           </button>
+        </div>
+
+        {/* 하단 안내 텍스트 */}
+        <div className="mt-4 text-center text-xs text-gray-500">
+          가입 완료 후 언제든지 프로필에서 정보를 수정할 수 있습니다.
         </div>
       </div>
     </div>
