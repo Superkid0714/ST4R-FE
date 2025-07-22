@@ -1,4 +1,3 @@
-// src/pages/HomePage.jsx - 토큰 인터셉터 문제 해결
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useBackendSearchPosts } from '../api/search';
@@ -127,7 +126,7 @@ export default function HomePage() {
     setAuthChecked(true);
   };
 
-  // 카카오 로그인 토큰 처리 함수 - axios 인터셉터 우회
+  // 카카오 로그인 토큰 처리 함수 - 401/404 에러 모두 처리
   const handleKakaoLogin = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('accessToken');
@@ -146,8 +145,7 @@ export default function HomePage() {
         throw new Error('받은 토큰이 유효하지 않습니다.');
       }
 
-      // 2. 기존 토큰 임시 백업 및 새 토큰 저장
-      const oldToken = localStorage.getItem('token');
+      // 2. 토큰 저장
       localStorage.setItem('token', token);
       console.log('새 토큰 저장 완료');
 
@@ -216,13 +214,9 @@ export default function HomePage() {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
-      // 에러 타입별 처리
-      if (error.response?.status === 401) {
-        console.log('인증 실패 - 토큰이 유효하지 않음');
-        alert('로그인 인증에 실패했습니다. 다시 시도해주세요.');
-        navigate('/login', { replace: true });
-      } else if (error.response?.status === 404) {
-        console.log('사용자 정보 없음 - 회원가입 필요');
+      // 에러 타입별 처리 - 401과 404 모두 회원가입 필요로 처리
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        console.log('사용자 정보 없음 또는 인증 실패 - 회원가입 필요');
         // 토큰을 다시 저장하고 회원가입 페이지로
         localStorage.setItem('token', token);
         navigate('/complete-registration', { replace: true });
