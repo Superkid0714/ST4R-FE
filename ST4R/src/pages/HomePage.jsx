@@ -115,21 +115,25 @@ export default function HomePage() {
     setAuthChecked(true);
   };
 
-  // 카카오 로그인 토큰 처리 함수 - 401/404 에러 모두 처리
+  // 카카오 로그인 토큰 처리 함수 - axios 인터셉터 우회 버전
   const handleKakaoLogin = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('accessToken');
+
+    console.log('=== 카카오 로그인 처리 시작 ===');
+    console.log('URL:', window.location.href);
+    console.log('현재 searchParams:', Object.fromEntries(urlParams));
+    console.log('추출된 토큰:', token ? '존재함' : '없음');
 
     if (!token) {
       console.log('URL에 토큰 없음');
       return;
     }
 
-    console.log('카카오 로그인 토큰 처리 시작');
     setIsProcessingLogin(true);
 
     try {
-      // 1. 먼저 토큰 유효성 확인
+      // 1. 토큰 유효성 확인
       if (!validateToken(token)) {
         throw new Error('받은 토큰이 유효하지 않습니다.');
       }
@@ -139,15 +143,32 @@ export default function HomePage() {
       console.log('새 토큰 저장 완료');
 
       // 3. URL에서 토큰 파라미터 제거
-      const newSearchParams = new URLSearchParams(searchParams);
+      const newSearchParams = new URLSearchParams(window.location.search);
       newSearchParams.delete('accessToken');
 
-      const newUrl = newSearchParams.toString()
-        ? `${window.location.pathname}?${newSearchParams.toString()}`
-        : window.location.pathname;
+      // 현재 경로 확인
+      const currentPath = window.location.pathname;
+      console.log('현재 경로:', currentPath);
 
+      let newUrl;
+      if (currentPath === '/register') {
+        // /register 경로인 경우
+        newUrl = newSearchParams.toString()
+          ? `/register?${newSearchParams.toString()}`
+          : '/register';
+      } else {
+        // /home 경로인 경우
+        newUrl = newSearchParams.toString()
+          ? `/home?${newSearchParams.toString()}`
+          : '/home';
+      }
+
+      console.log('새로운 URL:', newUrl);
       window.history.replaceState({}, '', newUrl);
-      setSearchParams(newSearchParams);
+
+      // searchParams 업데이트
+      const updatedParams = new URLSearchParams(newUrl.split('?')[1] || '');
+      setSearchParams(updatedParams);
 
       // 4. axios 인터셉터를 우회하여 직접 요청 생성
       console.log('사용자 정보 조회 시작 (인터셉터 우회)...');
@@ -185,12 +206,12 @@ export default function HomePage() {
         sessionStorage.removeItem('returnUrl');
         navigate(returnUrl, { replace: true });
       } else {
-        console.log('홈으로 이동');
+        console.log('홈으로 이동 - 페이지 새로고침');
         // 현재 홈 페이지에 있으므로 페이지 새로고침으로 상태 업데이트
         window.location.reload();
       }
     } catch (error) {
-      console.error('카카오 로그인 처리 실패:', error);
+      console.error('=== 카카오 로그인 처리 실패 ===');
       console.error('에러 상세:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -243,6 +264,7 @@ export default function HomePage() {
 
   // 초기 인증 상태 확인
   useEffect(() => {
+    console.log('=== 초기 인증 상태 확인 ===');
     checkAuthStatus();
 
     // storage 이벤트 리스너
@@ -255,12 +277,12 @@ export default function HomePage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // 카카오 로그인 처리
+  // 카카오 로그인 처리 - 의존성 배열 수정
   useEffect(() => {
     if (authChecked && !isProcessingLogin) {
       handleKakaoLogin();
     }
-  }, [authChecked, navigate]);
+  }, [authChecked, isProcessingLogin, navigate, setSearchParams]);
 
   // 검색 처리
   const handleSearch = (query) => {
@@ -338,6 +360,7 @@ export default function HomePage() {
     );
   }
 
+  // 나머지 렌더링 로직은 동일...
   return (
     <div className="min-h-screen bg-black">
       {/* 헤더 컴포넌트 */}

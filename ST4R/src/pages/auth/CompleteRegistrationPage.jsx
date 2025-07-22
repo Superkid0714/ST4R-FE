@@ -4,39 +4,55 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import uploadImagesToS3 from '../../api/imgupload';
 
-// 닉네임 중복 확인 API
+// axios 인터셉터를 우회하는 API 클라이언트 생성 함수
+const createApiClient = (token) => {
+  return axios.create({
+    baseURL: 'https://eridanus.econo.mooo.com',
+    timeout: 15000,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+};
+
+// 닉네임 중복 확인 API - 인터셉터 우회
 const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
-      const response = await axios.get(
-        `https://eridanus.econo.mooo.com/members/exists`,
-        {
-          params: { nickname },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      console.log('닉네임 중복 확인 요청:', nickname);
+
+      const apiClient = createApiClient(token);
+      const response = await apiClient.get('/members/exists', {
+        params: { nickname },
+      });
+
+      console.log('닉네임 중복 확인 응답:', response.data);
       return response.data;
     },
   });
 };
 
-// 회원가입 완료 API
+// 회원가입 완료 API - 인터셉터 우회
 const useCompleteRegistrationMutation = () => {
   return useMutation({
     mutationFn: async (data) => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
       console.log('회원가입 완료 요청:', data);
 
-      const response = await axios.patch(
-        'https://eridanus.econo.mooo.com/members/completeRegistration',
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const apiClient = createApiClient(token);
+      const response = await apiClient.patch(
+        '/members/completeRegistration',
+        data
       );
 
       console.log('회원가입 완료 응답:', response.data);
