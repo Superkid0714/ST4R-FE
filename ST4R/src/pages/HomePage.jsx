@@ -10,6 +10,9 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // 인증 상태 관리
+  const [authChecked, setAuthChecked] = useState(false);
+
   // 검색 상태
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('titleAndContent');
@@ -49,7 +52,7 @@ export default function HomePage() {
       latitude: parseFloat(mapSearchParams.lat),
       longitude: parseFloat(mapSearchParams.lng),
       distanceInMeters: parseInt(mapSearchParams.searchRadius) || 1000,
-      roadAddress: mapSearchParams.roadAddress, // 도로명 주소 추가
+      roadAddress: mapSearchParams.roadAddress,
     };
   }
 
@@ -58,10 +61,49 @@ export default function HomePage() {
     data: postsData,
     isLoading: isPostsLoading,
     error: postsError,
+    refetch: refetchPosts,
   } = useBackendSearchPosts(searchQuery, searchOptions);
 
   // 표시할 게시글 목록
   const displayPosts = postsData?.boardPeeks?.content || [];
+
+  // 인증 상태 확인
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        if (payload.exp && payload.exp <= currentTime) {
+          // 토큰 만료
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('토큰 파싱 에러:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+
+      setAuthChecked(true);
+    };
+
+    checkAuthStatus();
+
+    // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
+    const handleStorageChange = () => {
+      checkAuthStatus();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // 카카오 로그인 토큰 처리 및 회원가입 완료 확인
   useEffect(() => {
@@ -71,6 +113,7 @@ export default function HomePage() {
 
       if (token) {
         try {
+          console.log('카카오 로그인 토큰 처리 시작');
           localStorage.setItem('token', token);
 
           // 사용자 정보 확인 - 회원가입 완료 여부 체크
@@ -83,7 +126,7 @@ export default function HomePage() {
             }
           );
 
-          console.log('사용자 정보:', userResponse.data);
+          console.log('사용자 정보 조회 성공:', userResponse.data);
 
           // 사용자 정보 저장
           localStorage.setItem('user', JSON.stringify(userResponse.data));
@@ -97,18 +140,31 @@ export default function HomePage() {
             return;
           }
 
-          // 회원가입이 완료된 사용자는 홈으로 이동
-          navigate('/home', { replace: true });
+          // 돌아갈 페이지가 있으면 그곳으로, 없으면 홈으로
+          const returnUrl = sessionStorage.getItem('returnUrl');
+          if (
+            returnUrl &&
+            returnUrl !== '/login' &&
+            returnUrl !== '/login-alert'
+          ) {
+            sessionStorage.removeItem('returnUrl');
+            navigate(returnUrl, { replace: true });
+          } else {
+            navigate('/home', { replace: true });
+          }
         } catch (error) {
           console.error('사용자 정보 조회 실패:', error);
 
           if (error.response?.status === 401) {
+            console.log('토큰이 유효하지 않음');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             navigate('/login', { replace: true });
           } else if (error.response?.status === 404) {
+            console.log('회원가입이 필요함');
             navigate('/complete-registration', { replace: true });
           } else {
+            console.log('기타 에러, 홈으로 이동');
             navigate('/home', { replace: true });
           }
         }
@@ -120,13 +176,13 @@ export default function HomePage() {
 
   // 검색 처리 - 에러 처리 추가
   const handleSearch = (query) => {
-    setSearchError(''); // 이전 에러 초기화
+    setSearchError('');
     setSearchQuery(query);
   };
 
   // 검색 타입 변경
   const handleSearchTypeChange = (type) => {
-    setSearchError(''); // 이전 에러 초기화
+    setSearchError('');
     setSearchType(type);
   };
 
@@ -148,6 +204,23 @@ export default function HomePage() {
   // 검색 에러 처리
   useEffect(() => {
     if (postsError) {
+      // 인증 에러인 경우 비로그인 상태로 재시도
+      if (postsError.isAuthError && postsError.shouldRetryWithoutAuth) {
+        console.log('인증 에러로 인한 재시도');
+        // 잠시 후 다시 시도
+        setTimeout(() => {
+          refetchPosts();
+        }, 1000);
+        return;
+      }
+
+      // 네트워크 에러 처리
+      if (postsError.isNetworkError) {
+        setSearchError('네트워크 연결을 확인해주세요.');
+        return;
+      }
+
+      // 기타 에러 처리
       if (
         postsError.message &&
         (postsError.message.includes('자 이상') ||
@@ -160,7 +233,16 @@ export default function HomePage() {
     } else {
       setSearchError('');
     }
-  }, [postsError]);
+  }, [postsError, refetchPosts]);
+
+  // 인증 상태 확인이 완료되지 않은 경우 로딩
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -223,31 +305,43 @@ export default function HomePage() {
         )}
 
         {/* 에러 상태 - 검색 에러가 아닌 경우만 표시 */}
-        {postsError && !isPostsLoading && !searchError && (
-          <div className="text-center py-8">
-            <div className="text-red-400 mb-4">
-              <svg
-                className="w-16 h-16 mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        {postsError &&
+          !isPostsLoading &&
+          !searchError &&
+          !postsError.isAuthError && (
+            <div className="text-center py-8">
+              <div className="text-red-400 mb-4">
+                <svg
+                  className="w-16 h-16 mx-auto mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-red-400 text-lg">
+                데이터를 불러올 수 없습니다
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                {postsError?.isNetworkError
+                  ? '네트워크 연결을 확인해주세요'
+                  : '잠시 후 다시 시도해주세요'}
+              </p>
+              <button
+                onClick={() => refetchPosts()}
+                className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+                type="button"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+                다시 시도
+              </button>
             </div>
-            <p className="text-red-400 text-lg">데이터를 불러올 수 없습니다</p>
-            <p className="text-gray-500 text-sm mt-2">
-              {postsError?.response?.status === 401
-                ? '로그인이 필요합니다'
-                : '잠시 후 다시 시도해주세요'}
-            </p>
-          </div>
-        )}
+          )}
 
         {/* 게시글 목록 */}
         {!postsError && !isPostsLoading && !searchError && (
@@ -300,6 +394,7 @@ export default function HomePage() {
                   <button
                     onClick={() => navigate('/map-search')}
                     className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+                    type="button"
                   >
                     다른 지역 선택하기
                   </button>
@@ -324,4 +419,3 @@ export default function HomePage() {
     </div>
   );
 }
-
