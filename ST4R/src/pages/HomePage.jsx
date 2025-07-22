@@ -1,3 +1,4 @@
+// src/pages/HomePage.jsx - 토큰 인터셉터 문제 해결
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useBackendSearchPosts } from '../api/search';
@@ -8,10 +9,11 @@ import axios from 'axios';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // 인증 상태 관리
   const [authChecked, setAuthChecked] = useState(false);
+  const [isProcessingLogin, setIsProcessingLogin] = useState(false);
 
   // 검색 상태
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,48 +58,208 @@ export default function HomePage() {
     };
   }
 
-  // 백엔드 검색 API 사용
+  // 백엔드 검색 API 사용 - 로그인 처리 중에는 비활성화
   const {
     data: postsData,
     isLoading: isPostsLoading,
     error: postsError,
     refetch: refetchPosts,
-  } = useBackendSearchPosts(searchQuery, searchOptions);
+  } = useBackendSearchPosts(searchQuery, {
+    ...searchOptions,
+    enabled: !isProcessingLogin,
+  });
 
   // 표시할 게시글 목록
   const displayPosts = postsData?.boardPeeks?.content || [];
 
-  // 인증 상태 확인
-  useEffect(() => {
-    const checkAuthStatus = () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setAuthChecked(true);
+  // 토큰 유효성 검사 함수
+  const validateToken = (token) => {
+    if (!token) return false;
+
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('잘못된 JWT 토큰 형식');
+        return false;
+      }
+
+      const payload = JSON.parse(atob(parts[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      console.log('토큰 검증:', {
+        exp: payload.exp,
+        currentTime,
+        isValid: payload.exp > currentTime,
+        timeLeft: payload.exp - currentTime,
+      });
+
+      if (payload.exp && payload.exp < currentTime) {
+        console.log('토큰 만료됨');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('토큰 파싱 에러:', error);
+      return false;
+    }
+  };
+
+  // 인증 상태 확인 함수
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem('token');
+    console.log('저장된 토큰:', token ? '존재함' : '없음');
+
+    if (!token) {
+      setAuthChecked(true);
+      return;
+    }
+
+    if (!validateToken(token)) {
+      console.log('유효하지 않은 토큰, 정리 중...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setAuthChecked(true);
+      return;
+    }
+
+    console.log('유효한 토큰 확인됨');
+    setAuthChecked(true);
+  };
+
+  // 카카오 로그인 토큰 처리 함수 - axios 인터셉터 우회
+  const handleKakaoLogin = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('accessToken');
+
+    if (!token) {
+      console.log('URL에 토큰 없음');
+      return;
+    }
+
+    console.log('카카오 로그인 토큰 처리 시작');
+    setIsProcessingLogin(true);
+
+    try {
+      // 1. 먼저 토큰 유효성 확인
+      if (!validateToken(token)) {
+        throw new Error('받은 토큰이 유효하지 않습니다.');
+      }
+
+      // 2. 기존 토큰 임시 백업 및 새 토큰 저장
+      const oldToken = localStorage.getItem('token');
+      localStorage.setItem('token', token);
+      console.log('새 토큰 저장 완료');
+
+      // 3. URL에서 토큰 파라미터 제거
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('accessToken');
+
+      const newUrl = newSearchParams.toString()
+        ? `${window.location.pathname}?${newSearchParams.toString()}`
+        : window.location.pathname;
+
+      window.history.replaceState({}, '', newUrl);
+      setSearchParams(newSearchParams);
+
+      // 4. axios 인터셉터를 우회하여 직접 요청 생성
+      console.log('사용자 정보 조회 시작 (인터셉터 우회)...');
+
+      const userResponse = await axios
+        .create({
+          baseURL: 'https://eridanus.econo.mooo.com',
+          timeout: 15000,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        .get('/my');
+
+      console.log('사용자 정보 조회 성공:', userResponse.data);
+
+      // 5. 사용자 정보 저장
+      localStorage.setItem('user', JSON.stringify(userResponse.data));
+
+      // 6. 닉네임 확인 및 리다이렉트
+      if (
+        !userResponse.data.nickname ||
+        userResponse.data.nickname.trim() === ''
+      ) {
+        console.log('닉네임 없음, 회원가입 완료 페이지로 이동');
+        navigate('/complete-registration', { replace: true });
         return;
       }
 
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentTime = Math.floor(Date.now() / 1000);
-
-        if (payload.exp && payload.exp <= currentTime) {
-          // 토큰 만료
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
-      } catch (error) {
-        console.error('토큰 파싱 에러:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      // 7. 성공적으로 완료된 경우 리다이렉트
+      const returnUrl = sessionStorage.getItem('returnUrl');
+      if (returnUrl && returnUrl !== '/login' && returnUrl !== '/login-alert') {
+        console.log('저장된 returnUrl로 이동:', returnUrl);
+        sessionStorage.removeItem('returnUrl');
+        navigate(returnUrl, { replace: true });
+      } else {
+        console.log('홈으로 이동');
+        // 현재 홈 페이지에 있으므로 페이지 새로고침으로 상태 업데이트
+        window.location.reload();
       }
+    } catch (error) {
+      console.error('카카오 로그인 처리 실패:', error);
+      console.error('에러 상세:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        name: error.name,
+      });
 
-      setAuthChecked(true);
-    };
+      // 토큰 정리
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
 
+      // 에러 타입별 처리
+      if (error.response?.status === 401) {
+        console.log('인증 실패 - 토큰이 유효하지 않음');
+        alert('로그인 인증에 실패했습니다. 다시 시도해주세요.');
+        navigate('/login', { replace: true });
+      } else if (error.response?.status === 404) {
+        console.log('사용자 정보 없음 - 회원가입 필요');
+        // 토큰을 다시 저장하고 회원가입 페이지로
+        localStorage.setItem('token', token);
+        navigate('/complete-registration', { replace: true });
+      } else if (error.response?.status === 500) {
+        console.log('서버 내부 오류');
+        alert(
+          '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+        );
+        navigate('/home', { replace: true });
+      } else if (
+        error.code === 'ECONNABORTED' ||
+        error.message.includes('timeout')
+      ) {
+        console.log('요청 타임아웃');
+        alert('서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
+        navigate('/home', { replace: true });
+      } else if (error.code === 'ERR_NETWORK') {
+        console.log('네트워크 오류');
+        alert('네트워크 연결을 확인해주세요.');
+        navigate('/home', { replace: true });
+      } else {
+        console.log('알 수 없는 오류');
+        alert('로그인 처리 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+        navigate('/home', { replace: true });
+      }
+    } finally {
+      setIsProcessingLogin(false);
+    }
+  };
+
+  // 초기 인증 상태 확인
+  useEffect(() => {
     checkAuthStatus();
 
-    // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
+    // storage 이벤트 리스너
     const handleStorageChange = () => {
+      console.log('storage 변경 감지');
       checkAuthStatus();
     };
 
@@ -105,76 +267,14 @@ export default function HomePage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // 카카오 로그인 토큰 처리 및 회원가입 완료 확인
+  // 카카오 로그인 처리
   useEffect(() => {
-    const handleKakaoLogin = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('accessToken');
+    if (authChecked && !isProcessingLogin) {
+      handleKakaoLogin();
+    }
+  }, [authChecked, navigate]);
 
-      if (token) {
-        try {
-          console.log('카카오 로그인 토큰 처리 시작');
-          localStorage.setItem('token', token);
-
-          // 사용자 정보 확인 - 회원가입 완료 여부 체크
-          const userResponse = await axios.get(
-            'https://eridanus.econo.mooo.com/my',
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          console.log('사용자 정보 조회 성공:', userResponse.data);
-
-          // 사용자 정보 저장
-          localStorage.setItem('user', JSON.stringify(userResponse.data));
-
-          // 닉네임이 없으면 회원가입 완료 페이지로 리다이렉트
-          if (
-            !userResponse.data.nickname ||
-            userResponse.data.nickname.trim() === ''
-          ) {
-            navigate('/complete-registration', { replace: true });
-            return;
-          }
-
-          // 돌아갈 페이지가 있으면 그곳으로, 없으면 홈으로
-          const returnUrl = sessionStorage.getItem('returnUrl');
-          if (
-            returnUrl &&
-            returnUrl !== '/login' &&
-            returnUrl !== '/login-alert'
-          ) {
-            sessionStorage.removeItem('returnUrl');
-            navigate(returnUrl, { replace: true });
-          } else {
-            navigate('/home', { replace: true });
-          }
-        } catch (error) {
-          console.error('사용자 정보 조회 실패:', error);
-
-          if (error.response?.status === 401) {
-            console.log('토큰이 유효하지 않음');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/login', { replace: true });
-          } else if (error.response?.status === 404) {
-            console.log('회원가입이 필요함');
-            navigate('/complete-registration', { replace: true });
-          } else {
-            console.log('기타 에러, 홈으로 이동');
-            navigate('/home', { replace: true });
-          }
-        }
-      }
-    };
-
-    handleKakaoLogin();
-  }, [navigate]);
-
-  // 검색 처리 - 에러 처리 추가
+  // 검색 처리
   const handleSearch = (query) => {
     setSearchError('');
     setSearchQuery(query);
@@ -204,23 +304,19 @@ export default function HomePage() {
   // 검색 에러 처리
   useEffect(() => {
     if (postsError) {
-      // 인증 에러인 경우 비로그인 상태로 재시도
       if (postsError.isAuthError && postsError.shouldRetryWithoutAuth) {
         console.log('인증 에러로 인한 재시도');
-        // 잠시 후 다시 시도
         setTimeout(() => {
           refetchPosts();
         }, 1000);
         return;
       }
 
-      // 네트워크 에러 처리
       if (postsError.isNetworkError) {
         setSearchError('네트워크 연결을 확인해주세요.');
         return;
       }
 
-      // 기타 에러 처리
       if (
         postsError.message &&
         (postsError.message.includes('자 이상') ||
@@ -235,11 +331,21 @@ export default function HomePage() {
     }
   }, [postsError, refetchPosts]);
 
-  // 인증 상태 확인이 완료되지 않은 경우 로딩
-  if (!authChecked) {
+  // 로딩 상태
+  if (!authChecked || isProcessingLogin) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400 text-center">
+            {isProcessingLogin ? '로그인 처리 중...' : '로딩 중...'}
+          </p>
+          {isProcessingLogin && (
+            <p className="text-gray-500 text-sm mt-2 text-center">
+              서버와 통신 중입니다. 잠시만 기다려주세요.
+            </p>
+          )}
+        </div>
       </div>
     );
   }
@@ -304,7 +410,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 에러 상태 - 검색 에러가 아닌 경우만 표시 */}
+        {/* 에러 상태 */}
         {postsError &&
           !isPostsLoading &&
           !searchError &&

@@ -61,7 +61,7 @@ const router = createBrowserRouter([
   { path: 'login-alert', element: <LoginAlertPage /> },
 
   // 회원가입 완료 페이지 (카카오 로그인 후 추가 정보 입력)
-  { path: 'complete-registration', element: <CompleteRegistrationPage /> },
+  { path: 'register', element: <CompleteRegistrationPage /> },
 
   // 지도 검색 페이지
   { path: 'map-search', element: <MapSearchPage /> },
@@ -116,7 +116,7 @@ const router = createBrowserRouter([
   },
   {
     path: 'groups/:id/members',
-    element: <ChatMembersPage/>
+    element: <ChatMembersPage />,
   },
   // 선택창 페이지
   {
@@ -225,4 +225,3 @@ const router = createBrowserRouter([
 export default function Routes() {
   return <RouterProvider router={router} />;
 }
-

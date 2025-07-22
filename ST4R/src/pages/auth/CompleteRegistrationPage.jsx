@@ -29,7 +29,7 @@ const useCompleteRegistrationMutation = () => {
       console.log('회원가입 완료 요청:', data);
 
       const response = await axios.patch(
-        'https://eridanus.econo.mooo.com/my/complete', // 엔드포인트 변경
+        'https://eridanus.econo.mooo.com/members/completeRegistration',
         data,
         {
           headers: {
@@ -102,7 +102,7 @@ export default function CompleteRegistrationPage() {
     if (token) {
       localStorage.setItem('token', token);
       // URL에서 토큰 제거
-      navigate('/complete-registration', { replace: true });
+      navigate('/register', { replace: true });
     } else if (!localStorage.getItem('token')) {
       // 토큰이 없으면 로그인 페이지로 이동
       navigate('/login');
@@ -493,4 +493,3 @@ export default function CompleteRegistrationPage() {
     </div>
   );
 }
-
