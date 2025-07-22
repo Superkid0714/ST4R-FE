@@ -1,83 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '../components/common/BackButton';
-
-// 카카오 맵 안전 접근 함수
-const safeKakaoAccess = () => {
-  try {
-    return typeof window !== 'undefined' &&
-      window.kakao &&
-      window.kakao.maps &&
-      typeof window.kakao.maps.Map === 'function'
-      ? window.kakao
-      : null;
-  } catch (error) {
-    console.error('카카오 맵 접근 실패:', error);
-    return null;
-  }
-};
-
-// 카카오 맵 스크립트 로드 함수
-const loadKakaoMapScript = () => {
-  return new Promise((resolve, reject) => {
-    // 이미 로드됐는지 확인
-    const kakao = safeKakaoAccess();
-    if (kakao) {
-      resolve(kakao);
-      return;
-    }
-
-    // 기존 스크립트 확인
-    const existingScript = document.querySelector(
-      'script[src*="dapi.kakao.com"]'
-    );
-    if (existingScript) {
-      const checkLoaded = () => {
-        const kakao = safeKakaoAccess();
-        if (kakao) {
-          resolve(kakao);
-        } else {
-          setTimeout(checkLoaded, 100);
-        }
-      };
-      checkLoaded();
-      return;
-    }
-
-    // 새 스크립트 생성
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.async = false;
-    script.src =
-      'https://dapi.kakao.com/v2/maps/sdk.js?appkey=5efbd2f844cb3d8609377a11750272bb&libraries=services&autoload=false';
-
-    script.onload = () => {
-      if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
-        window.kakao.maps.load(() => {
-          const kakao = safeKakaoAccess();
-          if (kakao) {
-            resolve(kakao);
-          } else {
-            reject(new Error('카카오 맵 초기화 실패'));
-          }
-        });
-      } else {
-        setTimeout(() => {
-          const kakao = safeKakaoAccess();
-          if (kakao) {
-            resolve(kakao);
-          } else {
-            reject(new Error('카카오 맵 로드 실패'));
-          }
-        }, 500);
-      }
-    };
-
-    script.onerror = () => reject(new Error('카카오 맵 스크립트 로드 실패'));
-
-    document.head.appendChild(script);
-  });
-};
+import {
+  loadKakaoMapScript,
+  safeKakaoAccess,
+  checkKakaoMapStatus,
+} from '../utils/kakaoMapLoader';
 
 export default function MapSearchPage() {
   const navigate = useNavigate();
@@ -225,11 +153,21 @@ export default function MapSearchPage() {
       try {
         setMapLoading(true);
         setMapError(null);
+        console.log('지도 초기화 시작');
 
-        // 카카오 맵 스크립트 로드
+        // 새로운 카카오 맵 로더 사용
         const kakao = await loadKakaoMapScript();
 
-        if (!mounted || !mapContainer.current || isInitialized.current) return;
+        if (!mounted || !mapContainer.current || isInitialized.current) {
+          console.log('초기화 중단:', {
+            mounted,
+            hasContainer: !!mapContainer.current,
+            initialized: isInitialized.current,
+          });
+          return;
+        }
+
+        console.log('지도 객체 생성 중...');
 
         // 초기 좌표 설정
         const defaultLat = initialLat ? parseFloat(initialLat) : 35.1595454;
@@ -248,6 +186,8 @@ export default function MapSearchPage() {
         geocoderRef.current = geocoder;
         infowindowRef.current = infowindow;
         isInitialized.current = true;
+
+        console.log('지도 객체 생성 완료');
 
         // 초기 위치 설정
         if (initialLat && initialLng) {
@@ -351,6 +291,7 @@ export default function MapSearchPage() {
         }
 
         setMapLoading(false);
+        console.log('지도 초기화 완료');
       } catch (error) {
         console.error('지도 초기화 실패:', error);
         if (mounted) {
@@ -375,7 +316,15 @@ export default function MapSearchPage() {
         } catch (e) {}
       }
     };
-  }, []);
+  }, [
+    displayMarker,
+    getMapLevelForRadius,
+    initialLat,
+    initialLng,
+    initialLocationName,
+    initialRoadAddress,
+    searchRadius,
+  ]);
 
   // 장소 검색
   const searchPlaces = useCallback(() => {
@@ -653,6 +602,13 @@ export default function MapSearchPage() {
             <div className="flex flex-col items-center">
               <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mb-2"></div>
               <span className="text-sm text-gray-400">지도 로딩 중...</span>
+              <div className="mt-2 text-xs text-gray-500">
+                {checkKakaoMapStatus().retryCount > 0 && (
+                  <span>
+                    재시도 중... ({checkKakaoMapStatus().retryCount}/3)
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ) : mapError ? (
@@ -662,12 +618,22 @@ export default function MapSearchPage() {
                 지도를 불러올 수 없습니다
               </div>
               <div className="text-xs text-gray-500 mb-3">{mapError}</div>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-yellow-500 text-black rounded-lg text-sm hover:bg-yellow-400"
-              >
-                새로고침
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-yellow-500 text-black rounded-lg text-sm hover:bg-yellow-400"
+                >
+                  새로고침
+                </button>
+                <details className="text-left">
+                  <summary className="cursor-pointer text-xs text-gray-400">
+                    상태 정보
+                  </summary>
+                  <pre className="text-xs text-gray-500 mt-2">
+                    {JSON.stringify(checkKakaoMapStatus(), null, 2)}
+                  </pre>
+                </details>
+              </div>
             </div>
           </div>
         ) : (

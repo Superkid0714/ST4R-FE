@@ -1,119 +1,11 @@
 import search from '../../assets/icons/search.svg';
 import { useEffect, useRef, useState, useCallback } from 'react';
-
-// 전역 상태 관리
-let kakaoMapLoaded = false;
-let kakaoMapLoading = false;
-let kakaoMapLoadPromise = null;
-
-// 카카오 맵 API 안전 접근 함수
-const safeKakaoAccess = () => {
-  try {
-    return typeof window !== 'undefined' &&
-      window.kakao &&
-      window.kakao.maps &&
-      typeof window.kakao.maps.Map === 'function'
-      ? window.kakao
-      : null;
-  } catch (error) {
-    console.error('카카오 맵 접근 실패:', error);
-    return null;
-  }
-};
-
-// 카카오 맵 스크립트 로드 함수
-const loadKakaoMapScript = () => {
-  if (kakaoMapLoadPromise) {
-    return kakaoMapLoadPromise;
-  }
-
-  kakaoMapLoadPromise = new Promise((resolve, reject) => {
-    // 이미 로드됐는지 확인
-    if (safeKakaoAccess()) {
-      kakaoMapLoaded = true;
-      resolve(window.kakao);
-      return;
-    }
-
-    // 이미 스크립트가 있는지 확인
-    const existingScript = document.querySelector(
-      'script[src*="dapi.kakao.com"]'
-    );
-    if (existingScript) {
-      // 기존 스크립트가 있다면 로드 완료를 기다림
-      const checkLoaded = () => {
-        const kakao = safeKakaoAccess();
-        if (kakao) {
-          kakaoMapLoaded = true;
-          resolve(kakao);
-        } else {
-          setTimeout(checkLoaded, 100);
-        }
-      };
-      checkLoaded();
-      return;
-    }
-
-    kakaoMapLoading = true;
-
-    // 새 스크립트 생성
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.async = false; // 동기 로딩으로 변경
-    script.src =
-      'https://dapi.kakao.com/v2/maps/sdk.js?appkey=5efbd2f844cb3d8609377a11750272bb&libraries=services&autoload=false';
-
-    let timeoutId;
-
-    script.onload = () => {
-      clearTimeout(timeoutId);
-
-      // autoload=false이므로 수동으로 로드
-      if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
-        window.kakao.maps.load(() => {
-          const kakao = safeKakaoAccess();
-          if (kakao) {
-            kakaoMapLoaded = true;
-            kakaoMapLoading = false;
-            resolve(kakao);
-          } else {
-            reject(new Error('카카오 맵 초기화 실패'));
-          }
-        });
-      } else {
-        // autoload가 되는 경우를 대비
-        setTimeout(() => {
-          const kakao = safeKakaoAccess();
-          if (kakao) {
-            kakaoMapLoaded = true;
-            kakaoMapLoading = false;
-            resolve(kakao);
-          } else {
-            reject(new Error('카카오 맵 로드 실패'));
-          }
-        }, 500);
-      }
-    };
-
-    script.onerror = () => {
-      clearTimeout(timeoutId);
-      kakaoMapLoading = false;
-      kakaoMapLoadPromise = null;
-      reject(new Error('카카오 맵 스크립트 로드 실패'));
-    };
-
-    // 타임아웃 설정 (10초)
-    timeoutId = setTimeout(() => {
-      kakaoMapLoading = false;
-      kakaoMapLoadPromise = null;
-      reject(new Error('카카오 맵 로드 타임아웃'));
-    }, 10000);
-
-    document.head.appendChild(script);
-  });
-
-  return kakaoMapLoadPromise;
-};
+import {
+  loadKakaoMapScript,
+  safeKakaoAccess,
+  checkKakaoMapStatus,
+  forceReloadKakaoMap,
+} from '../../utils/kakaoMapLoader';
 
 function Kakaomap({
   onChange,
@@ -137,6 +29,15 @@ function Kakaomap({
   // 상태 관리
   const [loadingState, setLoadingState] = useState('loading'); // loading, loaded, error
   const [errorMessage, setErrorMessage] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
+
+  // 디버깅 정보 업데이트
+  const updateDebugInfo = (info) => {
+    setDebugInfo(
+      (prev) => prev + '\n' + new Date().toLocaleTimeString() + ': ' + info
+    );
+    console.log('카카오맵 디버그:', info);
+  };
 
   // 카카오 맵 로드 및 초기화
   useEffect(() => {
@@ -146,17 +47,17 @@ function Kakaomap({
       try {
         setLoadingState('loading');
         setErrorMessage('');
+        updateDebugInfo('지도 초기화 시작');
+        updateDebugInfo(`현재 도메인: ${window.location.hostname}`);
 
         // 카카오 맵 스크립트 로드
-        await loadKakaoMapScript();
+        updateDebugInfo('카카오 맵 스크립트 로딩 중...');
+        const kakao = await loadKakaoMapScript();
 
-        // 컴포넌트가 언마운트되었다면 초기화 중단
-        if (!mounted) return;
-
-        // 안전하게 카카오 객체 확인
-        const kakao = safeKakaoAccess();
-        if (!kakao) {
-          throw new Error('카카오 맵을 사용할 수 없습니다');
+        // 컴포넌트가 언마운트되었다면 중단
+        if (!mounted) {
+          updateDebugInfo('컴포넌트 언마운트됨, 초기화 중단');
+          return;
         }
 
         // 컨테이너 확인
@@ -165,7 +66,12 @@ function Kakaomap({
         }
 
         // 이미 초기화되었다면 스킵
-        if (isInitialized.current) return;
+        if (isInitialized.current) {
+          updateDebugInfo('이미 초기화됨');
+          return;
+        }
+
+        updateDebugInfo('지도 객체 생성 중...');
 
         // 지도 초기화
         const options = {
@@ -181,23 +87,24 @@ function Kakaomap({
         geocoderRef.current = geocoder;
         infowindowRef.current = infowindow;
 
+        updateDebugInfo('지도 객체 생성 완료');
+
         // 초기화 완료 표시
         isInitialized.current = true;
 
         // 초기 위치 설정
         if (initialMap && initialLat && initialLng && initialRoadAddress) {
+          updateDebugInfo('초기 위치 설정 중...');
           const locPosition = new kakao.maps.LatLng(initialLat, initialLng);
           displayMarker(
             locPosition,
-            `
-            <div style="padding: 8px 12px; color: #000;">
-              주소: ${initialRoadAddress}
-            </div>
-          `
+            `<div style="padding: 8px 12px; color: #000;">주소: ${initialRoadAddress}</div>`
           );
         } else if (initialLocation) {
+          updateDebugInfo('초기 위치 객체 설정 중...');
           setInitialLocationOnMap(initialLocation);
         } else {
+          updateDebugInfo('현재 위치 확인 중...');
           // 현재 위치 설정
           handleCurrentLocation(kakao, map);
         }
@@ -207,9 +114,12 @@ function Kakaomap({
           handleMapClick(mouseEvent, geocoder, kakao);
         });
 
+        updateDebugInfo('지도 초기화 완료');
         setLoadingState('loaded');
       } catch (error) {
         console.error('카카오 맵 초기화 실패:', error);
+        updateDebugInfo(`초기화 실패: ${error.message}`);
+
         if (mounted) {
           setErrorMessage(error.message);
           setLoadingState('error');
@@ -225,7 +135,9 @@ function Kakaomap({
       if (markerRef.current) {
         try {
           markerRef.current.setMap(null);
-        } catch (e) {}
+        } catch (e) {
+          console.log('마커 정리 중 에러:', e);
+        }
         markerRef.current = null;
       }
     };
@@ -258,6 +170,7 @@ function Kakaomap({
       mapRef.current.setCenter(locPosition);
     } catch (error) {
       console.error('마커 표시 실패:', error);
+      updateDebugInfo(`마커 표시 실패: ${error.message}`);
     }
   }, []);
 
@@ -273,8 +186,10 @@ function Kakaomap({
             locPosition,
             '<div style="padding:5px; color:black;">현재위치</div>'
           );
+          updateDebugInfo('현재 위치 설정 완료');
         },
-        () => {
+        (error) => {
+          updateDebugInfo(`현재 위치 조회 실패: ${error.message}`);
           // 실패 시 기본 위치
           const locPosition = new kakao.maps.LatLng(
             35.30019091752179,
@@ -286,6 +201,8 @@ function Kakaomap({
           );
         }
       );
+    } else {
+      updateDebugInfo('위치 정보를 지원하지 않는 브라우저');
     }
   };
 
@@ -304,11 +221,7 @@ function Kakaomap({
 
           displayMarker(
             clickedlatlng,
-            `
-            <div style="padding: 8px 12px; color: #000;">
-              주소: ${addressText}
-            </div>
-          `
+            `<div style="padding: 8px 12px; color: #000;">주소: ${addressText}</div>`
           );
 
           setSelectedPlace({
@@ -338,11 +251,7 @@ function Kakaomap({
       const locPosition = new kakao.maps.LatLng(location.lat, location.lng);
       displayMarker(
         locPosition,
-        `
-        <div style="padding: 8px 12px; color: #000;">
-          ${location.locationName || '위치 정보'}
-        </div>
-      `
+        `<div style="padding: 8px 12px; color: #000;">${location.locationName || '위치 정보'}</div>`
       );
 
       setSelectedPlace({
@@ -360,6 +269,7 @@ function Kakaomap({
       }
     } catch (error) {
       console.error('초기 위치 설정 실패:', error);
+      updateDebugInfo(`초기 위치 설정 실패: ${error.message}`);
     }
   };
 
@@ -373,12 +283,15 @@ function Kakaomap({
       ps.keywordSearch(keyword, (data, status) => {
         if (status === kakao.maps.services.Status.OK) {
           setPlacelist(data);
+          updateDebugInfo(`검색 결과: ${data.length}개`);
         } else {
           setPlacelist([]);
+          updateDebugInfo('검색 결과 없음');
         }
       });
     } catch (error) {
       console.error('장소 검색 실패:', error);
+      updateDebugInfo(`장소 검색 실패: ${error.message}`);
       setPlacelist([]);
     }
   };
@@ -410,8 +323,30 @@ function Kakaomap({
           lng: lng,
         });
       }
+
+      updateDebugInfo(`장소 선택: ${placeData.name}`);
     } catch (error) {
       console.error('장소 선택 실패:', error);
+      updateDebugInfo(`장소 선택 실패: ${error.message}`);
+    }
+  };
+
+  // 강제 재로드 핸들러
+  const handleForceReload = async () => {
+    updateDebugInfo('강제 재로드 시작');
+    setLoadingState('loading');
+    setErrorMessage('');
+    isInitialized.current = false;
+
+    try {
+      await forceReloadKakaoMap();
+      updateDebugInfo('강제 재로드 성공');
+      // 페이지 새로고침으로 완전히 초기화
+      window.location.reload();
+    } catch (error) {
+      updateDebugInfo(`강제 재로드 실패: ${error.message}`);
+      setErrorMessage(error.message);
+      setLoadingState('error');
     }
   };
 
@@ -436,6 +371,11 @@ function Kakaomap({
             <span className="text-sm text-gray-400">
               카카오 지도 로딩 중...
             </span>
+            <div className="mt-2 text-xs text-gray-500">
+              {checkKakaoMapStatus().retryCount > 0 && (
+                <span>재시도 중... ({checkKakaoMapStatus().retryCount}/3)</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -458,17 +398,39 @@ function Kakaomap({
         </div>
 
         <div className="h-[200px] bg-[#1D1D1D] rounded-[10px] flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center p-4">
             <div className="text-red-400 text-sm mb-2">
               지도를 불러올 수 없습니다
             </div>
-            <div className="text-xs text-gray-500">{errorMessage}</div>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-2 px-3 py-1 bg-yellow-500 text-black rounded text-xs hover:bg-yellow-400"
-            >
-              새로고침
-            </button>
+            <div className="text-xs text-gray-500 mb-3">{errorMessage}</div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-3 py-2 bg-yellow-500 text-black rounded text-xs hover:bg-yellow-400"
+              >
+                새로고침
+              </button>
+
+              <button
+                onClick={handleForceReload}
+                className="px-3 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-400"
+              >
+                강제 재로드
+              </button>
+            </div>
+
+            {/* 디버그 정보 (개발 환경에서만) */}
+            {process.env.NODE_ENV === 'development' && debugInfo && (
+              <details className="mt-3 text-left">
+                <summary className="cursor-pointer text-xs text-gray-400">
+                  디버그 정보
+                </summary>
+                <pre className="text-xs text-gray-500 mt-2 whitespace-pre-wrap">
+                  {debugInfo}
+                </pre>
+              </details>
+            )}
           </div>
         </div>
       </div>

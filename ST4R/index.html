@@ -2,11 +2,34 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- CSP 설정 - 카카오맵 허용 -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com *.kakao.com;
+      connect-src 'self' https://dapi.kakao.com *.kakao.com https://eridanus.econo.mooo.com wss: ws:;
+      img-src 'self' data: https: http: *.kakaocdn.net *.kakao.com;
+      style-src 'self' 'unsafe-inline';
+      font-src 'self' data: https:;
+      frame-src 'none';
+      object-src 'none';
+    "
+    />
+
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>별자리 스팟 공유 & 모임 커뮤니티 플랫폼 Starlight</title>
+
+    <!-- DNS Prefetch for better performance -->
+    <link rel="dns-prefetch" href="//dapi.kakao.com" />
+    <link rel="dns-prefetch" href="//eridanus.econo.mooo.com" />
+
+    <!-- Preconnect to Kakao API for faster loading -->
+    <link rel="preconnect" href="https://dapi.kakao.com" crossorigin />
   </head>
   <body class="bg-black text-white">
     <div id="root"></div>

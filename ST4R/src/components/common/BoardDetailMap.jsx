@@ -1,19 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-
-// 카카오 맵 안전 접근 함수
-const safeKakaoAccess = () => {
-  try {
-    return typeof window !== 'undefined' &&
-      window.kakao &&
-      window.kakao.maps &&
-      typeof window.kakao.maps.Map === 'function'
-      ? window.kakao
-      : null;
-  } catch (error) {
-    console.error('카카오 맵 접근 실패:', error);
-    return null;
-  }
-};
+import {
+  loadKakaoMapScript,
+  safeKakaoAccess,
+  checkKakaoMapStatus,
+} from '../../utils/kakaoMapLoader';
 
 export default function BoardDetailMap({ location }) {
   const mapContainer = useRef(null);
@@ -27,20 +17,11 @@ export default function BoardDetailMap({ location }) {
 
     const initMap = async () => {
       try {
-        // 카카오 맵이 로드될 때까지 대기
-        let kakao = safeKakaoAccess();
-        let attempts = 0;
-        const maxAttempts = 50; // 5초 대기
+        console.log('BoardDetailMap 초기화 시작');
 
-        while (!kakao && attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          kakao = safeKakaoAccess();
-          attempts++;
-        }
-
-        if (!kakao) {
-          throw new Error('카카오 맵을 불러올 수 없습니다');
-        }
+        // 새로운 카카오 맵 로더 사용
+        const kakao = await loadKakaoMapScript();
+        console.log('카카오 맵 로드 완료');
 
         const { latitude, longitude, locationName, roadAddress } =
           location.marker;
@@ -92,6 +73,7 @@ export default function BoardDetailMap({ location }) {
 
         setMapLoaded(true);
         setMapError(null);
+        console.log('BoardDetailMap 초기화 완료');
       } catch (error) {
         console.error('지도 초기화 실패:', error);
         setMapError(error.message);
@@ -106,7 +88,9 @@ export default function BoardDetailMap({ location }) {
       if (markerRef.current) {
         try {
           markerRef.current.setMap(null);
-        } catch (e) {}
+        } catch (e) {
+          console.log('마커 정리 중 에러:', e);
+        }
         markerRef.current = null;
       }
       mapRef.current = null;
@@ -146,11 +130,31 @@ export default function BoardDetailMap({ location }) {
     <div className="w-full">
       {mapError ? (
         <div className="w-full h-48 bg-gray-800 rounded-lg flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center p-4">
             <div className="text-red-400 text-sm mb-2">
               지도를 불러올 수 없습니다
             </div>
-            <div className="text-xs text-gray-500">{mapError}</div>
+            <div className="text-xs text-gray-500 mb-3">{mapError}</div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-3 py-2 bg-yellow-500 text-black rounded text-xs hover:bg-yellow-400"
+              >
+                새로고침
+              </button>
+
+              {/* 디버그 정보 */}
+              <details className="text-left">
+                <summary className="cursor-pointer text-xs text-gray-400">
+                  상태 정보
+                </summary>
+                <pre className="text-xs text-gray-500 mt-2">
+                  도메인: {window.location.hostname}
+                  {'\n'}상태: {JSON.stringify(checkKakaoMapStatus(), null, 2)}
+                </pre>
+              </details>
+            </div>
           </div>
         </div>
       ) : !mapLoaded ? (
@@ -158,6 +162,11 @@ export default function BoardDetailMap({ location }) {
           <div className="flex flex-col items-center">
             <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mb-2"></div>
             <span className="text-sm text-gray-400">지도 로딩 중...</span>
+            <div className="mt-1 text-xs text-gray-500">
+              {checkKakaoMapStatus().retryCount > 0 && (
+                <span>재시도 중... ({checkKakaoMapStatus().retryCount}/3)</span>
+              )}
+            </div>
           </div>
         </div>
       ) : (
