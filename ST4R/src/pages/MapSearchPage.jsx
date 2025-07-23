@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '../components/common/BackButton';
-import { loadKakaoMapScript, safeKakaoAccess } from '../utils/kakaoMapLoader';
+import {
+  loadKakaoMapScript,
+  safeKakaoAccess,
+  checkKakaoMapStatus,
+} from '../utils/kakaoMapLoader';
 
 export default function MapSearchPage() {
   const navigate = useNavigate();
@@ -148,6 +152,7 @@ export default function MapSearchPage() {
   // 지도 초기화
   useEffect(() => {
     let mounted = true;
+    let initTimeout = null;
 
     const initializeMap = async () => {
       if (isInitialized.current) {
@@ -164,6 +169,24 @@ export default function MapSearchPage() {
 
         // 카카오 맵 스크립트 로드
         const kakao = await loadKakaoMapScript();
+
+        // 컴포넌트가 여전히 마운트되어 있는지 확인
+        if (!mounted) {
+          console.log('컴포넌트가 언마운트됨 - 초기화 중단');
+          return;
+        }
+
+        // 컨테이너가 DOM에 존재할 때까지 대기
+        await new Promise((resolve) => {
+          const checkContainer = () => {
+            if (mapContainer.current) {
+              resolve();
+            } else {
+              requestAnimationFrame(checkContainer);
+            }
+          };
+          checkContainer();
+        });
 
         if (!mounted || !mapContainer.current) {
           console.log('컴포넌트 언마운트됨');
@@ -308,34 +331,93 @@ export default function MapSearchPage() {
       }
     };
 
-    initializeMap();
+    // 약간의 지연 후 초기화 시작 (DOM이 준비될 시간 확보)
+    initTimeout = setTimeout(() => {
+      if (mounted) {
+        initializeMap();
+      }
+    }, 100);
 
     return () => {
       mounted = false;
-      // 클린업
-      if (markerRef.current) {
-        try {
-          markerRef.current.setMap(null);
-        } catch (e) {
-          console.log('마커 정리 실패:', e);
-        }
+
+      // 타임아웃 클리어
+      if (initTimeout) {
+        clearTimeout(initTimeout);
       }
-      if (circleRef.current) {
-        try {
-          circleRef.current.setMap(null);
-        } catch (e) {
-          console.log('원 정리 실패:', e);
+
+      // 지도 정리
+      if (isInitialized.current) {
+        console.log('지도 정리 시작');
+
+        // 마커 정리
+        if (markerRef.current) {
+          try {
+            markerRef.current.setMap(null);
+          } catch (e) {
+            console.log('마커 정리 실패:', e);
+          }
+          markerRef.current = null;
         }
+
+        // 원 정리
+        if (circleRef.current) {
+          try {
+            circleRef.current.setMap(null);
+          } catch (e) {
+            console.log('원 정리 실패:', e);
+          }
+          circleRef.current = null;
+        }
+
+        // 인포윈도우 정리
+        if (infowindowRef.current) {
+          try {
+            infowindowRef.current.close();
+          } catch (e) {
+            console.log('인포윈도우 정리 실패:', e);
+          }
+          infowindowRef.current = null;
+        }
+
+        // 참조 초기화
+        mapRef.current = null;
+        geocoderRef.current = null;
+        isInitialized.current = false;
       }
     };
+  }, []);
+
+  // 초기 위치 설정을 위한 별도 useEffect
+  useEffect(() => {
+    if (!isInitialized.current || !mapRef.current) return;
+
+    const kakao = safeKakaoAccess();
+    if (!kakao) return;
+
+    // 초기 위치 설정
+    if (initialLat && initialLng) {
+      const initLocation = {
+        lat: parseFloat(initialLat),
+        lng: parseFloat(initialLng),
+        locationName: initialLocationName || '선택된 위치',
+        roadAddress: initialRoadAddress || '주소 정보 없음',
+      };
+      setSelectedLocation(initLocation);
+
+      const initPosition = new kakao.maps.LatLng(
+        initLocation.lat,
+        initLocation.lng
+      );
+      displayMarker(initPosition, initLocation, searchRadius, kakao);
+    }
   }, [
-    displayMarker,
-    searchRadius,
-    getMapLevelForRadius,
     initialLat,
     initialLng,
     initialLocationName,
     initialRoadAddress,
+    searchRadius,
+    displayMarker,
   ]);
 
   // 장소 검색
@@ -625,7 +707,9 @@ export default function MapSearchPage() {
               <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mb-2"></div>
               <span className="text-sm text-gray-400">{loadingMessage}</span>
               <div className="text-xs text-gray-500 mt-2">
-                개발자 도구 콘솔에서 로딩 상태를 확인할 수 있습니다
+                {checkKakaoMapStatus().kakaoObject === 'exists' && (
+                  <span className="text-green-400">✓ 카카오 API 로드됨</span>
+                )}
               </div>
             </div>
           </div>
