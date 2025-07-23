@@ -169,6 +169,7 @@ export default function MapSearchPage() {
 
         // 카카오 맵 스크립트 로드
         const kakao = await loadKakaoMapScript();
+        console.log('✅ 카카오 맵 스크립트 로드 완료, kakao 객체:', !!kakao);
 
         // 컴포넌트가 여전히 마운트되어 있는지 확인
         if (!mounted) {
@@ -177,9 +178,11 @@ export default function MapSearchPage() {
         }
 
         // 컨테이너가 DOM에 존재할 때까지 대기
+        console.log('📦 컨테이너 확인 시작');
         await new Promise((resolve) => {
           const checkContainer = () => {
             if (mapContainer.current) {
+              console.log('✅ 컨테이너 준비됨');
               resolve();
             } else {
               requestAnimationFrame(checkContainer);
@@ -194,7 +197,7 @@ export default function MapSearchPage() {
         }
 
         setLoadingMessage('지도 생성 중...');
-        console.log('🗺️ 지도 생성 시작');
+        console.log('🗺️ 지도 생성 시작, 컨테이너:', mapContainer.current);
 
         // 초기 좌표 설정
         const defaultLat = initialLat ? parseFloat(initialLat) : 35.1595454;
@@ -206,7 +209,15 @@ export default function MapSearchPage() {
           level: 6,
         };
 
+        console.log('📍 지도 옵션:', mapOptions);
+        console.log('📍 컨테이너 크기:', {
+          width: mapContainer.current.offsetWidth,
+          height: mapContainer.current.offsetHeight,
+        });
+
         const map = new kakao.maps.Map(mapContainer.current, mapOptions);
+        console.log('✅ 지도 객체 생성됨:', !!map);
+
         const geocoder = new kakao.maps.services.Geocoder();
         const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
@@ -216,7 +227,7 @@ export default function MapSearchPage() {
         infowindowRef.current = infowindow;
         isInitialized.current = true;
 
-        console.log('✅ 지도 생성 완료');
+        console.log('✅ 지도 생성 완료, isInitialized:', isInitialized.current);
 
         // 초기 위치 설정
         if (initialLat && initialLng) {
@@ -321,19 +332,23 @@ export default function MapSearchPage() {
         }
 
         setMapLoading(false);
-        console.log('🎉 지도 초기화 완전 완료');
+        console.log('🎉 지도 초기화 완전 완료, mapLoading:', false);
       } catch (error) {
         console.error('❌ 지도 초기화 실패:', error);
+        console.error('에러 스택:', error.stack);
         if (mounted) {
           setMapLoading(false);
           setMapError(error.message);
+          console.log('❌ 에러 상태 설정됨');
         }
       }
     };
 
     // 약간의 지연 후 초기화 시작 (DOM이 준비될 시간 확보)
+    console.log('⏰ 초기화 타이머 설정');
     initTimeout = setTimeout(() => {
       if (mounted) {
+        console.log('⏰ 타이머 실행 - 초기화 시작');
         initializeMap();
       }
     }, 100);
@@ -743,7 +758,7 @@ export default function MapSearchPage() {
         ) : (
           <div
             ref={mapContainer}
-            className="w-full h-full rounded-xl overflow-hidden shadow-lg"
+            className="w-full h-full rounded-xl overflow-hidden shadow-lg bg-gray-900"
             style={{ minHeight: '300px' }}
           />
         )}
