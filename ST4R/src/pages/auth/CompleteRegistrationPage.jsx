@@ -14,12 +14,12 @@ const useCheckNicknameMutation = () => {
       }
 
       console.log('닉네임 중복 확인 요청:', nickname);
+      console.log('사용 중인 토큰:', token);
 
       try {
         const response = await axios.get(
-          'https://eridanus.econo.mooo.com/members/exists',
+          `https://eridanus.econo.mooo.com/members/exists?nickname=${encodeURIComponent(nickname)}`,
           {
-            params: { nickname },
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -29,12 +29,13 @@ const useCheckNicknameMutation = () => {
         console.log('닉네임 중복 확인 응답:', response.data);
         return response.data;
       } catch (error) {
-        console.error('닉네임 중복 확인 에러 전체:', error);
+        console.error('닉네임 중복 확인 에러:', error);
+        console.error('에러 응답:', error.response?.data);
+        console.error('에러 상태:', error.response?.status);
 
-        // 404 에러인 경우 API가 없는 것으로 판단
-        if (error.response?.status === 404) {
-          console.warn('닉네임 중복 확인 API가 없습니다. 스킵합니다.');
-          return { isSuccess: true, exists: false };
+        // 401 에러는 토큰 문제
+        if (error.response?.status === 401) {
+          throw new Error('인증이 만료되었습니다.');
         }
 
         throw error;
@@ -162,6 +163,8 @@ export default function CompleteRegistrationPage() {
   // 토큰 유효성 검사
   const validateToken = () => {
     const token = localStorage.getItem('token');
+    console.log('저장된 토큰 확인:', token ? '있음' : '없음');
+
     if (!token) return false;
 
     try {
@@ -174,6 +177,18 @@ export default function CompleteRegistrationPage() {
       // 기본적인 payload 파싱 확인
       const payload = JSON.parse(atob(parts[1]));
       console.log('토큰 payload:', payload);
+      console.log(
+        '토큰 만료 시간:',
+        new Date(payload.exp * 1000).toLocaleString()
+      );
+
+      // 현재 시간과 비교
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < currentTime) {
+        console.error('토큰이 만료되었습니다');
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('토큰 검증 실패:', error);
@@ -299,10 +314,12 @@ export default function CompleteRegistrationPage() {
       const response = await checkNicknameMutation.mutateAsync(
         formData.nickname
       );
-      console.log('닉네임 중복 확인 응답:', response);
+      console.log('닉네임 중복 확인 결과:', response);
 
-      if (response.isSuccess !== undefined ? response.isSuccess : true) {
+      // API 응답 형식에 따라 처리
+      if (response.isSuccess) {
         if (response.exists) {
+          // 닉네임이 이미 존재
           setErrors((prev) => ({
             ...prev,
             nickname: '이미 존재하는 닉네임입니다.',
@@ -310,11 +327,13 @@ export default function CompleteRegistrationPage() {
           setNicknameCheckResult('unavailable');
           setIsNicknameChecked(false);
         } else {
+          // 사용 가능한 닉네임
           setIsNicknameChecked(true);
           setNicknameCheckResult('available');
           setErrors((prev) => ({ ...prev, nickname: '' }));
         }
       } else {
+        // API 에러 응답
         setErrors((prev) => ({
           ...prev,
           nickname: response.message || '닉네임 확인에 실패했습니다.',
@@ -325,19 +344,24 @@ export default function CompleteRegistrationPage() {
     } catch (error) {
       console.error('닉네임 중복 확인 에러:', error);
 
-      if (error.response?.status === 401) {
-        alert('로그인이 필요합니다.');
+      if (
+        error.message === '인증이 만료되었습니다.' ||
+        error.response?.status === 401
+      ) {
+        alert('인증이 만료되었습니다. 다시 로그인해주세요.');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/login');
         return;
-      } else {
-        // 에러가 발생해도 진행할 수 있도록 처리
-        console.warn('닉네임 중복 확인 실패, 진행 가능하도록 처리');
-        setIsNicknameChecked(true);
-        setNicknameCheckResult('skip');
-        setErrors((prev) => ({ ...prev, nickname: '' }));
       }
+
+      // 기타 에러는 사용자에게 알림
+      setErrors((prev) => ({
+        ...prev,
+        nickname: '닉네임 확인 중 오류가 발생했습니다.',
+      }));
+      setNicknameCheckResult('error');
+      setIsNicknameChecked(false);
     }
   };
 
@@ -350,8 +374,10 @@ export default function CompleteRegistrationPage() {
       newErrors.nickname = '닉네임을 입력해주세요.';
     } else if (formData.nickname.length < 2 || formData.nickname.length > 10) {
       newErrors.nickname = '닉네임은 2-10자 사이여야 합니다.';
-    } else if (!isNicknameChecked && nicknameCheckResult !== 'skip') {
+    } else if (!isNicknameChecked) {
       newErrors.nickname = '닉네임 중복 확인을 해주세요.';
+    } else if (nicknameCheckResult === 'unavailable') {
+      newErrors.nickname = '이미 존재하는 닉네임입니다.';
     }
 
     // 생년월일 검사
@@ -547,9 +573,9 @@ export default function CompleteRegistrationPage() {
                 이미 존재하는 닉네임입니다.
               </p>
             )}
-            {nicknameCheckResult === 'skip' && !errors.nickname && (
-              <p className="text-yellow-400 text-sm mt-1">
-                ⚠ 닉네임 중복 확인을 할 수 없지만 진행 가능합니다.
+            {nicknameCheckResult === 'error' && !errors.nickname && (
+              <p className="text-red-400 text-sm mt-1">
+                닉네임 확인 중 오류가 발생했습니다.
               </p>
             )}
           </div>
