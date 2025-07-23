@@ -124,7 +124,7 @@ export default function BoardWritePage() {
       const postData = {
         title: title.trim(),
         content: content.trim(),
-        category: category,
+        category: category, // GENERAL, SPOT, PROMOTION 중 하나
         imageUrls: imageUrls, // null이거나 URL 배열
       };
 
@@ -141,14 +141,36 @@ export default function BoardWritePage() {
         };
       }
 
-      console.log('최종 전송 데이터:', postData);
+      console.log('최종 전송 데이터:', JSON.stringify(postData, null, 2));
 
       postBoard.mutate(postData, {
         onSuccess: () => {
           setShowSuccessModal(true);
         },
         onError: (error) => {
-          alert(error.message || '게시글 작성에 실패했습니다.');
+          console.error('게시글 작성 에러:', error);
+          console.error('에러 응답:', error.response?.data);
+
+          // 400 에러의 구체적인 내용 확인
+          if (error.response?.status === 400) {
+            const errorData = error.response.data;
+            console.error('400 에러 상세:', errorData);
+
+            // 에러 메시지가 있으면 표시
+            if (errorData?.message) {
+              alert(`오류: ${errorData.message}`);
+            } else if (errorData?.errors) {
+              // 필드별 에러가 있는 경우
+              const errorMessages = Object.entries(errorData.errors)
+                .map(([field, message]) => `${field}: ${message}`)
+                .join('\n');
+              alert(`입력 오류:\n${errorMessages}`);
+            } else {
+              alert('게시글 작성에 실패했습니다. 입력 내용을 확인해주세요.');
+            }
+          } else {
+            alert(error.message || '게시글 작성에 실패했습니다.');
+          }
         },
       });
     } catch (error) {
@@ -156,7 +178,6 @@ export default function BoardWritePage() {
       alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
     }
   };
-
   const getCurrentCategoryLabel = () => {
     return (
       categoryOptions.find((option) => option.value === category)?.label ||
@@ -306,4 +327,3 @@ export default function BoardWritePage() {
     </div>
   );
 }
-
