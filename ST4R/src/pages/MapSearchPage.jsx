@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+} catch (mapError) {
+          console.error('지도 생성 실패:', mapError);
+          throw mapError;
+        }import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '../components/common/BackButton';
-import {
-  loadKakaoMapScript,
-  safeKakaoAccess,
-  checkKakaoMapStatus,
-} from '../utils/kakaoMapLoader';
+import { loadKakaoMapScript, safeKakaoAccess, checkKakaoMapStatus } from '../utils/kakaoMapLoader';
 
 export default function MapSearchPage() {
   const navigate = useNavigate();
@@ -108,8 +107,7 @@ export default function MapSearchPage() {
         }, 300);
 
         if (infowindowRef.current && locationData) {
-          const radiusText =
-            radius >= 1000 ? `${radius / 1000}km` : `${radius}m`;
+          const radiusText = radius >= 1000 ? `${radius / 1000}km` : `${radius}m`;
           const message = `
             <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
               <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
@@ -138,12 +136,12 @@ export default function MapSearchPage() {
     const initMap = async () => {
       try {
         console.log('지도 초기화 시작');
-
+        
         const kakao = await loadKakaoMapScript();
         console.log('카카오 맵 로드 완료');
 
-        // 약간의 지연을 주어 DOM이 완전히 준비되도록 함
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // DOM이 완전히 준비되고 카카오 맵이 안정화되도록 더 긴 지연
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         if (!mapContainer.current) {
           console.error('맵 컨테이너를 찾을 수 없습니다');
@@ -154,25 +152,38 @@ export default function MapSearchPage() {
         console.log('맵 컨테이너 확인:', {
           exists: !!mapContainer.current,
           width: mapContainer.current.offsetWidth,
-          height: mapContainer.current.offsetHeight,
+          height: mapContainer.current.offsetHeight
         });
 
         const defaultLat = initialLat ? parseFloat(initialLat) : 35.1595454;
         const defaultLng = initialLng ? parseFloat(initialLng) : 126.8526012;
 
-        const map = new kakao.maps.Map(mapContainer.current, {
-          center: new kakao.maps.LatLng(defaultLat, defaultLng),
-          level: 6,
-        });
+        console.log('지도 생성 시작:', { defaultLat, defaultLng });
 
-        const geocoder = new kakao.maps.services.Geocoder();
-        const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+        try {
+          const map = new kakao.maps.Map(mapContainer.current, {
+            center: new kakao.maps.LatLng(defaultLat, defaultLng),
+            level: 6,
+          });
 
-        mapRef.current = map;
-        geocoderRef.current = geocoder;
-        infowindowRef.current = infowindow;
+          console.log('지도 객체 생성 성공:', map);
 
-        console.log('지도 생성 완료');
+          const geocoder = new kakao.maps.services.Geocoder();
+          const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+
+          mapRef.current = map;
+          geocoderRef.current = geocoder;
+          infowindowRef.current = infowindow;
+
+          console.log('지도 생성 완료');
+
+          // 지도가 생성된 후 relayout 호출
+          setTimeout(() => {
+            if (mapRef.current) {
+              console.log('지도 relayout 호출');
+              mapRef.current.relayout();
+            }
+          }, 300);
 
         // 초기 위치 설정
         if (initialLat && initialLng) {
@@ -184,10 +195,7 @@ export default function MapSearchPage() {
           };
           setSelectedLocation(initLocation);
 
-          const initPosition = new kakao.maps.LatLng(
-            initLocation.lat,
-            initLocation.lng
-          );
+          const initPosition = new kakao.maps.LatLng(initLocation.lat, initLocation.lng);
           displayMarker(initPosition, initLocation, searchRadius, kakao);
         }
 
@@ -227,14 +235,10 @@ export default function MapSearchPage() {
               const locPosition = new kakao.maps.LatLng(lat, lng);
 
               geocoder.coord2Address(lng, lat, (result, status) => {
-                const road =
-                  status === kakao.maps.services.Status.OK
-                    ? result[0].road_address?.address_name
-                    : null;
-                const jibun =
-                  status === kakao.maps.services.Status.OK
-                    ? result[0].address?.address_name
-                    : null;
+                const road = status === kakao.maps.services.Status.OK ? 
+                  result[0].road_address?.address_name : null;
+                const jibun = status === kakao.maps.services.Status.OK ? 
+                  result[0].address?.address_name : null;
                 const addressText = road || jibun || '주소 정보 없음';
 
                 const currentLocationData = {
@@ -245,12 +249,7 @@ export default function MapSearchPage() {
                 };
 
                 setSelectedLocation(currentLocationData);
-                displayMarker(
-                  locPosition,
-                  currentLocationData,
-                  searchRadius,
-                  kakao
-                );
+                displayMarker(locPosition, currentLocationData, searchRadius, kakao);
               });
             },
             (error) => {
@@ -363,8 +362,7 @@ export default function MapSearchPage() {
         updateCircle(locPosition, newRadius, kakao);
 
         if (infowindowRef.current && markerRef.current) {
-          const radiusText =
-            newRadius >= 1000 ? `${newRadius / 1000}km` : `${newRadius}m`;
+          const radiusText = newRadius >= 1000 ? `${newRadius / 1000}km` : `${newRadius}m`;
           const message = `
             <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
               <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
@@ -486,9 +484,7 @@ export default function MapSearchPage() {
                   onClick={() => handlePlaceClick(place)}
                   className="p-3 hover:bg-[#2A2A2A] transition-colors border-b border-gray-700 last:border-b-0 cursor-pointer"
                 >
-                  <div className="font-medium text-white">
-                    {place.place_name}
-                  </div>
+                  <div className="font-medium text-white">{place.place_name}</div>
                   <div className="text-sm text-gray-400 mt-1">
                     {place.road_address_name || place.address_name}
                   </div>
@@ -502,9 +498,7 @@ export default function MapSearchPage() {
         {selectedLocation && !mapError && (
           <div className="bg-[#1A1A1A] rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm text-yellow-500 font-medium">
-                선택된 위치
-              </div>
+              <div className="text-sm text-yellow-500 font-medium">선택된 위치</div>
               <div className="text-sm font-medium text-yellow-400">
                 {formatRadius(searchRadius)} 반경
               </div>
@@ -554,6 +548,11 @@ export default function MapSearchPage() {
           <div
             ref={mapContainer}
             className="w-full h-full rounded-xl overflow-hidden shadow-lg"
+            style={{ 
+              minHeight: '300px',
+              position: 'relative',
+              backgroundColor: '#1a1a1a'
+            }}
           />
         </div>
       </div>
@@ -593,6 +592,17 @@ export default function MapSearchPage() {
       </div>
 
       <style>{`
+        /* 카카오 맵 스타일 */
+        .kakao-map {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        
+        /* 카카오 맵 내부 요소들 */
+        div[class*="kakao"] {
+          max-width: none !important;
+        }
+        
         .range-slider::-webkit-slider-thumb {
           appearance: none;
           height: 24px;
