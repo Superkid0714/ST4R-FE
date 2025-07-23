@@ -151,8 +151,13 @@ export default function MapSearchPage() {
 
   // 지도 초기화
   useEffect(() => {
+    // 컨테이너가 없으면 실행하지 않음
+    if (!mapContainer.current) {
+      console.log('🚫 컨테이너가 아직 준비되지 않음');
+      return;
+    }
+
     let mounted = true;
-    let initTimeout = null;
 
     const initializeMap = async () => {
       if (isInitialized.current) {
@@ -166,33 +171,19 @@ export default function MapSearchPage() {
         setLoadingMessage('카카오 지도 스크립트 로딩 중...');
 
         console.log('🚀 지도 초기화 시작');
+        console.log('📦 컨테이너 상태:', {
+          exists: !!mapContainer.current,
+          width: mapContainer.current?.offsetWidth,
+          height: mapContainer.current?.offsetHeight,
+        });
 
         // 카카오 맵 스크립트 로드
         const kakao = await loadKakaoMapScript();
         console.log('✅ 카카오 맵 스크립트 로드 완료, kakao 객체:', !!kakao);
 
         // 컴포넌트가 여전히 마운트되어 있는지 확인
-        if (!mounted) {
-          console.log('컴포넌트가 언마운트됨 - 초기화 중단');
-          return;
-        }
-
-        // 컨테이너가 DOM에 존재할 때까지 대기
-        console.log('📦 컨테이너 확인 시작');
-        await new Promise((resolve) => {
-          const checkContainer = () => {
-            if (mapContainer.current) {
-              console.log('✅ 컨테이너 준비됨');
-              resolve();
-            } else {
-              requestAnimationFrame(checkContainer);
-            }
-          };
-          checkContainer();
-        });
-
         if (!mounted || !mapContainer.current) {
-          console.log('컴포넌트 언마운트됨');
+          console.log('컴포넌트가 언마운트됨 - 초기화 중단');
           return;
         }
 

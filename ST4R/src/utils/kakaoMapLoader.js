@@ -47,7 +47,7 @@ const detectEnvironment = () => {
   };
 };
 
-// 카카오 맵 스크립트 로드 함수
+// 카카오 맵 스크립트 로드 함수 - 단순화
 export const loadKakaoMapScript = () => {
   // 이미 로드된 경우
   if (kakaoMapLoaded && safeKakaoAccess()) {
@@ -83,7 +83,8 @@ export const loadKakaoMapScript = () => {
       // 스크립트 생성
       const script = document.createElement('script');
       script.type = 'text/javascript';
-      script.async = false; // 동기 로드로 변경
+      script.async = true; // async로 변경
+      script.defer = true; // defer 추가
 
       // Vercel에서는 proxy URL 사용, 로컬에서는 직접 로드
       if (env.isVercel) {
