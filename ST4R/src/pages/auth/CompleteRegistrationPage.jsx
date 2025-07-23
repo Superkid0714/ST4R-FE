@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import uploadImagesToS3 from '../../api/imgupload';
 
-// 닉네임 중복 확인 API (GET)
+// 닉네임 중복 확인 API
 const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
@@ -14,27 +14,30 @@ const useCheckNicknameMutation = () => {
       }
 
       console.log('닉네임 중복 확인 요청:', nickname);
-      console.log('사용 중인 토큰:', token);
+      console.log('사용 중인 토큰:', token ? '존재' : '없음');
 
       try {
-        const response = await axios.get(
-          `https://eridanus.econo.mooo.com/members/exists?nickname=${encodeURIComponent(nickname)}`,
-          {
+        // axios 인터셉터를 우회하여 직접 요청
+        const response = await axios
+          .create({
+            baseURL: 'https://eridanus.econo.mooo.com',
+            timeout: 15000,
+          })
+          .get(`/members/exists?nickname=${encodeURIComponent(nickname)}`, {
             headers: {
               Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
-          }
-        );
+          });
 
         console.log('닉네임 중복 확인 응답:', response.data);
-
-        // API 응답 형식: { isSuccess: true, message: "SUCCESS", exists: boolean }
         return response.data;
       } catch (error) {
         console.error('닉네임 중복 확인 에러:', error);
         console.error('에러 응답:', error.response?.data);
         console.error('에러 상태:', error.response?.status);
 
+        // 401 에러는 토큰 문제
         if (error.response?.status === 401) {
           throw new Error('인증이 만료되었습니다.');
         }
@@ -45,7 +48,7 @@ const useCheckNicknameMutation = () => {
   });
 };
 
-// 회원가입 완료 API (PATCH)
+// 회원가입 완료 API
 const useCompleteRegistrationMutation = () => {
   return useMutation({
     mutationFn: async (data) => {
@@ -55,18 +58,21 @@ const useCompleteRegistrationMutation = () => {
       }
 
       console.log('회원가입 완료 요청 데이터:', data);
+      console.log('토큰 상태:', token ? '존재' : '없음');
 
       try {
-        const response = await axios.patch(
-          'https://eridanus.econo.mooo.com/members/completeRegistration',
-          data,
-          {
+        // axios 인터셉터를 우회하여 직접 요청
+        const response = await axios
+          .create({
+            baseURL: 'https://eridanus.econo.mooo.com',
+            timeout: 15000,
+          })
+          .patch('/members/completeRegistration', data, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
-          }
-        );
+          });
 
         console.log('회원가입 완료 응답:', response.data);
         return response.data;
@@ -317,7 +323,7 @@ export default function CompleteRegistrationPage() {
       );
       console.log('닉네임 중복 확인 결과:', response);
 
-      // API 응답: { isSuccess: true, message: "SUCCESS", exists: boolean }
+      // API 응답 형식에 따라 처리
       if (response.isSuccess) {
         if (response.exists) {
           // 닉네임이 이미 존재
@@ -437,17 +443,12 @@ export default function CompleteRegistrationPage() {
         }
       }
 
-      // API 요청 데이터 형식에 맞게 구성
       const submitData = {
+        nickname: formData.nickname.trim(),
         birthDate: formData.birthDate,
         gender: formData.gender,
-        nickname: formData.nickname.trim(),
+        profileImageUrl: finalProfileImageUrl || null,
       };
-
-      // profileImageUrl은 필수가 아니므로 있을 때만 추가
-      if (finalProfileImageUrl) {
-        submitData.profileImageUrl = finalProfileImageUrl;
-      }
 
       console.log('회원가입 완료 데이터:', submitData);
       await completeRegistrationMutation.mutateAsync(submitData);
@@ -462,35 +463,6 @@ export default function CompleteRegistrationPage() {
     checkNicknameMutation.isLoading ||
     completeRegistrationMutation.isLoading ||
     isImageUploading;
-
-  // 디버깅을 위한 토큰 상태 확인
-  useEffect(() => {
-    const checkTokenStatus = () => {
-      const token = localStorage.getItem('token');
-      console.log('=== 토큰 상태 확인 ===');
-      console.log('토큰 존재:', !!token);
-
-      if (token) {
-        try {
-          const parts = token.split('.');
-          const payload = JSON.parse(atob(parts[1]));
-          console.log('토큰 payload:', payload);
-          console.log(
-            '토큰 만료 시간:',
-            new Date(payload.exp * 1000).toLocaleString()
-          );
-          console.log('현재 시간:', new Date().toLocaleString());
-
-          const isExpired = payload.exp * 1000 < Date.now();
-          console.log('토큰 만료 여부:', isExpired);
-        } catch (e) {
-          console.error('토큰 파싱 에러:', e);
-        }
-      }
-    };
-
-    checkTokenStatus();
-  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white font-['Pretendard'] flex items-center justify-center">

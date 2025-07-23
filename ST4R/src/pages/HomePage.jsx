@@ -220,26 +220,19 @@ export default function HomePage() {
         name: error.name,
       });
 
-      // 토큰 정리
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      // 에러 타입별 처리 - 401과 404 모두 회원가입 필요로 처리
-      if (error.response?.status === 401) {
-        console.log('401 에러 - 회원가입 필요');
-        // 토큰을 다시 저장하고 회원가입 페이지로
-        localStorage.setItem('token', token);
-        navigate('/register', { replace: true });
-      } else if (error.response?.status === 404) {
-        console.log('404 에러 - 사용자 정보 없음, 회원가입 필요');
-        // 토큰을 다시 저장하고 회원가입 페이지로
-        localStorage.setItem('token', token);
+      // 토큰은 유지하고 회원가입 페이지로 이동
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        console.log('회원가입 필요 - 토큰은 유지하고 회원가입 페이지로 이동');
+        // 토큰은 이미 저장되어 있으므로 그대로 두고 회원가입 페이지로 이동
         navigate('/register', { replace: true });
       } else if (error.response?.status === 500) {
         console.log('서버 내부 오류');
         alert(
           '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
         );
+        // 토큰 제거
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate('/home', { replace: true });
       } else if (
         error.code === 'ECONNABORTED' ||
@@ -247,14 +240,23 @@ export default function HomePage() {
       ) {
         console.log('요청 타임아웃');
         alert('서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
+        // 토큰 제거
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate('/home', { replace: true });
       } else if (error.code === 'ERR_NETWORK') {
         console.log('네트워크 오류');
         alert('네트워크 연결을 확인해주세요.');
+        // 토큰 제거
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate('/home', { replace: true });
       } else {
         console.log('알 수 없는 오류');
         alert('로그인 처리 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+        // 토큰 제거
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate('/home', { replace: true });
       }
     } finally {

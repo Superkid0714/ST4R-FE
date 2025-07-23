@@ -91,10 +91,16 @@ axios.interceptors.response.use(
   (error) => {
     console.error('API 에러:', error.response?.status, error.config?.url);
 
+    // 회원가입 페이지에서는 401 에러를 그대로 전달
+    const currentPath = window.location.pathname;
+    if (currentPath === '/register') {
+      console.log('회원가입 페이지에서 401 에러 - 그대로 전달');
+      return Promise.reject(error);
+    }
+
     // 401 에러 처리
     if (error.response?.status === 401) {
       const hadToken = clearAuthData();
-      const currentPath = window.location.pathname;
 
       // 로그인이 필수인 페이지들
       const authRequiredPaths = [
@@ -142,11 +148,6 @@ axios.interceptors.response.use(
         authError.shouldRetryWithoutAuth = true;
         authError.originalError = error;
         return Promise.reject(authError);
-      }
-
-      // 회원가입 페이지에서는 에러를 그대로 전달 (회원가입 로직에서 처리)
-      if (currentPath === '/register') {
-        return Promise.reject(error);
       }
     }
 
