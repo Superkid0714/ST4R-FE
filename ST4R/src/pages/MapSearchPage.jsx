@@ -16,6 +16,7 @@ export default function MapSearchPage() {
   const circleRef = useRef(null);
   const geocoderRef = useRef(null);
   const infowindowRef = useRef(null);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // 상태 관리
   const [keyword, setKeyword] = useState('');
@@ -32,6 +33,23 @@ export default function MapSearchPage() {
   const initialLocationName = searchParams.get('locationName');
   const initialRoadAddress = searchParams.get('roadAddress');
   const initialRadius = searchParams.get('searchRadius');
+
+  // 첫 로드 시 카카오 맵 강제 리로드
+  useEffect(() => {
+    if (isFirstLoad) {
+      setIsFirstLoad(false);
+      // 기존 카카오 스크립트가 있으면 제거
+      const existingScript = document.querySelector(
+        'script[src*="dapi.kakao.com"]'
+      );
+      if (existingScript) {
+        existingScript.remove();
+        if (window.kakao) {
+          delete window.kakao;
+        }
+      }
+    }
+  }, [isFirstLoad]);
 
   useEffect(() => {
     if (initialRadius) {
@@ -141,21 +159,7 @@ export default function MapSearchPage() {
 
         const kakao = await loadKakaoMapScript();
         console.log('카카오 맵 로드 완료');
-
-        // 카카오 맵이 완전히 로드될 때까지 대기
-        let retryCount = 0;
-        while (
-          (!window.kakao?.maps?.Map || !window.kakao?.maps?.LatLng) &&
-          retryCount < 20
-        ) {
-          console.log(`카카오 맵 객체 대기 중... (${retryCount + 1}/20)`);
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          retryCount++;
-        }
-
-        if (!window.kakao?.maps?.Map || !window.kakao?.maps?.LatLng) {
-          throw new Error('카카오 맵 객체가 로드되지 않았습니다');
-        }
+        console.log('카카오 맵 상태:', checkKakaoMapStatus());
 
         if (!mapContainer.current) {
           console.error('맵 컨테이너를 찾을 수 없습니다');
