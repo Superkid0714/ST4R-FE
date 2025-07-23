@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import uploadImagesToS3 from '../../api/imgupload';
 
-// 닉네임 중복 확인 API
+// 닉네임 중복 확인 API (GET)
 const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
@@ -27,13 +27,14 @@ const useCheckNicknameMutation = () => {
         );
 
         console.log('닉네임 중복 확인 응답:', response.data);
+
+        // API 응답 형식: { isSuccess: true, message: "SUCCESS", exists: boolean }
         return response.data;
       } catch (error) {
         console.error('닉네임 중복 확인 에러:', error);
         console.error('에러 응답:', error.response?.data);
         console.error('에러 상태:', error.response?.status);
 
-        // 401 에러는 토큰 문제
         if (error.response?.status === 401) {
           throw new Error('인증이 만료되었습니다.');
         }
@@ -44,7 +45,7 @@ const useCheckNicknameMutation = () => {
   });
 };
 
-// 회원가입 완료 API
+// 회원가입 완료 API (PATCH)
 const useCompleteRegistrationMutation = () => {
   return useMutation({
     mutationFn: async (data) => {
@@ -316,7 +317,7 @@ export default function CompleteRegistrationPage() {
       );
       console.log('닉네임 중복 확인 결과:', response);
 
-      // API 응답 형식에 따라 처리
+      // API 응답: { isSuccess: true, message: "SUCCESS", exists: boolean }
       if (response.isSuccess) {
         if (response.exists) {
           // 닉네임이 이미 존재
@@ -436,12 +437,17 @@ export default function CompleteRegistrationPage() {
         }
       }
 
+      // API 요청 데이터 형식에 맞게 구성
       const submitData = {
-        nickname: formData.nickname.trim(),
         birthDate: formData.birthDate,
         gender: formData.gender,
-        profileImageUrl: finalProfileImageUrl || null,
+        nickname: formData.nickname.trim(),
       };
+
+      // profileImageUrl은 필수가 아니므로 있을 때만 추가
+      if (finalProfileImageUrl) {
+        submitData.profileImageUrl = finalProfileImageUrl;
+      }
 
       console.log('회원가입 완료 데이터:', submitData);
       await completeRegistrationMutation.mutateAsync(submitData);
@@ -456,6 +462,35 @@ export default function CompleteRegistrationPage() {
     checkNicknameMutation.isLoading ||
     completeRegistrationMutation.isLoading ||
     isImageUploading;
+
+  // 디버깅을 위한 토큰 상태 확인
+  useEffect(() => {
+    const checkTokenStatus = () => {
+      const token = localStorage.getItem('token');
+      console.log('=== 토큰 상태 확인 ===');
+      console.log('토큰 존재:', !!token);
+
+      if (token) {
+        try {
+          const parts = token.split('.');
+          const payload = JSON.parse(atob(parts[1]));
+          console.log('토큰 payload:', payload);
+          console.log(
+            '토큰 만료 시간:',
+            new Date(payload.exp * 1000).toLocaleString()
+          );
+          console.log('현재 시간:', new Date().toLocaleString());
+
+          const isExpired = payload.exp * 1000 < Date.now();
+          console.log('토큰 만료 여부:', isExpired);
+        } catch (e) {
+          console.error('토큰 파싱 에러:', e);
+        }
+      }
+    };
+
+    checkTokenStatus();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white font-['Pretendard'] flex items-center justify-center">
