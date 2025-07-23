@@ -44,7 +44,8 @@ const redirectToLogin = (reason = 'token_expired') => {
   if (
     returnUrl !== '/login' &&
     returnUrl !== '/login-alert' &&
-    returnUrl !== '/register'
+    returnUrl !== '/register' &&
+    !returnUrl.includes('/profile') // 프로필 관련 경로는 제외
   ) {
     sessionStorage.setItem('returnUrl', returnUrl);
   }

@@ -82,7 +82,7 @@ const useCompleteRegistrationMutation = () => {
       }
     },
     onSuccess: (data) => {
-      console.log('회원가입 완료 성공');
+      console.log('회원가입 완료 성공:', data);
 
       // 사용자 정보를 localStorage에 저장
       if (data) {
@@ -93,15 +93,23 @@ const useCompleteRegistrationMutation = () => {
 
       // returnUrl 확인 후 이동
       const returnUrl = sessionStorage.getItem('returnUrl');
+      console.log('저장된 returnUrl:', returnUrl);
+
+      // returnUrl이 있고 유효한 경우
       if (
         returnUrl &&
         returnUrl !== '/login' &&
         returnUrl !== '/login-alert' &&
-        returnUrl !== '/register'
+        returnUrl !== '/register' &&
+        !returnUrl.includes('/profile') // 프로필 관련 URL은 제외
       ) {
         sessionStorage.removeItem('returnUrl');
+        console.log('returnUrl로 이동:', returnUrl);
         window.location.href = returnUrl;
       } else {
+        // 그 외의 경우 홈으로 이동
+        console.log('홈으로 이동');
+        sessionStorage.removeItem('returnUrl'); // 혹시 남아있을 수 있는 returnUrl 제거
         window.location.href = '/home';
       }
     },

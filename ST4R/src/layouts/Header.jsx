@@ -104,7 +104,12 @@ export default function Header({
   const handleLoginClick = () => {
     // 현재 페이지를 returnUrl로 저장
     const currentPath = window.location.pathname + window.location.search;
-    if (currentPath !== '/login' && currentPath !== '/login-alert') {
+    if (
+      currentPath !== '/login' &&
+      currentPath !== '/login-alert' &&
+      currentPath !== '/register' &&
+      !currentPath.includes('/profile') // 프로필 관련 경로는 제외
+    ) {
       sessionStorage.setItem('returnUrl', currentPath);
     }
 

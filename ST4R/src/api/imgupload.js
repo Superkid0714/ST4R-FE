@@ -38,14 +38,20 @@ const getPresignedUrl = async (img) => {
   console.log('파일 크기:', (img.size / 1024 / 1024).toFixed(2), 'MB');
 
   try {
-    const res = await axios.get(
-      `https://eridanus.econo.mooo.com/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    // axios 인터셉터를 우회하여 직접 요청
+    const res = await axios
+      .create({
+        baseURL: 'https://eridanus.econo.mooo.com',
+        timeout: 15000,
+      })
+      .get(
+        `/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
     console.log('받은 Presigned URL:', res.data.presignedUrl);
     return res.data.presignedUrl;
   } catch (error) {
@@ -68,7 +74,8 @@ const uploadToPresignUrl = async (img, presignedUrl) => {
 
   try {
     // S3에 직접 업로드할 때는 Authorization 헤더가 필요 없음
-    const response = await axios.put(presignedUrl, img, {
+    // axios 인터셉터를 우회하여 직접 요청
+    const response = await axios.create().put(presignedUrl, img, {
       headers: {
         'Content-Type': img.type,
       },
