@@ -748,7 +748,7 @@ export default function MapSearchPage() {
           </div>
         ) : (
           <div
-            ref={mapContainer}
+            ref={setMapContainerRef}
             className="w-full h-full rounded-xl overflow-hidden shadow-lg bg-gray-900"
             style={{ minHeight: '300px' }}
           />
