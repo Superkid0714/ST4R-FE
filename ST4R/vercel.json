@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/kakao-sdk.js",
-      "destination": "https://dapi.kakao.com/v2/maps/sdk.js?appkey=5efbd2f844cb3d8609377a11750272bb&libraries=services&autoload=false"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
