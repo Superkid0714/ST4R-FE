@@ -14,7 +14,6 @@ function Kakaomap({
   const mapRef = useRef(null);
   const geocoderRef = useRef(null);
   const infowindowRef = useRef(null);
-  const isInitialized = useRef(false);
 
   const [keyword, setKeyword] = useState('');
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -29,7 +28,6 @@ function Kakaomap({
     if (!window.kakao || !mapRef.current) return;
 
     try {
-      // 기존 마커 처리
       if (markerRef.current) {
         markerRef.current.setPosition(locPosition);
       } else {
@@ -40,13 +38,11 @@ function Kakaomap({
         markerRef.current = marker;
       }
 
-      // 인포윈도우 처리
       if (message && infowindowRef.current) {
         infowindowRef.current.setContent(message);
         infowindowRef.current.open(mapRef.current, markerRef.current);
       }
 
-      // 지도 중심 이동
       mapRef.current.setCenter(locPosition);
     } catch (error) {
       console.error('마커 표시 실패:', error);
@@ -68,7 +64,6 @@ function Kakaomap({
             );
           },
           (error) => {
-            // 실패 시 기본 위치 (광주)
             const locPosition = new kakao.maps.LatLng(35.1595454, 126.8526012);
             displayMarker(
               locPosition,
@@ -77,8 +72,6 @@ function Kakaomap({
           }
         );
       } else {
-        console.log('위치 정보를 지원하지 않는 브라우저');
-        // 기본 위치 설정
         const locPosition = new kakao.maps.LatLng(35.1595454, 126.8526012);
         displayMarker(
           locPosition,
@@ -165,34 +158,29 @@ function Kakaomap({
 
   // 카카오 맵 로드 및 초기화
   useEffect(() => {
-    // 이미 초기화되었으면 스킵
-    if (isInitialized.current) {
-      return;
-    }
-
     const initializeMap = async () => {
       try {
         setLoadingState('loading');
         setErrorMessage('');
 
-        // 1. 카카오 맵 스크립트 로드
+        // 카카오 맵 스크립트 로드
         await new Promise((resolve, reject) => {
-          // 이미 로드되어 있는지 확인
           if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
             console.log('카카오 맵이 이미 로드되어 있습니다.');
             resolve();
             return;
           }
 
-          // 이미 스크립트가 로딩 중인지 확인
           const existingScript = document.querySelector(
             'script[src*="dapi.kakao.com"]'
           );
           if (existingScript) {
             existingScript.addEventListener('load', () => {
-              window.kakao.maps.load(() => {
-                resolve();
-              });
+              if (window.kakao && window.kakao.maps) {
+                window.kakao.maps.load(() => {
+                  resolve();
+                });
+              }
             });
             return;
           }
@@ -203,10 +191,14 @@ function Kakaomap({
 
           script.onload = () => {
             console.log('카카오 맵 스크립트 로드 완료');
-            window.kakao.maps.load(() => {
-              console.log('카카오 맵 초기화 완료');
-              resolve();
-            });
+            if (window.kakao && window.kakao.maps) {
+              window.kakao.maps.load(() => {
+                console.log('카카오 맵 초기화 완료');
+                resolve();
+              });
+            } else {
+              reject(new Error('카카오 맵 로드 실패'));
+            }
           };
 
           script.onerror = () => {
@@ -217,17 +209,20 @@ function Kakaomap({
           document.head.appendChild(script);
         });
 
-        // 2. 컨테이너 확인
+        // DOM이 준비될 때까지 대기
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // 컨테이너 확인
         if (!container.current) {
-          console.error('지도 컨테이너가 없습니다.');
+          console.error('지도 컨테이너를 찾을 수 없습니다.');
           throw new Error('지도 컨테이너를 찾을 수 없습니다');
         }
 
         const kakao = window.kakao;
 
-        // 3. 지도 초기화
+        // 지도 초기화
         const options = {
-          center: new kakao.maps.LatLng(35.1595454, 126.8526012), // 광주 좌표
+          center: new kakao.maps.LatLng(35.1595454, 126.8526012),
           level: 3,
         };
 
@@ -240,10 +235,7 @@ function Kakaomap({
         geocoderRef.current = geocoder;
         infowindowRef.current = infowindow;
 
-        // 초기화 완료 표시
-        isInitialized.current = true;
-
-        // 4. 초기 위치 설정
+        // 초기 위치 설정
         if (initialMap && initialLat && initialLng && initialRoadAddress) {
           const locPosition = new kakao.maps.LatLng(initialLat, initialLng);
           displayMarker(
@@ -253,11 +245,10 @@ function Kakaomap({
         } else if (initialLocation) {
           setInitialLocationOnMap(initialLocation);
         } else {
-          // 현재 위치 설정
           handleCurrentLocation(kakao, map);
         }
 
-        // 5. 지도 클릭 이벤트
+        // 지도 클릭 이벤트
         kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
           handleMapClick(mouseEvent, geocoder, kakao);
         });
@@ -271,12 +262,11 @@ function Kakaomap({
       }
     };
 
-    // 약간의 지연 후 초기화 시작 (DOM이 완전히 렌더링되도록)
-    const timer = setTimeout(initializeMap, 100);
+    // 컴포넌트가 마운트된 후 초기화
+    const timer = setTimeout(initializeMap, 0);
 
     return () => {
       clearTimeout(timer);
-      // cleanup
       if (markerRef.current) {
         try {
           markerRef.current.setMap(null);
@@ -285,7 +275,7 @@ function Kakaomap({
         }
       }
     };
-  }, []); // 빈 의존성 배열
+  }, []); // 의존성 배열을 비워서 한 번만 실행
 
   // 장소 검색
   const searchPlaces = useCallback(() => {
@@ -324,7 +314,7 @@ function Kakaomap({
         };
 
         setSelectedPlace(placeData);
-        setPlacelist([]); // 검색 결과 닫기
+        setPlacelist([]);
 
         if (onChange) {
           onChange({
