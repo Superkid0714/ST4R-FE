@@ -31,7 +31,7 @@ const removeExistingScript = () => {
   });
 };
 
-// 카카오 맵 스크립트 로드 함수 - 개선된 버전
+// 카카오 맵 스크립트 로드 함수
 export const loadKakaoMapScript = () => {
   // 이미 로드된 경우
   if (kakaoMapLoaded && safeKakaoAccess()) {
