@@ -142,8 +142,20 @@ export default function MapSearchPage() {
         const kakao = await loadKakaoMapScript();
         console.log('카카오 맵 로드 완료');
 
-        // DOM이 완전히 준비되고 카카오 맵이 안정화되도록 더 긴 지연
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // 카카오 맵이 완전히 로드될 때까지 대기
+        let retryCount = 0;
+        while (
+          (!window.kakao?.maps?.Map || !window.kakao?.maps?.LatLng) &&
+          retryCount < 20
+        ) {
+          console.log(`카카오 맵 객체 대기 중... (${retryCount + 1}/20)`);
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          retryCount++;
+        }
+
+        if (!window.kakao?.maps?.Map || !window.kakao?.maps?.LatLng) {
+          throw new Error('카카오 맵 객체가 로드되지 않았습니다');
+        }
 
         if (!mapContainer.current) {
           console.error('맵 컨테이너를 찾을 수 없습니다');
