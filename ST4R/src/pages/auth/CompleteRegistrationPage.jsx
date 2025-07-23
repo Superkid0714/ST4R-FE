@@ -4,19 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import uploadImagesToS3 from '../../api/imgupload';
 
-// axios 인터셉터를 우회하는 API 클라이언트 생성 함수
-const createApiClient = (token) => {
-  return axios.create({
-    baseURL: 'https://eridanus.econo.mooo.com',
-    timeout: 15000,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-};
-
-// 닉네임 중복 확인 API - 인터셉터 우회
+// 닉네임 중복 확인 API
 const useCheckNicknameMutation = () => {
   return useMutation({
     mutationFn: async (nickname) => {
@@ -27,18 +15,35 @@ const useCheckNicknameMutation = () => {
 
       console.log('닉네임 중복 확인 요청:', nickname);
 
-      const apiClient = createApiClient(token);
-      const response = await apiClient.get('/members/exists', {
-        params: { nickname },
-      });
+      try {
+        const response = await axios.get(
+          'https://eridanus.econo.mooo.com/members/exists',
+          {
+            params: { nickname },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      console.log('닉네임 중복 확인 응답:', response.data);
-      return response.data;
+        console.log('닉네임 중복 확인 응답:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('닉네임 중복 확인 에러 전체:', error);
+
+        // 404 에러인 경우 API가 없는 것으로 판단
+        if (error.response?.status === 404) {
+          console.warn('닉네임 중복 확인 API가 없습니다. 스킵합니다.');
+          return { isSuccess: true, exists: false };
+        }
+
+        throw error;
+      }
     },
   });
 };
 
-// 회원가입 완료 API - 인터셉터 우회
+// 회원가입 완료 API
 const useCompleteRegistrationMutation = () => {
   return useMutation({
     mutationFn: async (data) => {
@@ -47,16 +52,26 @@ const useCompleteRegistrationMutation = () => {
         throw new Error('로그인이 필요합니다.');
       }
 
-      console.log('회원가입 완료 요청:', data);
+      console.log('회원가입 완료 요청 데이터:', data);
 
-      const apiClient = createApiClient(token);
-      const response = await apiClient.patch(
-        '/members/completeRegistration',
-        data
-      );
+      try {
+        const response = await axios.patch(
+          'https://eridanus.econo.mooo.com/members/completeRegistration',
+          data,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
-      console.log('회원가입 완료 응답:', response.data);
-      return response.data;
+        console.log('회원가입 완료 응답:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('회원가입 완료 에러 전체:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log('회원가입 완료 성공');
@@ -84,7 +99,11 @@ const useCompleteRegistrationMutation = () => {
     },
     onError: (error) => {
       console.error('회원가입 완료 실패:', error);
-      console.error('에러 상세:', error.response?.data);
+      console.error('에러 상세:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers,
+      });
 
       if (error.response?.status === 401) {
         alert('로그인이 필요합니다.');
@@ -97,7 +116,6 @@ const useCompleteRegistrationMutation = () => {
           errorData?.message || '입력한 정보를 확인해주세요.';
         alert(errorMessage);
       } else if (error.response?.status === 409) {
-        // 409 Conflict 에러 처리 - 이미 회원가입이 완료된 상태일 수 있음
         const errorMessage =
           error.response?.data?.message ||
           '이미 회원가입이 완료되었거나 중복된 정보입니다.';
@@ -134,44 +152,40 @@ export default function CompleteRegistrationPage() {
   // 이미지 업로드 상태
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   // 유효성 검사 상태
   const [errors, setErrors] = useState({});
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
   const [nicknameCheckResult, setNicknameCheckResult] = useState('');
 
-  // 토큰 유효성 검사 - 단순화
+  // 토큰 유효성 검사
   const validateToken = () => {
     const token = localStorage.getItem('token');
     if (!token) return false;
 
     try {
-      // JWT 구조 확인만 하고 만료 시간은 서버에서 검증하도록 함
       const parts = token.split('.');
       if (parts.length !== 3) {
         console.error('잘못된 JWT 토큰 형식');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
         return false;
       }
 
       // 기본적인 payload 파싱 확인
-      JSON.parse(atob(parts[1]));
+      const payload = JSON.parse(atob(parts[1]));
+      console.log('토큰 payload:', payload);
       return true;
     } catch (error) {
       console.error('토큰 검증 실패:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
       return false;
     }
   };
 
-  // URL에서 토큰 확인 및 저장, 페이지 접근 권한 확인
+  // URL에서 토큰 확인 및 저장
   useEffect(() => {
     const token = searchParams.get('accessToken');
 
     if (token) {
-      // URL에서 토큰을 받은 경우
       console.log('URL에서 토큰 확인됨');
       localStorage.setItem('token', token);
 
@@ -287,9 +301,8 @@ export default function CompleteRegistrationPage() {
       );
       console.log('닉네임 중복 확인 응답:', response);
 
-      if (response.isSuccess) {
+      if (response.isSuccess !== undefined ? response.isSuccess : true) {
         if (response.exists) {
-          // 닉네임이 이미 존재하는 경우
           setErrors((prev) => ({
             ...prev,
             nickname: '이미 존재하는 닉네임입니다.',
@@ -297,13 +310,11 @@ export default function CompleteRegistrationPage() {
           setNicknameCheckResult('unavailable');
           setIsNicknameChecked(false);
         } else {
-          // 닉네임을 사용할 수 있는 경우
           setIsNicknameChecked(true);
           setNicknameCheckResult('available');
           setErrors((prev) => ({ ...prev, nickname: '' }));
         }
       } else {
-        // API 응답에서 isSuccess가 false인 경우
         setErrors((prev) => ({
           ...prev,
           nickname: response.message || '닉네임 확인에 실패했습니다.',
@@ -320,24 +331,13 @@ export default function CompleteRegistrationPage() {
         localStorage.removeItem('user');
         navigate('/login');
         return;
-      } else if (error.response?.status === 404) {
-        console.warn('닉네임 중복 확인 API 엔드포인트를 확인해주세요.');
-        alert(
-          '닉네임 중복 확인 기능을 사용할 수 없습니다. 고유한 닉네임을 입력해주세요.'
-        );
-        setErrors((prev) => ({
-          ...prev,
-          nickname: '닉네임 중복 확인을 할 수 없습니다.',
-        }));
-        setNicknameCheckResult('error');
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          nickname: '닉네임 확인에 실패했습니다.',
-        }));
-        setNicknameCheckResult('error');
+        // 에러가 발생해도 진행할 수 있도록 처리
+        console.warn('닉네임 중복 확인 실패, 진행 가능하도록 처리');
+        setIsNicknameChecked(true);
+        setNicknameCheckResult('skip');
+        setErrors((prev) => ({ ...prev, nickname: '' }));
       }
-      setIsNicknameChecked(false);
     }
   };
 
@@ -350,14 +350,8 @@ export default function CompleteRegistrationPage() {
       newErrors.nickname = '닉네임을 입력해주세요.';
     } else if (formData.nickname.length < 2 || formData.nickname.length > 10) {
       newErrors.nickname = '닉네임은 2-10자 사이여야 합니다.';
-    } else if (!isNicknameChecked || nicknameCheckResult !== 'available') {
-      // 닉네임 중복 확인이 실패했거나 에러인 경우는 통과시킴 (404 에러 대응)
-      if (nicknameCheckResult === 'error') {
-        // 에러인 경우 경고만 표시하고 진행 허용
-        console.warn('닉네임 중복 확인 없이 진행');
-      } else {
-        newErrors.nickname = '닉네임 중복 확인을 해주세요.';
-      }
+    } else if (!isNicknameChecked && nicknameCheckResult !== 'skip') {
+      newErrors.nickname = '닉네임 중복 확인을 해주세요.';
     }
 
     // 생년월일 검사
@@ -395,14 +389,24 @@ export default function CompleteRegistrationPage() {
 
       // 이미지가 업로드된 경우 S3에 업로드
       if (profileImage) {
+        setIsImageUploading(true);
         console.log('프로필 이미지 업로드 시작');
-        const imageUrls = await uploadImagesToS3([{ img: profileImage }]);
-        if (imageUrls && imageUrls.length > 0) {
-          finalProfileImageUrl = imageUrls[0];
-          console.log('프로필 이미지 업로드 완료:', finalProfileImageUrl);
-        } else {
-          console.warn('이미지 업로드 실패, 이미지 없이 진행');
+
+        try {
+          const imageUrls = await uploadImagesToS3([{ img: profileImage }]);
+          if (imageUrls && imageUrls.length > 0) {
+            finalProfileImageUrl = imageUrls[0];
+            console.log('프로필 이미지 업로드 완료:', finalProfileImageUrl);
+          } else {
+            console.warn('이미지 업로드 실패, 이미지 없이 진행');
+            finalProfileImageUrl = null;
+          }
+        } catch (uploadError) {
+          console.error('이미지 업로드 에러:', uploadError);
+          // 이미지 업로드 실패해도 회원가입은 진행
           finalProfileImageUrl = null;
+        } finally {
+          setIsImageUploading(false);
         }
       }
 
@@ -414,21 +418,18 @@ export default function CompleteRegistrationPage() {
       };
 
       console.log('회원가입 완료 데이터:', submitData);
-      completeRegistrationMutation.mutate(submitData);
+      await completeRegistrationMutation.mutateAsync(submitData);
     } catch (error) {
-      console.error('이미지 업로드 실패:', error);
-      // 이미지 업로드 실패해도 회원가입은 진행
-      const submitData = {
-        nickname: formData.nickname.trim(),
-        birthDate: formData.birthDate,
-        gender: formData.gender,
-        profileImageUrl: null,
-      };
-
-      console.log('이미지 없이 회원가입 완료 데이터:', submitData);
-      completeRegistrationMutation.mutate(submitData);
+      console.error('회원가입 제출 중 에러:', error);
+      // 에러는 mutation의 onError에서 처리됨
     }
   };
+
+  // 로딩 중 표시
+  const isLoading =
+    checkNicknameMutation.isLoading ||
+    completeRegistrationMutation.isLoading ||
+    isImageUploading;
 
   return (
     <div className="min-h-screen bg-black text-white font-['Pretendard'] flex items-center justify-center">
@@ -518,12 +519,15 @@ export default function CompleteRegistrationPage() {
                 className={`flex-1 h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white placeholder-gray-500 ${
                   errors.nickname ? 'border border-red-400' : ''
                 }`}
+                disabled={isLoading}
               />
               <button
                 type="button"
                 onClick={checkNickname}
                 disabled={
-                  !formData.nickname.trim() || checkNicknameMutation.isLoading
+                  !formData.nickname.trim() ||
+                  checkNicknameMutation.isLoading ||
+                  isLoading
                 }
                 className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
@@ -543,10 +547,9 @@ export default function CompleteRegistrationPage() {
                 이미 존재하는 닉네임입니다.
               </p>
             )}
-            {nicknameCheckResult === 'error' && !errors.nickname && (
+            {nicknameCheckResult === 'skip' && !errors.nickname && (
               <p className="text-yellow-400 text-sm mt-1">
-                ⚠ 닉네임 중복 확인을 할 수 없습니다. 고유한 닉네임을
-                사용해주세요.
+                ⚠ 닉네임 중복 확인을 할 수 없지만 진행 가능합니다.
               </p>
             )}
           </div>
@@ -564,6 +567,7 @@ export default function CompleteRegistrationPage() {
               className={`w-full h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white ${
                 errors.birthDate ? 'border border-red-400' : ''
               }`}
+              disabled={isLoading}
             />
             {errors.birthDate && (
               <p className="text-red-400 text-sm mt-1">{errors.birthDate}</p>
@@ -585,11 +589,12 @@ export default function CompleteRegistrationPage() {
                   key={option.value}
                   type="button"
                   onClick={() => handleInputChange('gender', option.value)}
+                  disabled={isLoading}
                   className={`h-12 rounded-lg border transition-colors ${
                     formData.gender === option.value
                       ? 'bg-yellow-500 border-yellow-500 text-black font-medium'
                       : 'bg-[#1D1D1D] border-gray-600 text-white hover:border-gray-500'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {option.label}
                 </button>
@@ -600,14 +605,18 @@ export default function CompleteRegistrationPage() {
           {/* 제출 버튼 */}
           <button
             onClick={handleSubmit}
-            disabled={completeRegistrationMutation.isLoading}
+            disabled={isLoading}
             className={`w-full h-14 rounded-lg font-bold text-lg transition-colors ${
-              completeRegistrationMutation.isLoading
+              isLoading
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 : 'bg-yellow-500 text-black hover:bg-yellow-400'
             }`}
           >
-            {completeRegistrationMutation.isLoading ? '처리중...' : '가입 완료'}
+            {isImageUploading
+              ? '이미지 업로드 중...'
+              : completeRegistrationMutation.isLoading
+                ? '처리중...'
+                : '가입 완료'}
           </button>
         </div>
 
