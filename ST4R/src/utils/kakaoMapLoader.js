@@ -61,7 +61,7 @@ const loadKakaoMapWithCSP = (apiKey) => {
         const script = document.createElement('script');
         script.type = 'text/javascript';
         script.async = true;
-        script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services&autoload=false`;
+        script.src = `/api/kakao-sdk.js`;
 
         return new Promise((resolve, reject) => {
           script.onload = () => {
