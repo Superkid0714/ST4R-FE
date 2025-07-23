@@ -14,7 +14,6 @@ function Kakaomap({
   const mapRef = useRef(null);
   const geocoderRef = useRef(null);
   const infowindowRef = useRef(null);
-  const mapInitialized = useRef(false);
 
   const [keyword, setKeyword] = useState('');
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -23,6 +22,7 @@ function Kakaomap({
   // 상태 관리
   const [loadingState, setLoadingState] = useState('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isMapReady, setIsMapReady] = useState(false);
 
   // 마커 표시 함수
   const displayMarker = useCallback((locPosition, message = null) => {
@@ -52,7 +52,9 @@ function Kakaomap({
 
   // 현재 위치 처리
   const handleCurrentLocation = useCallback(
-    (kakao, map) => {
+    (kakao) => {
+      if (!mapRef.current) return;
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -65,6 +67,7 @@ function Kakaomap({
             );
           },
           (error) => {
+            console.log('현재 위치 조회 실패:', error);
             const locPosition = new kakao.maps.LatLng(35.1595454, 126.8526012);
             displayMarker(
               locPosition,
@@ -73,6 +76,7 @@ function Kakaomap({
           }
         );
       } else {
+        console.log('Geolocation을 지원하지 않습니다.');
         const locPosition = new kakao.maps.LatLng(35.1595454, 126.8526012);
         displayMarker(
           locPosition,
@@ -85,14 +89,16 @@ function Kakaomap({
 
   // 지도 클릭 처리
   const handleMapClick = useCallback(
-    (mouseEvent, geocoder, kakao) => {
+    (mouseEvent) => {
+      if (!geocoderRef.current || !window.kakao) return;
+
       const clickedlatlng = mouseEvent.latLng;
 
-      geocoder.coord2Address(
+      geocoderRef.current.coord2Address(
         clickedlatlng.getLng(),
         clickedlatlng.getLat(),
         (result, status) => {
-          if (status === kakao.maps.services.Status.OK) {
+          if (status === window.kakao.maps.services.Status.OK) {
             const road = result[0].road_address?.address_name;
             const jibun = result[0].address?.address_name;
             const addressText = road || jibun || '주소 정보 없음';
@@ -125,7 +131,8 @@ function Kakaomap({
   // 초기 위치 설정
   const setInitialLocationOnMap = useCallback(
     (location) => {
-      if (!window.kakao || !location?.lat || !location?.lng) return;
+      if (!window.kakao || !location?.lat || !location?.lng || !mapRef.current)
+        return;
 
       try {
         const locPosition = new window.kakao.maps.LatLng(
@@ -159,7 +166,7 @@ function Kakaomap({
 
   // 카카오 맵 로드 및 초기화
   useEffect(() => {
-    if (mapInitialized.current) return;
+    let isCleanup = false;
 
     const initializeMap = async () => {
       try {
@@ -177,17 +184,18 @@ function Kakaomap({
           const existingScript = document.querySelector(
             'script[src*="dapi.kakao.com"]'
           );
+
           if (existingScript) {
-            existingScript.addEventListener('load', () => {
+            const checkKakaoLoaded = () => {
               if (window.kakao && window.kakao.maps) {
                 window.kakao.maps.load(() => {
                   resolve();
                 });
+              } else {
+                setTimeout(checkKakaoLoaded, 100);
               }
-            });
-            existingScript.addEventListener('error', () => {
-              reject(new Error('카카오 맵 스크립트 로드 실패'));
-            });
+            };
+            checkKakaoLoaded();
             return;
           }
 
@@ -197,14 +205,10 @@ function Kakaomap({
 
           script.onload = () => {
             console.log('카카오 맵 스크립트 로드 완료');
-            if (window.kakao && window.kakao.maps) {
-              window.kakao.maps.load(() => {
-                console.log('카카오 맵 초기화 완료');
-                resolve();
-              });
-            } else {
-              reject(new Error('카카오 맵 로드 실패'));
-            }
+            window.kakao.maps.load(() => {
+              console.log('카카오 맵 초기화 완료');
+              resolve();
+            });
           };
 
           script.onerror = () => {
@@ -215,18 +219,11 @@ function Kakaomap({
           document.head.appendChild(script);
         });
 
-        // 컨테이너가 DOM에 렌더링될 때까지 대기
-        let retryCount = 0;
-        const maxRetries = 10;
-
-        while (!container.current && retryCount < maxRetries) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          retryCount++;
-        }
+        if (isCleanup) return;
 
         // 컨테이너 확인
         if (!container.current) {
-          console.error('지도 컨테이너를 찾을 수 없습니다.');
+          console.error('지도 컨테이너가 없습니다.');
           throw new Error('지도 컨테이너를 찾을 수 없습니다');
         }
 
@@ -245,10 +242,21 @@ function Kakaomap({
         const geocoder = new kakao.maps.services.Geocoder();
         const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
+        if (isCleanup) {
+          map.destroy();
+          return;
+        }
+
         mapRef.current = map;
         geocoderRef.current = geocoder;
         infowindowRef.current = infowindow;
-        mapInitialized.current = true;
+
+        // 지도 클릭 이벤트
+        kakao.maps.event.addListener(map, 'click', handleMapClick);
+
+        setIsMapReady(true);
+        setLoadingState('loaded');
+        console.log('지도 초기화 성공');
 
         // 초기 위치 설정
         if (initialMap && initialLat && initialLng && initialRoadAddress) {
@@ -260,51 +268,45 @@ function Kakaomap({
         } else if (initialLocation) {
           setInitialLocationOnMap(initialLocation);
         } else {
-          handleCurrentLocation(kakao, map);
+          handleCurrentLocation(kakao);
         }
-
-        // 지도 클릭 이벤트
-        kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
-          handleMapClick(mouseEvent, geocoder, kakao);
-        });
-
-        setLoadingState('loaded');
-        console.log('지도 초기화 완료');
       } catch (error) {
-        console.error('카카오 맵 초기화 실패:', error);
-        setErrorMessage(error.message);
-        setLoadingState('error');
+        if (!isCleanup) {
+          console.error('카카오 맵 초기화 실패:', error);
+          setErrorMessage(error.message);
+          setLoadingState('error');
+        }
       }
     };
 
-    // 약간의 지연 후 초기화 시작
-    const timer = setTimeout(initializeMap, 100);
+    initializeMap();
 
     return () => {
-      clearTimeout(timer);
-      if (markerRef.current) {
+      isCleanup = true;
+      if (mapRef.current) {
         try {
-          markerRef.current.setMap(null);
+          // 이벤트 리스너 제거
+          if (window.kakao && window.kakao.maps) {
+            window.kakao.maps.event.removeListener(mapRef.current, 'click');
+          }
+          // 마커 제거
+          if (markerRef.current) {
+            markerRef.current.setMap(null);
+          }
+          // 인포윈도우 닫기
+          if (infowindowRef.current) {
+            infowindowRef.current.close();
+          }
         } catch (e) {
-          console.log('마커 정리 중 에러:', e);
+          console.log('지도 정리 중 에러:', e);
         }
       }
     };
-  }, [
-    displayMarker,
-    handleCurrentLocation,
-    handleMapClick,
-    setInitialLocationOnMap,
-    initialMap,
-    initialLat,
-    initialLng,
-    initialRoadAddress,
-    initialLocation,
-  ]);
+  }, []); // 빈 의존성 배열
 
   // 장소 검색
   const searchPlaces = useCallback(() => {
-    if (!keyword.trim() || !window.kakao) return;
+    if (!keyword.trim() || !window.kakao || !isMapReady) return;
 
     try {
       const ps = new window.kakao.maps.services.Places();
@@ -319,12 +321,12 @@ function Kakaomap({
       console.error('장소 검색 실패:', error);
       setPlacelist([]);
     }
-  }, [keyword]);
+  }, [keyword, isMapReady]);
 
   // 장소 선택
   const handlePlaceClick = useCallback(
     (place) => {
-      if (!window.kakao) return;
+      if (!window.kakao || !mapRef.current) return;
 
       try {
         const lat = parseFloat(place.y);
@@ -439,12 +441,15 @@ function Kakaomap({
 
         <div
           ref={container}
+          id="kakao-map-container"
           className="kakao-map-container"
           style={{
+            width: '100%',
             height: '200px',
             borderRadius: '10px',
             margin: '8px 0',
             backgroundColor: '#1D1D1D',
+            position: 'relative',
           }}
         />
       </div>
