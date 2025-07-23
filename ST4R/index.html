@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- CSP 설정 - 카카오맵 허용 -->
+    <!-- CSP 설정 -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com *.kakao.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com *.kakao.com https://t1.daumcdn.net http://t1.daumcdn.net;
       connect-src 'self' https://dapi.kakao.com *.kakao.com https://eridanus.econo.mooo.com wss: ws:;
       img-src 'self' data: https: http: *.kakaocdn.net *.kakao.com;
       style-src 'self' 'unsafe-inline';

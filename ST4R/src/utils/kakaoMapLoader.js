@@ -31,28 +31,24 @@ const removeExistingScript = () => {
   });
 };
 
-// 카카오 맵 스크립트 로드 함수
+// 카카오 맵 스크립트 로드 함수 - 단순화
 export const loadKakaoMapScript = () => {
   // 이미 로드된 경우
   if (kakaoMapLoaded && safeKakaoAccess()) {
-    console.log('카카오 맵이 이미 로드되어 있습니다.');
+    console.log('✅ 카카오 맵이 이미 로드되어 있습니다.');
     return Promise.resolve(window.kakao);
   }
 
   // 이미 로딩 중인 경우
   if (kakaoMapLoadPromise) {
-    console.log('카카오 맵 로딩이 이미 진행 중입니다.');
+    console.log('⏳ 카카오 맵 로딩이 이미 진행 중입니다.');
     return kakaoMapLoadPromise;
   }
 
   kakaoMapLoadPromise = new Promise((resolve, reject) => {
-    // 현재 환경 확인
-    const currentDomain = window.location.hostname;
-    console.log('현재 도메인:', currentDomain);
-
     // 재시도 카운터 증가
     retryCount++;
-    console.log(`카카오 맵 로딩 시도 #${retryCount}`);
+    console.log(`🚀 카카오 맵 로딩 시도 #${retryCount}`);
 
     // 기존 스크립트가 있다면 제거
     if (retryCount > 1) {
@@ -68,122 +64,125 @@ export const loadKakaoMapScript = () => {
     // 새 스크립트 생성
     const script = document.createElement('script');
     script.type = 'text/javascript';
-    script.async = true; // async로 변경하여 더 안정적으로 로드
-    script.crossOrigin = 'anonymous'; // CORS 설정 추가
+    script.async = true;
+    // script.crossOrigin = 'anonymous';
 
     // API 키와 함께 스크립트 URL 생성
-    const apiKey =
-      import.meta.env.VITE_KAKAO_API_KEY || '5efbd2f844cb3d8609377a11750272bb';
+    const apiKey = '5efbd2f844cb3d8609377a11750272bb';
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services&autoload=false`;
 
     let timeoutId;
-    let loadCheckInterval;
 
-    // 로딩 성공 핸들러
-    script.onload = () => {
-      console.log('카카오 맵 스크립트 로드 완료');
+    // 성공 핸들러
+    const handleSuccess = () => {
+      console.log('✅ 카카오 맵 스크립트 로드 완료');
       clearTimeout(timeoutId);
-      clearInterval(loadCheckInterval);
 
       // autoload=false이므로 수동으로 로드
-      if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
-        window.kakao.maps.load(() => {
-          const kakao = safeKakaoAccess();
-          if (kakao) {
-            console.log('카카오 맵 초기화 성공');
-            kakaoMapLoaded = true;
-            kakaoMapLoading = false;
-            retryCount = 0; // 성공 시 재시도 카운터 리셋
-            resolve(kakao);
+      const checkAndLoad = () => {
+        if (window.kakao && window.kakao.maps) {
+          if (window.kakao.maps.load) {
+            console.log('🔄 window.kakao.maps.load() 실행');
+            window.kakao.maps.load(() => {
+              const kakao = safeKakaoAccess();
+              if (kakao) {
+                console.log('🎉 카카오 맵 초기화 성공');
+                kakaoMapLoaded = true;
+                kakaoMapLoading = false;
+                retryCount = 0;
+                resolve(kakao);
+              } else {
+                handleError(new Error('카카오 맵 객체 접근 실패'));
+              }
+            });
           } else {
-            console.error('카카오 맵 객체 접근 실패');
-            handleLoadError(new Error('카카오 맵 초기화 실패'), reject);
+            // maps.load가 없는 경우 직접 확인
+            const kakao = safeKakaoAccess();
+            if (kakao) {
+              console.log('✅ 카카오 맵 즉시 사용 가능');
+              kakaoMapLoaded = true;
+              kakaoMapLoading = false;
+              retryCount = 0;
+              resolve(kakao);
+            } else {
+              setTimeout(checkAndLoad, 100);
+            }
           }
-        });
-      } else {
-        // window.kakao.maps.load가 없는 경우의 fallback
-        console.log('kakao.maps.load가 없음, 직접 확인 시도');
-        let checkCount = 0;
-        const maxChecks = 20;
+        } else {
+          setTimeout(checkAndLoad, 100);
+        }
+      };
 
-        const checkLoaded = () => {
-          checkCount++;
-          const kakao = safeKakaoAccess();
-          if (kakao) {
-            console.log(`카카오 맵 사용 가능 (체크 #${checkCount})`);
-            kakaoMapLoaded = true;
-            kakaoMapLoading = false;
-            retryCount = 0;
-            resolve(kakao);
-          } else if (checkCount < maxChecks) {
-            setTimeout(checkLoaded, 100);
-          } else {
-            console.error('카카오 맵 로드 확인 시간 초과');
-            handleLoadError(new Error('카카오 맵 로드 확인 타임아웃'), reject);
-          }
-        };
-
-        setTimeout(checkLoaded, 100);
-      }
+      checkAndLoad();
     };
 
-    // 로딩 실패 핸들러
-    script.onerror = (event) => {
-      console.error('카카오 맵 스크립트 로드 실패:', event);
+    // 에러 핸들러
+    const handleError = (error) => {
+      console.error('❌ 카카오 맵 로드 실패:', error);
       clearTimeout(timeoutId);
-      clearInterval(loadCheckInterval);
-
-      const error = new Error(
-        `카카오 맵 스크립트 로드 실패 (시도 #${retryCount})`
-      );
-      error.event = event;
-      handleLoadError(error, reject);
-    };
-
-    // 에러 처리 함수
-    const handleLoadError = (error, rejectFn) => {
       kakaoMapLoading = false;
       kakaoMapLoadPromise = null;
 
       // 최대 재시도 횟수에 도달하지 않았다면 재시도
       if (retryCount < MAX_RETRY) {
-        console.log(`재시도 예정 (${retryCount}/${MAX_RETRY})`);
+        console.log(`🔄 재시도 예정 (${retryCount}/${MAX_RETRY})`);
         setTimeout(() => {
-          console.log('카카오 맵 로딩 재시도');
-          loadKakaoMapScript().then(resolve).catch(rejectFn);
-        }, 1000 * retryCount); // 재시도 간격을 점진적으로 증가
+          loadKakaoMapScript().then(resolve).catch(reject);
+        }, 1000 * retryCount);
         return;
       }
 
       // 최대 재시도 횟수 도달
-      console.error('카카오 맵 로드 최종 실패:', error);
-      retryCount = 0; // 리셋
-      rejectFn(error);
+      console.error('💥 카카오 맵 로드 최종 실패');
+      retryCount = 0;
+
+      // 구체적인 에러 메시지 생성
+      let errorMessage = '카카오 맵을 불러올 수 없습니다.';
+
+      if (
+        error.message.includes('타임아웃') ||
+        error.message.includes('timeout')
+      ) {
+        errorMessage =
+          '카카오 맵 로딩 시간이 초과되었습니다. 인터넷 연결을 확인하고 새로고침해주세요.';
+      } else if (
+        error.message.includes('네트워크') ||
+        error.message.includes('network')
+      ) {
+        errorMessage = '네트워크 연결을 확인하고 새로고침해주세요.';
+      } else if (
+        error.message.includes('CSP') ||
+        error.message.includes('security')
+      ) {
+        errorMessage =
+          '보안 정책으로 인해 카카오 맵을 로드할 수 없습니다. 새로고침을 시도해주세요.';
+      }
+
+      const finalError = new Error(errorMessage);
+      finalError.originalError = error;
+      reject(finalError);
     };
 
-    // 타임아웃 설정 (15초로 증가)
+    // 스크립트 이벤트 리스너
+    script.onload = handleSuccess;
+    script.onerror = (event) => {
+      const error = new Error('카카오 맵 스크립트 다운로드 실패');
+      error.event = event;
+      handleError(error);
+    };
+
+    // 타임아웃 설정 (15초)
     timeoutId = setTimeout(() => {
-      console.error('카카오 맵 로드 타임아웃');
-      const error = new Error(`카카오 맵 로드 타임아웃 (시도 #${retryCount})`);
-      handleLoadError(error, reject);
+      handleError(new Error('카카오 맵 로드 타임아웃 (15초)'));
     }, 15000);
 
     // 스크립트를 DOM에 추가
-    console.log('카카오 맵 스크립트 DOM 추가:', script.src);
-    document.head.appendChild(script);
-
-    // 주기적으로 로드 상태 확인 (fallback)
-    loadCheckInterval = setInterval(() => {
-      if (safeKakaoAccess()) {
-        console.log('주기적 체크에서 카카오 맵 발견');
-        clearTimeout(timeoutId);
-        clearInterval(loadCheckInterval);
-        kakaoMapLoaded = true;
-        kakaoMapLoading = false;
-        retryCount = 0;
-        resolve(window.kakao);
-      }
-    }, 500);
+    try {
+      document.head.appendChild(script);
+      console.log('📥 카카오 맵 스크립트 DOM에 추가됨');
+    } catch (e) {
+      handleError(new Error(`스크립트 추가 실패: ${e.message}`));
+    }
   });
 
   return kakaoMapLoadPromise;
@@ -201,7 +200,7 @@ export const checkKakaoMapStatus = () => {
 
 // 카카오 맵 강제 리로드 함수
 export const forceReloadKakaoMap = () => {
-  console.log('카카오 맵 강제 리로드');
+  console.log('🔄 카카오 맵 강제 리로드');
   kakaoMapLoaded = false;
   kakaoMapLoading = false;
   kakaoMapLoadPromise = null;

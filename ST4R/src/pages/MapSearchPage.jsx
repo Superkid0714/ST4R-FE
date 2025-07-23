@@ -1,132 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '../components/common/BackButton';
-
-// 전역 카카오 맵 상태
-let kakaoMapScript = null;
-let kakaoMapPromise = null;
-
-// 카카오 맵 로더 - CSP 문제 해결 버전
-const loadKakaoMapScript = async () => {
-  // 이미 로드됨
-  if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
-    return window.kakao;
-  }
-
-  // 이미 로딩 중
-  if (kakaoMapPromise) {
-    return kakaoMapPromise;
-  }
-
-  kakaoMapPromise = new Promise((resolve, reject) => {
-    const apiKey = '5efbd2f844cb3d8609377a11750272bb';
-
-    // 기존 스크립트 확인
-    const existingScript = document.querySelector(
-      'script[src*="dapi.kakao.com"]'
-    );
-
-    if (existingScript) {
-      console.log('🔄 기존 카카오 맵 스크립트 대기 중...');
-
-      // 기존 스크립트 로드 완료 대기
-      const waitForLoad = () => {
-        if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
-          console.log('✅ 기존 스크립트로 카카오 맵 준비 완료');
-          resolve(window.kakao);
-        } else {
-          setTimeout(waitForLoad, 100);
-        }
-      };
-
-      waitForLoad();
-
-      // 타임아웃
-      setTimeout(() => {
-        if (!window.kakao || !window.kakao.maps || !window.kakao.maps.Map) {
-          reject(new Error('기존 스크립트 로드 타임아웃'));
-        }
-      }, 10000);
-
-      return;
-    }
-
-    console.log('📥 카카오 맵 스크립트 새로 로드 시작');
-
-    // 새 스크립트 생성 - 가장 간단한 방식
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.charset = 'utf-8';
-    script.async = true;
-
-    // autoload=false 반드시 포함
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services&autoload=false`;
-
-    const handleLoad = () => {
-      console.log('📦 카카오 맵 스크립트 로드 완료');
-
-      // 카카오 객체 확인 및 대기
-      let attempts = 0;
-      const maxAttempts = 100; // 10초
-
-      const checkReady = () => {
-        attempts++;
-
-        if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
-          console.log('✅ kakao.maps.load 함수 발견, 수동 로드 시작');
-
-          // 반드시 window.kakao.maps.load() 콜백에서만 지도 생성
-          window.kakao.maps.load(() => {
-            console.log('✅ 카카오 맵 API 준비 완료');
-            kakaoMapScript = script;
-            resolve(window.kakao);
-          });
-        } else if (attempts >= maxAttempts) {
-          reject(new Error('카카오 맵 초기화 타임아웃'));
-        } else {
-          setTimeout(checkReady, 100);
-        }
-      };
-
-      checkReady();
-    };
-
-    const handleError = (error) => {
-      console.error('❌ 카카오 맵 스크립트 로드 실패:', error);
-
-      // CSP 관련 오류 체크
-      if (document.querySelector('script[src*="dapi.kakao.com"]')) {
-        reject(
-          new Error(
-            'CSP 정책으로 인한 카카오 맵 로드 실패. 서버 설정을 확인해주세요.'
-          )
-        );
-      } else {
-        reject(new Error('카카오 맵 스크립트 다운로드 실패'));
-      }
-    };
-
-    script.addEventListener('load', handleLoad);
-    script.addEventListener('error', handleError);
-
-    // 전체 타임아웃
-    setTimeout(() => {
-      if (!window.kakao || !window.kakao.maps || !window.kakao.maps.Map) {
-        reject(new Error('카카오 맵 로드 전체 타임아웃 (15초)'));
-      }
-    }, 15000);
-
-    // DOM에 추가
-    try {
-      document.head.appendChild(script);
-      console.log('🚀 카카오 맵 스크립트 DOM에 추가됨');
-    } catch (e) {
-      reject(new Error(`스크립트 추가 실패: ${e.message}`));
-    }
-  });
-
-  return kakaoMapPromise;
-};
+import { loadKakaoMapScript, safeKakaoAccess } from '../utils/kakaoMapLoader';
 
 export default function MapSearchPage() {
   const navigate = useNavigate();
@@ -246,18 +121,20 @@ export default function MapSearchPage() {
         // 인포윈도우
         if (infowindowRef.current && locationData) {
           const radiusText =
-            radius >= 1000 ? radius / 1000 + 'km' : radius + 'm';
-          const message =
-            '<div style="padding: 8px 12px; min-width: 150px; text-align: center;">' +
-            '<div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">' +
-            locationData.locationName +
-            '</div>' +
-            '<div style="color: #666; font-size: 12px;">' +
-            locationData.roadAddress +
-            '</div>' +
-            '<div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">' +
-            radiusText +
-            ' 반경</div></div>';
+            radius >= 1000 ? `${radius / 1000}km` : `${radius}m`;
+          const message = `
+            <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
+              <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
+                ${locationData.locationName}
+              </div>
+              <div style="color: #666; font-size: 12px;">
+                ${locationData.roadAddress}
+              </div>
+              <div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">
+                ${radiusText} 반경
+              </div>
+            </div>
+          `;
           infowindowRef.current.setContent(message);
           infowindowRef.current.open(mapRef.current, markerRef.current);
         }
@@ -294,169 +171,139 @@ export default function MapSearchPage() {
         }
 
         setLoadingMessage('지도 생성 중...');
-        console.log('🗺️ window.kakao.maps.load() 콜백에서 지도 생성 시작');
+        console.log('🗺️ 지도 생성 시작');
 
-        // 반드시 window.kakao.maps.load() 콜백 내에서 지도 생성
-        window.kakao.maps.load(() => {
-          if (!mounted || !mapContainer.current) {
-            console.log('컴포넌트 언마운트됨');
-            return;
-          }
+        // 초기 좌표 설정
+        const defaultLat = initialLat ? parseFloat(initialLat) : 35.1595454;
+        const defaultLng = initialLng ? parseFloat(initialLng) : 126.8526012;
 
-          console.log('🗺️ 지도 객체 생성 시작');
+        // 지도 생성
+        const mapOptions = {
+          center: new kakao.maps.LatLng(defaultLat, defaultLng),
+          level: 6,
+        };
 
-          // 초기 좌표 설정
-          const defaultLat = initialLat ? parseFloat(initialLat) : 35.1595454;
-          const defaultLng = initialLng ? parseFloat(initialLng) : 126.8526012;
+        const map = new kakao.maps.Map(mapContainer.current, mapOptions);
+        const geocoder = new kakao.maps.services.Geocoder();
+        const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
-          // 지도 생성
-          const mapOptions = {
-            center: new kakao.maps.LatLng(defaultLat, defaultLng),
-            level: 6,
+        // 참조 저장
+        mapRef.current = map;
+        geocoderRef.current = geocoder;
+        infowindowRef.current = infowindow;
+        isInitialized.current = true;
+
+        console.log('✅ 지도 생성 완료');
+
+        // 초기 위치 설정
+        if (initialLat && initialLng) {
+          const initLocation = {
+            lat: parseFloat(initialLat),
+            lng: parseFloat(initialLng),
+            locationName: initialLocationName || '선택된 위치',
+            roadAddress: initialRoadAddress || '주소 정보 없음',
           };
+          setSelectedLocation(initLocation);
 
-          const map = new kakao.maps.Map(mapContainer.current, mapOptions);
-          const geocoder = new kakao.maps.services.Geocoder();
-          const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+          const initPosition = new kakao.maps.LatLng(
+            initLocation.lat,
+            initLocation.lng
+          );
+          displayMarker(initPosition, initLocation, searchRadius, kakao);
+        }
 
-          // 참조 저장
-          mapRef.current = map;
-          geocoderRef.current = geocoder;
-          infowindowRef.current = infowindow;
-          isInitialized.current = true;
+        // 지도 클릭 이벤트
+        kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+          const clickedLatLng = mouseEvent.latLng;
 
-          console.log('✅ 지도 생성 완료');
+          geocoder.coord2Address(
+            clickedLatLng.getLng(),
+            clickedLatLng.getLat(),
+            (result, status) => {
+              if (status === kakao.maps.services.Status.OK) {
+                const road = result[0].road_address?.address_name;
+                const jibun = result[0].address?.address_name;
+                const addressText = road || jibun || '주소 정보 없음';
 
-          // 초기 위치 설정
-          if (initialLat && initialLng) {
-            const initLocation = {
-              lat: parseFloat(initialLat),
-              lng: parseFloat(initialLng),
-              locationName: initialLocationName || '선택된 위치',
-              roadAddress: initialRoadAddress || '주소 정보 없음',
-            };
-            setSelectedLocation(initLocation);
+                const locationData = {
+                  lat: clickedLatLng.getLat(),
+                  lng: clickedLatLng.getLng(),
+                  locationName: '선택한 위치',
+                  roadAddress: addressText,
+                };
 
-            const initPosition = new kakao.maps.LatLng(
-              initLocation.lat,
-              initLocation.lng
-            );
-            displayMarker(initPosition, initLocation, searchRadius, kakao);
-          }
+                setSelectedLocation(locationData);
+                displayMarker(clickedLatLng, locationData, searchRadius, kakao);
+              }
+            }
+          );
+        });
 
-          // 지도 클릭 이벤트
-          kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
-            const clickedLatLng = mouseEvent.latLng;
+        // 현재 위치 가져오기 (초기 위치가 없을 때만)
+        if (!initialLat && !initialLng && navigator.geolocation) {
+          setLoadingMessage('현재 위치 확인 중...');
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+              const locPosition = new kakao.maps.LatLng(lat, lng);
 
-            geocoder.coord2Address(
-              clickedLatLng.getLng(),
-              clickedLatLng.getLat(),
-              (result, status) => {
+              geocoder.coord2Address(lng, lat, (result, status) => {
                 if (status === kakao.maps.services.Status.OK) {
                   const road = result[0].road_address?.address_name;
                   const jibun = result[0].address?.address_name;
                   const addressText = road || jibun || '주소 정보 없음';
 
-                  const locationData = {
-                    lat: clickedLatLng.getLat(),
-                    lng: clickedLatLng.getLng(),
-                    locationName: '선택한 위치',
+                  const currentLocationData = {
+                    lat,
+                    lng,
+                    locationName: '현재 위치',
                     roadAddress: addressText,
                   };
 
-                  setSelectedLocation(locationData);
+                  setSelectedLocation(currentLocationData);
                   displayMarker(
-                    clickedLatLng,
-                    locationData,
+                    locPosition,
+                    currentLocationData,
+                    searchRadius,
+                    kakao
+                  );
+                } else {
+                  const currentLocationData = {
+                    lat,
+                    lng,
+                    locationName: '현재 위치',
+                    roadAddress: '주소 정보 없음',
+                  };
+                  setSelectedLocation(currentLocationData);
+                  displayMarker(
+                    locPosition,
+                    currentLocationData,
                     searchRadius,
                     kakao
                   );
                 }
-              }
-            );
-          });
+              });
+            },
+            (error) => {
+              console.log('현재 위치 조회 실패:', error);
+              const defaultPosition = new kakao.maps.LatLng(
+                35.1595454,
+                126.8526012
+              );
+              map.setCenter(defaultPosition);
+              map.setLevel(getMapLevelForRadius(searchRadius));
+            }
+          );
+        }
 
-          // 현재 위치 가져오기 (초기 위치가 없을 때만)
-          if (!initialLat && !initialLng && navigator.geolocation) {
-            setLoadingMessage('현재 위치 확인 중...');
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const locPosition = new kakao.maps.LatLng(lat, lng);
-
-                geocoder.coord2Address(lng, lat, (result, status) => {
-                  if (status === kakao.maps.services.Status.OK) {
-                    const road = result[0].road_address?.address_name;
-                    const jibun = result[0].address?.address_name;
-                    const addressText = road || jibun || '주소 정보 없음';
-
-                    const currentLocationData = {
-                      lat,
-                      lng,
-                      locationName: '현재 위치',
-                      roadAddress: addressText,
-                    };
-
-                    setSelectedLocation(currentLocationData);
-                    displayMarker(
-                      locPosition,
-                      currentLocationData,
-                      searchRadius,
-                      kakao
-                    );
-                  } else {
-                    const currentLocationData = {
-                      lat,
-                      lng,
-                      locationName: '현재 위치',
-                      roadAddress: '주소 정보 없음',
-                    };
-                    setSelectedLocation(currentLocationData);
-                    displayMarker(
-                      locPosition,
-                      currentLocationData,
-                      searchRadius,
-                      kakao
-                    );
-                  }
-                });
-              },
-              (error) => {
-                console.log('현재 위치 조회 실패:', error);
-                const defaultPosition = new kakao.maps.LatLng(
-                  35.1595454,
-                  126.8526012
-                );
-                map.setCenter(defaultPosition);
-                map.setLevel(getMapLevelForRadius(searchRadius));
-              }
-            );
-          }
-
-          setMapLoading(false);
-          console.log('🎉 지도 초기화 완전 완료');
-        });
+        setMapLoading(false);
+        console.log('🎉 지도 초기화 완전 완료');
       } catch (error) {
         console.error('❌ 지도 초기화 실패:', error);
         if (mounted) {
           setMapLoading(false);
-
-          if (error.message.includes('CSP')) {
-            setMapError(
-              '보안 정책(CSP)으로 인해 카카오 맵을 로드할 수 없습니다. 서버 관리자에게 문의하세요.'
-            );
-          } else if (error.message.includes('타임아웃')) {
-            setMapError(
-              '카카오 맵 로드 시간이 초과되었습니다. 인터넷 연결을 확인하고 새로고침해주세요.'
-            );
-          } else if (error.message.includes('스크립트')) {
-            setMapError(
-              '카카오 맵 스크립트를 불러올 수 없습니다. 새로고침을 시도해주세요.'
-            );
-          } else {
-            setMapError(`지도 로딩 실패: ${error.message}`);
-          }
+          setMapError(error.message);
         }
       }
     };
@@ -493,12 +340,13 @@ export default function MapSearchPage() {
 
   // 장소 검색
   const searchPlaces = useCallback(() => {
-    if (!keyword.trim() || !window.kakao || !window.kakao.maps) return;
+    const kakao = safeKakaoAccess();
+    if (!keyword.trim() || !kakao) return;
 
     try {
-      const ps = new window.kakao.maps.services.Places();
+      const ps = new kakao.maps.services.Places();
       ps.keywordSearch(keyword, (data, status) => {
-        if (status === window.kakao.maps.services.Status.OK) {
+        if (status === kakao.maps.services.Status.OK) {
           setPlacelist(data);
           setShowPlaceList(true);
         } else {
@@ -515,12 +363,13 @@ export default function MapSearchPage() {
   // 장소 선택
   const handlePlaceClick = useCallback(
     (place) => {
-      if (!window.kakao || !window.kakao.maps) return;
+      const kakao = safeKakaoAccess();
+      if (!kakao) return;
 
       try {
         const lat = parseFloat(place.y);
         const lng = parseFloat(place.x);
-        const locPosition = new window.kakao.maps.LatLng(lat, lng);
+        const locPosition = new kakao.maps.LatLng(lat, lng);
 
         const locationData = {
           lat,
@@ -534,7 +383,7 @@ export default function MapSearchPage() {
         setPlacelist([]);
         setSelectedLocation(locationData);
 
-        displayMarker(locPosition, locationData, searchRadius, window.kakao);
+        displayMarker(locPosition, locationData, searchRadius, kakao);
       } catch (error) {
         console.error('장소 선택 실패:', error);
       }
@@ -555,16 +404,16 @@ export default function MapSearchPage() {
 
       radiusUpdateTimer.current = setTimeout(() => {
         const currentLocation = selectedLocationRef.current;
+        const kakao = safeKakaoAccess();
 
         if (
           currentLocation &&
           currentLocation.lat &&
           currentLocation.lng &&
-          window.kakao &&
-          window.kakao.maps
+          kakao
         ) {
           try {
-            const locPosition = new window.kakao.maps.LatLng(
+            const locPosition = new kakao.maps.LatLng(
               currentLocation.lat,
               currentLocation.lng
             );
@@ -578,22 +427,24 @@ export default function MapSearchPage() {
                 markerRef.current.setPosition(locPosition);
               }
 
-              updateCircle(locPosition, newRadius, window.kakao);
+              updateCircle(locPosition, newRadius, kakao);
 
               if (infowindowRef.current && markerRef.current) {
                 const radiusText =
                   newRadius >= 1000 ? newRadius / 1000 + 'km' : newRadius + 'm';
-                const message =
-                  '<div style="padding: 8px 12px; min-width: 150px; text-align: center;">' +
-                  '<div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">' +
-                  currentLocation.locationName +
-                  '</div>' +
-                  '<div style="color: #666; font-size: 12px;">' +
-                  currentLocation.roadAddress +
-                  '</div>' +
-                  '<div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">' +
-                  radiusText +
-                  ' 반경</div></div>';
+                const message = `
+                  <div style="padding: 8px 12px; min-width: 150px; text-align: center;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 14px;">
+                      ${currentLocation.locationName}
+                    </div>
+                    <div style="color: #666; font-size: 12px;">
+                      ${currentLocation.roadAddress}
+                    </div>
+                    <div style="color: #FFBB02; font-size: 11px; margin-top: 4px; font-weight: bold;">
+                      ${radiusText} 반경
+                    </div>
+                  </div>
+                `;
                 infowindowRef.current.setContent(message);
                 infowindowRef.current.open(mapRef.current, markerRef.current);
               }
@@ -658,19 +509,6 @@ export default function MapSearchPage() {
 
   // 새로고침 핸들러
   const handleRefresh = () => {
-    isInitialized.current = false;
-    kakaoMapScript = null;
-    kakaoMapPromise = null;
-
-    // 기존 스크립트 제거
-    const existingScript = document.querySelector(
-      'script[src*="dapi.kakao.com"]'
-    );
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    // 페이지 새로고침
     window.location.reload();
   };
 
@@ -793,11 +631,12 @@ export default function MapSearchPage() {
           </div>
         ) : mapError ? (
           <div className="w-full h-full rounded-xl bg-[#1A1A1A] flex items-center justify-center">
-            <div className="text-center">
+            <div className="text-center p-4">
               <div className="text-red-400 text-sm mb-2">
                 지도를 불러올 수 없습니다
               </div>
               <div className="text-xs text-gray-500 mb-3">{mapError}</div>
+
               <div className="space-y-2">
                 <button
                   onClick={handleRefresh}
@@ -805,12 +644,14 @@ export default function MapSearchPage() {
                 >
                   새로고침
                 </button>
-                <div className="text-xs text-gray-400">
-                  <p>문제가 지속되면:</p>
-                  <p>• 브라우저 개발자도구 콘솔 확인</p>
-                  <p>• 네트워크 연결 확인</p>
+
+                <div className="text-xs text-gray-400 text-left">
+                  <p className="font-medium mb-1">문제 해결 방법:</p>
+                  <p>• 브라우저 새로고침 (Ctrl+F5)</p>
                   <p>• 브라우저 캐시 삭제</p>
+                  <p>• 네트워크 연결 확인</p>
                   <p>• 다른 브라우저로 시도</p>
+                  <p>• 개발자 도구 콘솔 확인</p>
                 </div>
               </div>
             </div>
