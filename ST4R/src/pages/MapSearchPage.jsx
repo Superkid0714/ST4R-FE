@@ -162,13 +162,37 @@ export default function MapSearchPage() {
 
         console.log('지도 생성 시작:', { defaultLat, defaultLng });
 
-        try {
-          const map = new kakao.maps.Map(mapContainer.current, {
-            center: new kakao.maps.LatLng(defaultLat, defaultLng),
-            level: 6,
-          });
+        // 카카오 맵 객체 확인
+        console.log('카카오 맵 상태:', {
+          kakao: !!window.kakao,
+          maps: !!window.kakao?.maps,
+          Map: !!window.kakao?.maps?.Map,
+          LatLng: !!window.kakao?.maps?.LatLng,
+        });
 
+        try {
+          // 먼저 LatLng 생성
+          const centerLatLng = new kakao.maps.LatLng(defaultLat, defaultLng);
+          console.log('LatLng 생성 성공:', centerLatLng);
+
+          // 지도 옵션
+          const mapOptions = {
+            center: centerLatLng,
+            level: 6,
+          };
+          console.log('지도 옵션:', mapOptions);
+
+          // 지도 생성
+          const map = new kakao.maps.Map(mapContainer.current, mapOptions);
           console.log('지도 객체 생성 성공:', map);
+
+          // 지도 타입 컨트롤 추가
+          const mapTypeControl = new kakao.maps.MapTypeControl();
+          map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+
+          // 줌 컨트롤 추가
+          const zoomControl = new kakao.maps.ZoomControl();
+          map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
           const geocoder = new kakao.maps.services.Geocoder();
           const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
@@ -184,10 +208,18 @@ export default function MapSearchPage() {
             if (mapRef.current) {
               console.log('지도 relayout 호출');
               mapRef.current.relayout();
+
+              // 지도 중심 재설정
+              mapRef.current.setCenter(centerLatLng);
+              console.log('지도 중심 재설정 완료');
             }
-          }, 300);
+          }, 500);
         } catch (mapError) {
           console.error('지도 생성 실패:', mapError);
+          console.error('에러 상세:', {
+            message: mapError.message,
+            stack: mapError.stack,
+          });
           throw mapError;
         }
 
@@ -570,9 +602,11 @@ export default function MapSearchPage() {
           {/* 지도 컨테이너 */}
           <div
             ref={mapContainer}
+            id="kakao-map-container"
             className="w-full h-full rounded-xl overflow-hidden shadow-lg"
             style={{
-              minHeight: '300px',
+              minHeight: '400px',
+              height: '100%',
               position: 'relative',
               backgroundColor: '#1a1a1a',
             }}
