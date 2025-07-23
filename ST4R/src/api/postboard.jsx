@@ -7,8 +7,8 @@ export const useCreateBoardMutation = () => {
     mutationFn: async (data) => {
       console.log('받은 프론트엔드 데이터:', data);
 
-      // imageUrls 처리 - null, undefined, 빈 배열 모두 처리
-      let finalImageUrls = null;
+      // imageUrls 처리 - null이나 빈 배열 처리
+      let finalImageUrls = [];
       if (
         data.imageUrls &&
         Array.isArray(data.imageUrls) &&
@@ -28,7 +28,7 @@ export const useCreateBoardMutation = () => {
       // 프론트엔드 데이터
       const transformedData = {
         title: data.title?.trim() || '',
-        imageUrls: finalImageUrls, // null이면 null로, 배열이면 배열로
+        imageUrls: finalImageUrls, // 빈 배열로 전송
         content: {
           text: data.content?.trim() || '',
           map: data.location
@@ -147,4 +147,3 @@ export const useLogoutMutation = () => {
     },
   });
 };
-

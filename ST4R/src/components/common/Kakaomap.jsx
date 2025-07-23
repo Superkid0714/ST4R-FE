@@ -14,6 +14,7 @@ function Kakaomap({
   const mapRef = useRef(null);
   const geocoderRef = useRef(null);
   const infowindowRef = useRef(null);
+  const mapInitialized = useRef(false);
 
   const [keyword, setKeyword] = useState('');
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -158,6 +159,8 @@ function Kakaomap({
 
   // 카카오 맵 로드 및 초기화
   useEffect(() => {
+    if (mapInitialized.current) return;
+
     const initializeMap = async () => {
       try {
         setLoadingState('loading');
@@ -181,6 +184,9 @@ function Kakaomap({
                   resolve();
                 });
               }
+            });
+            existingScript.addEventListener('error', () => {
+              reject(new Error('카카오 맵 스크립트 로드 실패'));
             });
             return;
           }
@@ -209,14 +215,22 @@ function Kakaomap({
           document.head.appendChild(script);
         });
 
-        // DOM이 준비될 때까지 대기
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // 컨테이너가 DOM에 렌더링될 때까지 대기
+        let retryCount = 0;
+        const maxRetries = 10;
+
+        while (!container.current && retryCount < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          retryCount++;
+        }
 
         // 컨테이너 확인
         if (!container.current) {
           console.error('지도 컨테이너를 찾을 수 없습니다.');
           throw new Error('지도 컨테이너를 찾을 수 없습니다');
         }
+
+        console.log('컨테이너 찾음:', container.current);
 
         const kakao = window.kakao;
 
@@ -234,6 +248,7 @@ function Kakaomap({
         mapRef.current = map;
         geocoderRef.current = geocoder;
         infowindowRef.current = infowindow;
+        mapInitialized.current = true;
 
         // 초기 위치 설정
         if (initialMap && initialLat && initialLng && initialRoadAddress) {
@@ -262,8 +277,8 @@ function Kakaomap({
       }
     };
 
-    // 컴포넌트가 마운트된 후 초기화
-    const timer = setTimeout(initializeMap, 0);
+    // 약간의 지연 후 초기화 시작
+    const timer = setTimeout(initializeMap, 100);
 
     return () => {
       clearTimeout(timer);
@@ -275,7 +290,17 @@ function Kakaomap({
         }
       }
     };
-  }, []); // 의존성 배열을 비워서 한 번만 실행
+  }, [
+    displayMarker,
+    handleCurrentLocation,
+    handleMapClick,
+    setInitialLocationOnMap,
+    initialMap,
+    initialLat,
+    initialLng,
+    initialRoadAddress,
+    initialLocation,
+  ]);
 
   // 장소 검색
   const searchPlaces = useCallback(() => {
