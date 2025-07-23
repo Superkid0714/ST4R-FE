@@ -8,13 +8,15 @@
       http-equiv="Content-Security-Policy"
       content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com *.kakao.com https://t1.daumcdn.net http://t1.daumcdn.net;
-      connect-src 'self' https://dapi.kakao.com *.kakao.com https://eridanus.econo.mooo.com wss: ws:;
-      img-src 'self' data: https: http: *.kakaocdn.net *.kakao.com;
-      style-src 'self' 'unsafe-inline';
-      font-src 'self' data: https:;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com *.kakao.com https://t1.daumcdn.net http://t1.daumcdn.net blob:;
+      connect-src 'self' https://dapi.kakao.com *.kakao.com https://eridanus.econo.mooo.com wss: ws: blob:;
+      img-src 'self' data: https: http: *.kakaocdn.net *.kakao.com blob:;
+      style-src 'self' 'unsafe-inline' https:;
+      font-src 'self' data: https: *.gstatic.com;
       frame-src 'none';
       object-src 'none';
+      worker-src 'self' blob:;
+      child-src 'self' blob:;
     "
     />
 
