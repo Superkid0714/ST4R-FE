@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SearchBar from '../components/common/SearchBar';
 import FortuneIcon from '../assets/icons/fortune.svg?react';
@@ -17,9 +18,9 @@ export default function Header({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // 토큰 존재 여부로 로그인 상태 확인
-  const token = localStorage.getItem('token');
-  const isAuthenticated = !!token;
+  // 인증 상태 관리
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // 지도 검색 활성 상태 확인 (URL 파라미터로)
   const isMapSearchActive = searchParams.has('lat') && searchParams.has('lng');
@@ -43,22 +44,100 @@ export default function Header({
   } = useWeather(
     weatherLocation?.latitude,
     weatherLocation?.longitude,
-    !!weatherLocation // 위치 정보가 있을 때만 날씨 조회
+    !!weatherLocation
   );
+
+  // 인증 상태 확인
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        setIsAuthenticated(false);
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        if (payload.exp && payload.exp > currentTime) {
+          setIsAuthenticated(true);
+        } else {
+          // 토큰 만료
+          console.log('헤더: 토큰 만료 감지');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('헤더: 토큰 파싱 에러:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+      }
+
+      setAuthChecked(true);
+    };
+
+    checkAuthStatus();
+
+    // storage 이벤트 리스너 (다른 탭에서 로그인/로그아웃 시)
+    const handleStorageChange = () => {
+      console.log('헤더: storage 변경 감지');
+      checkAuthStatus();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // 주기적으로 토큰 상태 확인 (5분마다)
+    const tokenCheckInterval = setInterval(checkAuthStatus, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(tokenCheckInterval);
+    };
+  }, []);
 
   // 로그인 버튼 클릭 핸들러
   const handleLoginClick = () => {
-    navigate('/login');
+    // 현재 페이지를 returnUrl로 저장
+    const currentPath = window.location.pathname + window.location.search;
+    if (
+      currentPath !== '/login' &&
+      currentPath !== '/login-alert' &&
+      currentPath !== '/register' &&
+      !currentPath.includes('/profile') // 프로필 관련 경로는 제외
+    ) {
+      sessionStorage.setItem('returnUrl', currentPath);
+    }
+
+    // 카카오 로그인 URL로 직접 이동
+    const isDevelopment = window.location.hostname === 'localhost';
+    const redirectUrl = isDevelopment
+      ? 'http://localhost:5173'
+      : window.location.origin;
+
+    const loginUrl = `https://eridanus.econo.mooo.com/oauth/kakao?redirect=${redirectUrl}`;
+    window.location.href = loginUrl;
   };
 
   // 운세 버튼 클릭 핸들러
   const handleFortuneClick = () => {
     // 운세 기능 구현 예정
+    alert('운세 기능은 준비 중입니다.');
   };
 
   // 알림 버튼 클릭 핸들러
   const handleNotificationClick = () => {
+    if (!isAuthenticated) {
+      alert('로그인이 필요한 기능입니다.');
+      handleLoginClick();
+      return;
+    }
     // 알림 기능 구현 예정
+    alert('알림 기능은 준비 중입니다.');
   };
 
   // 지도 검색 버튼 클릭 핸들러
@@ -128,6 +207,9 @@ export default function Header({
     return `${temp}°C / ${weatherIcon} ${weatherKorean}`;
   };
 
+  // 인증 상태 확인이 완료되지 않은 경우 기본적으로 비로그인 상태로 렌더링
+  const shouldShowLoginButton = !authChecked || !isAuthenticated;
+
   return (
     <header className="bg-black text-white">
       <div>
@@ -139,6 +221,8 @@ export default function Header({
             <button
               onClick={handleNotificationClick}
               className="bg-[#2A2A2A] rounded-full p-2 hover:bg-[#3A3A3A] transition-colors"
+              type="button"
+              aria-label="알림"
             >
               <svg
                 className="w-5 h-5 text-gray-400"
@@ -156,18 +240,12 @@ export default function Header({
             </button>
 
             {/* 로그인 상태에 따른 조건부 렌더링 */}
-            {isAuthenticated ? (
-              <button
-                onClick={handleFortuneClick}
-                className="bg-[#2A2A2A] rounded-full px-3 py-2 hover:bg-[#3A3A3A] transition-colors flex items-center space-x-1"
-              >
-                <FortuneIcon className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-400 text-sm">운세</span>
-              </button>
-            ) : (
+            {shouldShowLoginButton ? (
               <button
                 onClick={handleLoginClick}
                 className="bg-[#FFBB02] rounded-full px-4 py-2 hover:bg-[#E6A500] transition-colors flex items-center space-x-1"
+                type="button"
+                aria-label="로그인"
               >
                 <svg
                   className="w-4 h-4 text-black"
@@ -183,6 +261,16 @@ export default function Header({
                   />
                 </svg>
                 <span className="text-black text-sm font-medium">로그인</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleFortuneClick}
+                className="bg-[#2A2A2A] rounded-full px-3 py-2 hover:bg-[#3A3A3A] transition-colors flex items-center space-x-1"
+                type="button"
+                aria-label="운세"
+              >
+                <FortuneIcon className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-400 text-sm">운세</span>
               </button>
             )}
           </div>
@@ -243,6 +331,8 @@ export default function Header({
                 : 'bg-[#2A2A2A] text-gray-400 hover:bg-[#3A3A3A]'
             }`}
             title={isMapSearchActive ? '지도 검색 해제' : '지도로 검색'}
+            type="button"
+            aria-label={isMapSearchActive ? '지도 검색 해제' : '지도로 검색'}
           >
             <svg
               className="w-5 h-5"
@@ -318,4 +408,3 @@ export default function Header({
     </header>
   );
 }
-

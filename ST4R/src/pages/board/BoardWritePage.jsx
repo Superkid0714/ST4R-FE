@@ -84,7 +84,6 @@ export default function BoardWritePage() {
 
   const postBoard = usePostBoardMutation();
 
-  // 글 등록 핸들러
   const handleSubmit = async () => {
     // 유효성 검사
     if (!title.trim()) {
@@ -108,24 +107,24 @@ export default function BoardWritePage() {
     }
 
     try {
-      // 이미지 업로드 (안전하게 처리)
-      let imageUrls = null;
+      // 이미지 업로드 처리
+      let imageUrls = [];
       if (images && images.length > 0) {
         console.log('이미지 업로드 시작, 이미지 개수:', images.length);
         const uploadedUrls = await uploadImagesToS3(images);
-        imageUrls =
-          uploadedUrls && uploadedUrls.length > 0 ? uploadedUrls : null;
+        // 빈 배열이 아닌 경우에만 할당
+        if (uploadedUrls && uploadedUrls.length > 0) {
+          imageUrls = uploadedUrls;
+        }
         console.log('이미지 업로드 완료:', imageUrls);
-      } else {
-        console.log('업로드할 이미지가 없음');
       }
 
-      // 게시글 데이터 준비
+      // 게시글 데이터 준비 - imageUrls를 항상 배열로 전송
       const postData = {
         title: title.trim(),
         content: content.trim(),
         category: category,
-        imageUrls: imageUrls, // null이거나 URL 배열
+        imageUrls: imageUrls, // 빈 배열이거나 URL이 담긴 배열
       };
 
       // 위치 정보가 있으면 추가
@@ -141,14 +140,33 @@ export default function BoardWritePage() {
         };
       }
 
-      console.log('최종 전송 데이터:', postData);
+      console.log('최종 전송 데이터:', JSON.stringify(postData, null, 2));
 
       postBoard.mutate(postData, {
         onSuccess: () => {
           setShowSuccessModal(true);
         },
         onError: (error) => {
-          alert(error.message || '게시글 작성에 실패했습니다.');
+          console.error('게시글 작성 에러:', error);
+          console.error('에러 응답:', error.response?.data);
+
+          if (error.response?.status === 400) {
+            const errorData = error.response.data;
+            console.error('400 에러 상세:', errorData);
+
+            if (errorData?.message) {
+              alert(`오류: ${errorData.message}`);
+            } else if (errorData?.errors) {
+              const errorMessages = Object.entries(errorData.errors)
+                .map(([field, message]) => `${field}: ${message}`)
+                .join('\n');
+              alert(`입력 오류:\n${errorMessages}`);
+            } else {
+              alert('게시글 작성에 실패했습니다. 입력 내용을 확인해주세요.');
+            }
+          } else {
+            alert(error.message || '게시글 작성에 실패했습니다.');
+          }
         },
       });
     } catch (error) {
@@ -306,4 +324,3 @@ export default function BoardWritePage() {
     </div>
   );
 }
-

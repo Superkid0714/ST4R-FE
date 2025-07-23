@@ -1,97 +1,96 @@
 import axios from 'axios';
 
-// 파일명 정리 함수 추가
+// 파일명 정리 함수
 const sanitizeFileName = (fileName) => {
-  // 한글 파일명을 영문으로 변환하거나 안전한 문자로 대체
-  return fileName
-    .replace(/\s+/g, '_') // 공백을 언더스코어로
-    .replace(/[()]/g, '') // 괄호 제거
-    .replace(/[^\w\-_.]/g, '') // 영문, 숫자, 하이픈, 언더스코어, 점만 허용
-    .replace(/_{2,}/g, '_') // 연속된 언더스코어를 하나로
-    .substring(0, 100); // 길이 제한
-};
-
-// 고유한 파일명 생성 함수
-const generateUniqueFileName = (originalName) => {
+  // 한글을 포함한 특수문자 제거
   const timestamp = Date.now();
+  const extension = fileName.split('.').pop().toLowerCase();
   const random = Math.random().toString(36).substring(2, 8);
-  const extension = originalName.split('.').pop().toLowerCase();
-  const baseName = originalName.split('.').slice(0, -1).join('.');
-  const cleanBaseName = sanitizeFileName(baseName);
 
-  return `${cleanBaseName}_${timestamp}_${random}.${extension}`;
+  return `upload_${timestamp}_${random}.${extension}`;
 };
 
-//Presignedurl 받기
+// Presigned URL 받기
 const getPresignedUrl = async (img) => {
-  // 원본 파일명 대신 정리된 파일명 사용
-  const cleanFileName = generateUniqueFileName(img.name);
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('인증 토큰이 없습니다.');
+  }
+
+  const cleanFileName = sanitizeFileName(img.name);
 
   console.log('원본 파일명:', img.name);
   console.log('정리된 파일명:', cleanFileName);
   console.log('파일 타입:', img.type);
+  console.log('파일 크기:', (img.size / 1024 / 1024).toFixed(2), 'MB');
 
   try {
     const res = await axios.get(
-      `https://eridanus.econo.mooo.com/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
+      `/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`,
       {
+        baseURL: 'https://eridanus.econo.mooo.com',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${token}`,
         },
+        timeout: 15000,
       }
     );
+
     console.log('받은 Presigned URL:', res.data.presignedUrl);
     return res.data.presignedUrl;
   } catch (error) {
     console.error('Presigned URL 요청 실패:', error);
-    console.error(
-      '요청 URL:',
-      `https://eridanus.econo.mooo.com/upload/s3/presigned-url?fileName=${encodeURIComponent(cleanFileName)}`
-    );
+    console.error('에러 응답:', error.response?.data);
+    console.error('에러 상태:', error.response?.status);
+
+    if (error.response?.status === 401) {
+      throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+    }
+
     throw error;
   }
 };
 
-//s3에 이미지 업로드
+// S3에 이미지 업로드
 const uploadToPresignUrl = async (img, presignedUrl) => {
   console.log('업로드 시작 - 파일 타입:', img.type);
   console.log('업로드 URL:', presignedUrl);
 
   try {
-    const response = await axios.put(presignedUrl, img, {
+    // fetch API 사용 (CORS 문제 회피)
+    const response = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: img,
       headers: {
         'Content-Type': img.type,
       },
-      // 진행률 추적
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        console.log(`업로드 진행률: ${percentCompleted}%`);
-      },
-      // axios 인터셉터에서 자동으로 추가되는 Authorization 헤더 무시
-      transformRequest: [
-        (data, headers) => {
-          delete headers['Authorization'];
-          return data;
-        },
-      ],
+      mode: 'cors',
     });
+
+    if (!response.ok) {
+      throw new Error(`업로드 실패: ${response.status} ${response.statusText}`);
+    }
 
     console.log('업로드 성공:', response.status);
     return response;
   } catch (error) {
     console.error('업로드 실패:', error);
-    console.error('에러 상세:', error.response?.data);
     throw error;
   }
 };
 
-// 최종 이미지 배열 s3에 업로드
+// 최종 이미지 배열 S3에 업로드
 export default async function uploadImagesToS3(images) {
   if (!images || images.length === 0) {
     console.log('업로드할 이미지가 없습니다.');
     return [];
+  }
+
+  // 토큰 확인
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('토큰이 없습니다. 로그인이 필요합니다.');
+    throw new Error('로그인이 필요합니다.');
   }
 
   console.log('이미지 업로드 시작, 이미지 개수:', images.length);
@@ -99,7 +98,7 @@ export default async function uploadImagesToS3(images) {
 
   for (const image of images) {
     try {
-      const img = image.img; // 실제 이미지 파일 객체
+      const img = image.img;
 
       // 파일 유효성 검사
       if (!img || !img.type || !img.name) {
@@ -134,6 +133,11 @@ export default async function uploadImagesToS3(images) {
       console.error('이미지 업로드 실패:', error);
       console.error('파일명:', image.img?.name);
 
+      // 인증 에러인 경우 전체 중단
+      if (error.message?.includes('인증')) {
+        throw error;
+      }
+
       // 개별 이미지 업로드 실패는 전체를 중단하지 않고 계속 진행
       alert(
         `이미지 "${image.img?.name || '알 수 없음'}" 업로드에 실패했습니다.`
@@ -144,4 +148,3 @@ export default async function uploadImagesToS3(images) {
   console.log('모든 이미지 업로드 완료:', imageUrls);
   return imageUrls;
 }
-

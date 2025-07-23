@@ -2,15 +2,36 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- CSP 설정 -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com *.kakao.com https://t1.daumcdn.net http://t1.daumcdn.net blob:;
+      connect-src 'self' https://dapi.kakao.com *.kakao.com https://eridanus.econo.mooo.com https://st4rbucket.s3.ap-northeast-2.amazonaws.com https://*.s3.amazonaws.com wss: ws: blob:;
+      img-src 'self' data: https: http: *.kakaocdn.net *.kakao.com https://st4rbucket.s3.ap-northeast-2.amazonaws.com https://*.s3.amazonaws.com blob:;
+      style-src 'self' 'unsafe-inline' https:;
+      font-src 'self' data: https: *.gstatic.com;
+      frame-src 'none';
+      object-src 'none';
+      worker-src 'self' blob:;
+      child-src 'self' blob:;
+    "
+    />
+
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script
-      type="text/javascript"
-      src="//dapi.kakao.com/v2/maps/sdk.js?appkey=5efbd2f844cb3d8609377a11750272bb&libraries=services"
-    ></script>
     <title>별자리 스팟 공유 & 모임 커뮤니티 플랫폼 Starlight</title>
+
+    <!-- DNS Prefetch for better performance -->
+    <link rel="dns-prefetch" href="//dapi.kakao.com" />
+    <link rel="dns-prefetch" href="//eridanus.econo.mooo.com" />
+
+    <!-- Preconnect to Kakao API for faster loading -->
+    <link rel="preconnect" href="https://dapi.kakao.com" crossorigin />
   </head>
   <body class="bg-black text-white">
     <div id="root"></div>
