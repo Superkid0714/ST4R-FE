@@ -426,36 +426,21 @@ export default function CompleteRegistrationPage() {
     }
 
     try {
-      let finalProfileImageUrl = formData.profileImageUrl;
+      let finalProfileImageUrl = null;
 
-      // 이미지가 업로드된 경우 S3에 업로드
+      // 이미지 업로드는 회원가입 완료 후에 별도로 처리하거나
+      // 프로필 이미지 없이 진행
       if (profileImage) {
-        setIsImageUploading(true);
-        console.log('프로필 이미지 업로드 시작');
-
-        try {
-          const imageUrls = await uploadImagesToS3([{ img: profileImage }]);
-          if (imageUrls && imageUrls.length > 0) {
-            finalProfileImageUrl = imageUrls[0];
-            console.log('프로필 이미지 업로드 완료:', finalProfileImageUrl);
-          } else {
-            console.warn('이미지 업로드 실패, 이미지 없이 진행');
-            finalProfileImageUrl = null;
-          }
-        } catch (uploadError) {
-          console.error('이미지 업로드 에러:', uploadError);
-          // 이미지 업로드 실패해도 회원가입은 진행
-          finalProfileImageUrl = null;
-        } finally {
-          setIsImageUploading(false);
-        }
+        console.log('프로필 이미지가 선택되었지만, 회원가입 후 업로드 예정');
+        // 일단 이미지 없이 회원가입 진행
+        finalProfileImageUrl = null;
       }
 
       const submitData = {
         nickname: formData.nickname.trim(),
         birthDate: formData.birthDate,
         gender: formData.gender,
-        profileImageUrl: finalProfileImageUrl || null,
+        profileImageUrl: finalProfileImageUrl,
       };
 
       console.log('회원가입 완료 데이터:', submitData);
@@ -468,9 +453,7 @@ export default function CompleteRegistrationPage() {
 
   // 로딩 중 표시
   const isLoading =
-    checkNicknameMutation.isLoading ||
-    completeRegistrationMutation.isLoading ||
-    isImageUploading;
+    checkNicknameMutation.isLoading || completeRegistrationMutation.isLoading;
 
   return (
     <div className="min-h-screen bg-black text-white font-['Pretendard'] flex items-center justify-center">
@@ -488,60 +471,31 @@ export default function CompleteRegistrationPage() {
           {/* 프로필 이미지 */}
           <div className="text-center">
             <label className="block text-sm font-medium text-white mb-6">
-              프로필 이미지 <span className="text-gray-400">(선택사항)</span>
+              프로필 이미지 <span className="text-gray-400">(준비중)</span>
             </label>
 
             <div className="flex flex-col items-center mb-2">
-              <div
-                onClick={handleImageClick}
-                className="relative w-32 h-32 rounded-full bg-[#1D1D1D] border-2 border-dashed border-gray-600 flex items-center justify-center cursor-pointer hover:border-yellow-500 transition-colors group"
-              >
-                {profileImagePreview ? (
-                  <>
-                    <img
-                      src={profileImagePreview}
-                      alt="프로필 미리보기"
-                      className="w-full h-full rounded-full object-cover"
+              <div className="relative w-32 h-32 rounded-full bg-[#1D1D1D] border-2 border-dashed border-gray-600 flex items-center justify-center cursor-not-allowed opacity-50">
+                <div className="text-center">
+                  <svg
+                    className="w-10 h-10 text-gray-400 mx-auto mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageRemove();
-                      }}
-                      className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </>
-                ) : (
-                  <div className="text-center">
-                    <svg
-                      className="w-10 h-10 text-gray-400 group-hover:text-yellow-500 mx-auto mb-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                      />
-                    </svg>
-                    <span className="text-xs text-gray-400 group-hover:text-yellow-500">
-                      사진 추가
-                    </span>
-                  </div>
-                )}
+                  </svg>
+                  <span className="text-xs text-gray-400">준비중</span>
+                </div>
               </div>
-
-              <input
-                type="file"
-                ref={imageInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                className="hidden"
-              />
+              <p className="text-xs text-gray-500 mt-2">
+                프로필 이미지는 가입 후 설정 가능합니다
+              </p>
             </div>
           </div>
 
@@ -581,16 +535,6 @@ export default function CompleteRegistrationPage() {
             {nicknameCheckResult === 'available' && !errors.nickname && (
               <p className="text-green-400 text-sm mt-1">
                 ✓ 사용 가능한 닉네임입니다
-              </p>
-            )}
-            {nicknameCheckResult === 'unavailable' && (
-              <p className="text-red-400 text-sm mt-1">
-                이미 존재하는 닉네임입니다.
-              </p>
-            )}
-            {nicknameCheckResult === 'error' && !errors.nickname && (
-              <p className="text-red-400 text-sm mt-1">
-                닉네임 확인 중 오류가 발생했습니다.
               </p>
             )}
           </div>
@@ -653,11 +597,7 @@ export default function CompleteRegistrationPage() {
                 : 'bg-yellow-500 text-black hover:bg-yellow-400'
             }`}
           >
-            {isImageUploading
-              ? '이미지 업로드 중...'
-              : completeRegistrationMutation.isLoading
-                ? '처리중...'
-                : '가입 완료'}
+            {completeRegistrationMutation.isLoading ? '처리중...' : '가입 완료'}
           </button>
         </div>
 
