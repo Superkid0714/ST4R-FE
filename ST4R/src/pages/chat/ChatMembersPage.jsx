@@ -18,8 +18,8 @@ export default function ChatMembersPage() {
   const alertedRef = useRef(false);
   const navigate = useNavigate();
   const [outModal, setOutModal] = useState(false);
-  const [banModal, setBanModal] = useState(false);
-  const [changeLeaderModal, setChangeLeaderModal] = useState(false);
+  const [banTarget, setBanTarget] = useState(null);
+  const [changeLeaderTarget, setChangeLeaderTarget] = useState(null);
 
   // 모임 상세 정보
   const { data: groupDetail, isLoading: groupDetailLoading } =
@@ -101,7 +101,7 @@ leading-loose"
         <div className="flex flex-col p-3 gap-4 border-[#1D1D1D] border-2 rounded-xl">
           {members &&
             members.map((member) => (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between" key={member.id}>
                 <div className="flex gap-3 items-center">
                   <img
                     src={member.imageUrl || profile}
@@ -130,7 +130,7 @@ leading-loose"
                   <div className="flex gap-1.5">
                     <div
                       className="text-xs text-[#FF4343] hover:cursor-pointer"
-                      onClick={() => setBanModal(true)}
+                      onClick={() => setBanTarget(member)}
                     >
                       강퇴하기
                     </div>
@@ -138,7 +138,7 @@ leading-loose"
                     <div className="text-xs text-[#bebebeff]">/</div>
                     <div
                       className="text-xs text-[#bebebeff] hover:cursor-pointer"
-                      onClick={() => setChangeLeaderModal(true)}
+                      onClick={() => setChangeLeaderTarget(member)}
                     >
                       모임장 위임하기
                     </div>
@@ -146,21 +146,21 @@ leading-loose"
                 )}
               </div>
             ))}
-          {banModal ? (
+          {banTarget ? (
             <ModalPortal>
               <BanModal
-                onClose={() => setBanModal(false)}
-                userId={member.id}
-                nickname={member.nickname}
+                onClose={() => setBanTarget(null)}
+                userId={banTarget.id}
+                nickname={banTarget.nickname}
               ></BanModal>
             </ModalPortal>
           ) : null}
-          {changeLeaderModal ? (
+          {changeLeaderTarget ? (
             <ModalPortal>
               <ChangeLeaderModal
-                onClose={() => setChangeLeaderModal(false)}
-                userId={member.id}
-                nickname={member.nickname}
+                onClose={() => setChangeLeaderTarget(null)}
+                userId={changeLeaderTarget.id}
+                nickname={changeLeaderTarget.nickname}
               ></ChangeLeaderModal>
             </ModalPortal>
           ) : null}
