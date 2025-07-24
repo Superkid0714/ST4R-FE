@@ -35,14 +35,14 @@ function Kakaomap({
 
     try {
       if (markerRef.current) {
-        markerRef.current.setPosition(locPosition);
-      } else {
-        const marker = new window.kakao.maps.Marker({
-          map: mapRef.current,
-          position: locPosition,
-        });
-        markerRef.current = marker;
+        markerRef.current.setMap(null); // 기존 마커 제거
       }
+
+      const marker = new window.kakao.maps.Marker({
+        map: mapRef.current,
+        position: locPosition,
+      });
+      markerRef.current = marker;
 
       if (message && infowindowRef.current) {
         infowindowRef.current.setContent(message);
@@ -137,6 +137,7 @@ function Kakaomap({
 
       console.log('지도 생성 시작');
       const map = new kakao.maps.Map(container.current, options);
+      console.log('지도 객체 생성 완료:', map);
       const geocoder = new kakao.maps.services.Geocoder();
       const infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
 
@@ -147,6 +148,7 @@ function Kakaomap({
 
       // 지도 클릭 이벤트
       kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+         console.log('🟢 지도 클릭됨', mouseEvent); // ← 여기 로그가 뜨는지?
         const clickedLatLng = mouseEvent.latLng;
 
         geocoder.coord2Address(
@@ -249,13 +251,6 @@ function Kakaomap({
 
     return () => {
       clearTimeout(timer);
-      if (markerRef.current) {
-        try {
-          markerRef.current.setMap(null);
-        } catch (e) {
-          console.log('마커 정리 중 에러:', e);
-        }
-      }
     };
   }, [initializeMap]);
 
