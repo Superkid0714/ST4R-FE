@@ -560,7 +560,7 @@ export default function CompleteRegistrationPage() {
                   checkNicknameMutation.isLoading ||
                   isLoading
                 }
-                className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="w-24 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
               >
                 {checkNicknameMutation.isLoading ? '확인중...' : '중복확인'}
               </button>
