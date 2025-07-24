@@ -26,6 +26,7 @@ export default function BanModal({ onClose, userId, nickname }) {
           className="w-full h-14 hover:cursor-pointer leading-14 bg-[#FF4343] rounded-xl"
           onClick={() => {
             memberBan.mutate(userId);
+            onClose();
           }}
         >
           강퇴하기
