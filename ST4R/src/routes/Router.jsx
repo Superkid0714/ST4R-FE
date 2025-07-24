@@ -121,11 +121,7 @@ const router = createBrowserRouter([
   // 선택창 페이지
   {
     path: '/writechoice',
-    element: (
-      <AuthGuard>
-        <WriteChoicePage />
-      </AuthGuard>
-    ),
+    element: <WriteChoicePage />,
   },
 
   // 프로필 관련 페이지 (네비바 없음)
