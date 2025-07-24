@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import BackButton from '../../components/common/BackButton';
-import uploadImagesToS3 from '../../api/imgupload';
-import ModalPotal from '../../components/common/ModalPortal';
+import ModalPortal from '../../components/common/ModalPortal';
 import ProfileUpdateSuccessModal from '../../components/modals/ProfileUpdateSuccessModal';
+import uploadImagesToS3 from '../../api/imgupload';
 
 // 사용자 정보 조회 API
 const useUserInfo = () => {
@@ -17,8 +17,29 @@ const useUserInfo = () => {
         throw new Error('로그인이 필요합니다.');
       }
 
+      const response = await axios.get('https://eridanus.econo.mooo.com/my', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data;
+    },
+    enabled: !!localStorage.getItem('token'),
+  });
+};
+
+// 닉네임 중복 확인 API
+const useCheckNicknameMutation = () => {
+  return useMutation({
+    mutationFn: async (nickname) => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
       const response = await axios.get(
-        'https://eridanus.econo.mooo.com/my',
+        `https://eridanus.econo.mooo.com/members/exists?nickname=${encodeURIComponent(nickname)}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -28,50 +49,20 @@ const useUserInfo = () => {
 
       return response.data;
     },
-    enabled: !!localStorage.getItem('token'),
-    staleTime: 1000 * 60 * 10,
-    retry: (failureCount, error) => {
-      if (error?.response?.status === 401) return false;
-      return failureCount < 2;
-    },
   });
 };
 
-// 닉네임 중복 확인 API
-const useCheckNicknameMutation = () => {
-  return useMutation({
-    mutationFn: async (nickname) => {
-      const response = await axios.get(
-        `https://eridanus.econo.mooo.com/members/exists`,
-        {
-          params: { nickname },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      return response.data;
-    },
-  });
-};
-
-// ProfileEditPage.jsx의 프로필 수정 API 부분만 수정
-
-// 프로필 수정 API - localStorage 업데이트 추가
+// 프로필 수정 API
 const useUpdateProfileMutation = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (data) => {
-      console.log('프로필 수정 요청 데이터:', data);
-
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('로그인이 필요합니다.');
       }
 
       const response = await axios.patch(
-        'https://eridanus.econo.mooo.com/my/profile',
+        'https://eridanus.econo.mooo.com/members',
         data,
         {
           headers: {
@@ -81,51 +72,12 @@ const useUpdateProfileMutation = () => {
         }
       );
 
-      console.log('프로필 수정 응답:', response.data);
       return response.data;
     },
-    onSuccess: (responseData, variables) => {
-      // 사용자 정보 캐시 무효화
-      queryClient.invalidateQueries(['userInfo']);
-
-      // localStorage의 user 정보도 업데이트
-      const currentUser = localStorage.getItem('user');
-      if (currentUser) {
-        try {
-          const parsedUser = JSON.parse(currentUser);
-
-          // 프로필 이미지가 변경된 경우
-          if (
-            variables.changeProfileImage &&
-            variables.profileImageUrlToChange !== undefined
-          ) {
-            parsedUser.profileImageUrl = variables.profileImageUrlToChange;
-          }
-
-          // 닉네임이 변경된 경우
-          if (variables.changeNickname && variables.nicknameToChange) {
-            parsedUser.nickname = variables.nicknameToChange;
-          }
-
-          // 업데이트된 정보를 localStorage에 저장
-          localStorage.setItem('user', JSON.stringify(parsedUser));
-        } catch (error) {
-          console.error('localStorage 업데이트 실패:', error);
-        }
-      }
-
-      console.log('프로필 수정 성공');
-    },
-    onError: (error) => {
-      console.error('프로필 수정 실패:', error);
-      console.error('응답 데이터:', error.response?.data);
-      console.error('응답 상태:', error.response?.status);
-
-      // SECURITY_403_001 에러 처리
-      if (error.response?.data?.errorCode === 'SECURITY_403_001') {
-        alert('회원가입을 완료해주세요.');
-        window.location.href = '/complete-registration';
-        return;
+    onSuccess: (data) => {
+      // 업데이트된 사용자 정보 저장
+      if (data) {
+        localStorage.setItem('user', JSON.stringify(data));
       }
     },
   });
@@ -135,45 +87,72 @@ export default function ProfileEditPage() {
   const navigate = useNavigate();
   const imageInputRef = useRef(null);
 
-  // 모달 상태 관리
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // 사용자 정보 조회
-  const { data: userInfo, isLoading, error } = useUserInfo();
-
-  // 상태 관리
-  const [profileImage, setProfileImage] = useState(null);
-  const [profileImagePreview, setProfileImagePreview] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [originalNickname, setOriginalNickname] = useState('');
-  const [originalProfileImage, setOriginalProfileImage] = useState('');
-
-  // 유효성 검사 상태
-  const [isNicknameChecked, setIsNicknameChecked] = useState(false);
-  const [nicknameCheckResult, setNicknameCheckResult] = useState('');
-  const [nicknameError, setNicknameError] = useState('');
-
-  // API 훅
+  const { data: userInfo, isLoading: isLoadingUserInfo } = useUserInfo();
   const checkNicknameMutation = useCheckNicknameMutation();
   const updateProfileMutation = useUpdateProfileMutation();
 
-  // 사용자 정보 로드 시 초기값 설정
+  // 폼 상태 관리
+  const [formData, setFormData] = useState({
+    nickname: '',
+    birthDate: '',
+    gender: 'UNKNOWN',
+    profileImageUrl: '',
+  });
+
+  // 이미지 업로드 상태
+  const [profileImage, setProfileImage] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
+
+  // 유효성 검사 상태
+  const [errors, setErrors] = useState({});
+  const [isNicknameChecked, setIsNicknameChecked] = useState(true); // 기존 닉네임은 체크된 상태
+  const [nicknameCheckResult, setNicknameCheckResult] = useState('');
+  const [originalNickname, setOriginalNickname] = useState('');
+
+  // 성공 모달 상태
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // 사용자 정보로 폼 초기화
   useEffect(() => {
     if (userInfo) {
-      setNickname(userInfo.nickname || '');
+      setFormData({
+        nickname: userInfo.nickname || '',
+        birthDate: userInfo.birthDate || '',
+        gender: userInfo.gender || 'UNKNOWN',
+        profileImageUrl: userInfo.profileImageUrl || '',
+      });
       setOriginalNickname(userInfo.nickname || '');
-      setOriginalProfileImage(userInfo.profileImageUrl || '');
       setProfileImagePreview(userInfo.profileImageUrl || '');
     }
   }, [userInfo]);
 
-  // 모달 핸들러
-  const handleCloseSuccessModal = () => {
-    setShowSuccessModal(false);
-    navigate('/profile');
+  // 입력 핸들러
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // 에러 상태 초기화
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: '',
+      }));
+    }
+
+    // 닉네임이 변경되면 중복 확인 리셋 (원래 닉네임과 다른 경우만)
+    if (field === 'nickname' && value !== originalNickname) {
+      setIsNicknameChecked(false);
+      setNicknameCheckResult('');
+    } else if (field === 'nickname' && value === originalNickname) {
+      setIsNicknameChecked(true);
+      setNicknameCheckResult('');
+    }
   };
 
-  // 프로필 이미지 변경 핸들러
+  // 이미지 업로드 핸들러
   const handleImageClick = () => {
     imageInputRef.current?.click();
   };
@@ -207,191 +186,155 @@ export default function ProfileEditPage() {
   const handleImageRemove = () => {
     setProfileImage(null);
     setProfileImagePreview('');
+    setFormData((prev) => ({ ...prev, profileImageUrl: '' }));
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
     }
   };
 
-  // 닉네임 변경 핸들러
-  const handleNicknameChange = (value) => {
-    setNickname(value);
-    setIsNicknameChecked(false);
-    setNicknameCheckResult('');
-    setNicknameError('');
-  };
-
   // 닉네임 중복 확인
   const checkNickname = async () => {
-    if (!nickname.trim()) {
-      setNicknameError('닉네임을 입력해주세요.');
+    if (!formData.nickname.trim()) {
+      setErrors((prev) => ({ ...prev, nickname: '닉네임을 입력해주세요.' }));
       return;
     }
 
-    if (nickname.length < 2 || nickname.length > 15) {
-      setNicknameError('닉네임은 2-15자 사이여야 합니다.');
+    if (formData.nickname.length < 2 || formData.nickname.length > 10) {
+      setErrors((prev) => ({
+        ...prev,
+        nickname: '닉네임은 2-10자 사이여야 합니다.',
+      }));
       return;
     }
 
     // 원래 닉네임과 같으면 중복 확인 불필요
-    if (nickname === originalNickname) {
+    if (formData.nickname === originalNickname) {
       setIsNicknameChecked(true);
-      setNicknameCheckResult('same');
-      setNicknameError('');
+      setNicknameCheckResult('available');
+      return;
+    }
+
+    // 닉네임 유효성 검사 (한글, 영문, 숫자만 허용)
+    const nicknameRegex = /^[가-힣a-zA-Z0-9]*$/;
+    if (!nicknameRegex.test(formData.nickname)) {
+      setErrors((prev) => ({
+        ...prev,
+        nickname: '닉네임은 한글, 영문, 숫자만 사용할 수 있습니다.',
+      }));
       return;
     }
 
     try {
-      const response = await checkNicknameMutation.mutateAsync(nickname);
+      const response = await checkNicknameMutation.mutateAsync(
+        formData.nickname
+      );
 
       if (response.isSuccess) {
         if (response.exists) {
-          setNicknameError('이미 존재하는 닉네임입니다.');
+          setErrors((prev) => ({
+            ...prev,
+            nickname: '이미 존재하는 닉네임입니다.',
+          }));
           setNicknameCheckResult('unavailable');
           setIsNicknameChecked(false);
         } else {
           setIsNicknameChecked(true);
           setNicknameCheckResult('available');
-          setNicknameError('');
+          setErrors((prev) => ({ ...prev, nickname: '' }));
         }
-      } else {
-        setNicknameError(response.message || '닉네임 확인에 실패했습니다.');
-        setNicknameCheckResult('error');
-        setIsNicknameChecked(false);
       }
     } catch (error) {
       console.error('닉네임 중복 확인 에러:', error);
+      setErrors((prev) => ({
+        ...prev,
+        nickname: '닉네임 확인 중 오류가 발생했습니다.',
+      }));
+      setNicknameCheckResult('error');
+      setIsNicknameChecked(false);
+    }
+  };
 
-      if (error.response?.status === 404) {
-        console.warn('닉네임 중복 확인 API 엔드포인트를 확인해주세요.');
-        setNicknameCheckResult('error');
-        setIsNicknameChecked(true); // 404 에러인 경우 진행 허용
-        setNicknameError('');
-      } else {
-        setNicknameError('닉네임 확인에 실패했습니다.');
-        setNicknameCheckResult('error');
-        setIsNicknameChecked(false);
+  // 유효성 검사
+  const validateForm = () => {
+    const newErrors = {};
+
+    // 닉네임 검사
+    if (!formData.nickname.trim()) {
+      newErrors.nickname = '닉네임을 입력해주세요.';
+    } else if (formData.nickname.length < 2 || formData.nickname.length > 10) {
+      newErrors.nickname = '닉네임은 2-10자 사이여야 합니다.';
+    } else if (!isNicknameChecked && formData.nickname !== originalNickname) {
+      newErrors.nickname = '닉네임 중복 확인을 해주세요.';
+    } else if (nicknameCheckResult === 'unavailable') {
+      newErrors.nickname = '이미 존재하는 닉네임입니다.';
+    }
+
+    // 생년월일 검사
+    if (!formData.birthDate) {
+      newErrors.birthDate = '생년월일을 입력해주세요.';
+    } else {
+      const birthDate = new Date(formData.birthDate);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+
+      if (age < 14 || age > 100) {
+        newErrors.birthDate = '올바른 생년월일을 입력해주세요.';
       }
     }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // 프로필 수정 제출
   const handleSubmit = async () => {
-    // 토큰 확인
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('로그인이 필요합니다.');
-      navigate('/login');
-      return;
-    }
-
-    // 닉네임 유효성 검사
-    if (!nickname.trim()) {
-      setNicknameError('닉네임을 입력해주세요.');
-      return;
-    }
-
-    if (nickname.length < 2 || nickname.length > 15) {
-      setNicknameError('닉네임은 2-15자 사이여야 합니다.');
-      return;
-    }
-
-    // 변경사항 확인
-    const hasNicknameChanged = nickname !== originalNickname;
-    const hasImageChanged =
-      profileImage !== null ||
-      (profileImagePreview === '' && originalProfileImage !== '');
-
-    if (!hasNicknameChanged && !hasImageChanged) {
-      alert('변경된 내용이 없습니다.');
-      return;
-    }
-
-    // 닉네임이 변경된 경우 중복 확인 체크
-    if (
-      hasNicknameChanged &&
-      !isNicknameChecked &&
-      nicknameCheckResult !== 'error'
-    ) {
-      setNicknameError('닉네임 중복 확인을 해주세요.');
+    if (!validateForm()) {
       return;
     }
 
     try {
-      let finalProfileImageUrl = originalProfileImage;
+      let imageUrl = formData.profileImageUrl;
 
-      // 이미지가 변경된 경우 처리
+      // 새 이미지가 선택된 경우 S3 업로드
       if (profileImage) {
-        console.log('새 프로필 이미지 업로드 시작');
-        const imageUrls = await uploadImagesToS3([{ img: profileImage }]);
-        if (imageUrls && imageUrls.length > 0) {
-          finalProfileImageUrl = imageUrls[0];
-          console.log('프로필 이미지 업로드 완료:', finalProfileImageUrl);
+        setIsImageUploading(true);
+        try {
+          const uploadedUrls = await uploadImagesToS3([{ img: profileImage }]);
+          if (uploadedUrls && uploadedUrls.length > 0) {
+            imageUrl = uploadedUrls[0];
+          }
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          alert('이미지 업로드에 실패했습니다.');
+          setIsImageUploading(false);
+          return;
         }
-      } else if (profileImagePreview === '' && originalProfileImage !== '') {
-        // 이미지를 제거한 경우
-        finalProfileImageUrl = '';
+        setIsImageUploading(false);
       }
-      const updateData = {
-        changeNickname: hasNicknameChanged,
-        changeProfileImage: hasImageChanged,
+
+      const submitData = {
+        nickname: formData.nickname.trim(),
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+        profileImageUrl: imageUrl,
       };
 
-      // 변경이 있는 경우에만 해당 필드 추가
-      if (hasNicknameChanged) {
-        updateData.nicknameToChange = nickname.trim();
-      }
-
-      if (hasImageChanged) {
-        updateData.profileImageUrlToChange = finalProfileImageUrl || '';
-      }
-
-      console.log('백엔드 스펙에 맞춘 프로필 수정 요청 데이터:', updateData);
-
-      // 최소 하나는 true여야 함
-      if (!updateData.changeNickname && !updateData.changeProfileImage) {
-        alert('변경된 내용이 없습니다.');
-        return;
-      }
-
-      await updateProfileMutation.mutateAsync(updateData);
-
-      // 성공 모달 표시
+      await updateProfileMutation.mutateAsync(submitData);
       setShowSuccessModal(true);
     } catch (error) {
-      console.error('프로필 수정 중 오류:', error);
-
-      if (error.response?.status === 401) {
-        alert('로그인이 필요합니다.');
-        navigate('/login');
-      } else if (error.response?.status === 403) {
-        // SECURITY_403_001 에러 처리
-        if (error.response?.data?.errorCode === 'SECURITY_403_001') {
-          alert('회원가입을 완료해주세요.');
-          navigate('/complete-registration');
-        } else {
-          alert('권한이 없습니다.');
-        }
-      } else if (error.response?.status === 400) {
-        const errorMessage =
-          error.response?.data?.message || '입력한 정보를 확인해주세요.';
-        alert(errorMessage);
-      } else if (error.response?.status === 422) {
-        const errorMessage =
-          error.response?.data?.message || '입력한 데이터가 올바르지 않습니다.';
-        alert(errorMessage);
-      } else if (error.response?.status === 409) {
-        alert('이미 사용 중인 닉네임입니다.');
-        setNicknameError('이미 사용 중인 닉네임입니다.');
-        setIsNicknameChecked(false);
-        setNicknameCheckResult('unavailable');
-      } else {
-        alert('프로필 수정에 실패했습니다. 다시 시도해주세요.');
-      }
+      console.error('프로필 수정 실패:', error);
+      alert('프로필 수정에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
-  // 로딩 상태
-  if (isLoading) {
+  // 로딩 중 표시
+  const isLoading =
+    isLoadingUserInfo ||
+    checkNicknameMutation.isLoading ||
+    updateProfileMutation.isLoading ||
+    isImageUploading;
+
+  if (isLoadingUserInfo) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
@@ -399,50 +342,24 @@ export default function ProfileEditPage() {
     );
   }
 
-  // 에러 상태
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-white mb-2">
-            사용자 정보를 불러올 수 없습니다
-          </h2>
-          <p className="text-gray-400 mb-4">
-            {error?.response?.status === 401
-              ? '로그인이 필요합니다.'
-              : '잠시 후 다시 시도해주세요.'}
-          </p>
-          <button
-            onClick={() => navigate('/login')}
-            className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
-          >
-            로그인
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userInfo) return null;
-
   return (
     <div className="min-h-screen bg-black text-white font-['Pretendard']">
       <div className="px-4 py-6">
         {/* 헤더 */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center mb-6">
           <BackButton />
-          <h1 className="text-xl font-medium">프로필 수정</h1>
+          <h1 className="text-xl font-bold text-white ml-3">프로필 수정</h1>
         </div>
 
-        {/* 프로필 수정 폼 */}
-        <div className="space-y-6">
+        {/* 폼 */}
+        <div className="space-y-5">
           {/* 프로필 이미지 */}
           <div className="text-center">
             <label className="block text-sm font-medium text-white mb-4">
               프로필 이미지
             </label>
 
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center mb-2">
               <div
                 onClick={handleImageClick}
                 className="relative w-32 h-32 rounded-full bg-[#1D1D1D] border-2 border-dashed border-gray-600 flex items-center justify-center cursor-pointer hover:border-yellow-500 transition-colors group"
@@ -454,32 +371,20 @@ export default function ProfileEditPage() {
                       alt="프로필 미리보기"
                       className="w-full h-full rounded-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg
-                        className="w-8 h-8 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleImageRemove();
+                      }}
+                      className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors"
+                    >
+                      ✕
+                    </button>
                   </>
                 ) : (
                   <div className="text-center">
                     <svg
-                      className="w-12 h-12 text-gray-400 group-hover:text-yellow-500 mx-auto mb-2"
+                      className="w-10 h-10 text-gray-400 group-hover:text-yellow-500 mx-auto mb-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -491,8 +396,8 @@ export default function ProfileEditPage() {
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                       />
                     </svg>
-                    <span className="text-sm text-gray-400 group-hover:text-yellow-500">
-                      사진 선택
+                    <span className="text-xs text-gray-400 group-hover:text-yellow-500">
+                      사진 추가
                     </span>
                   </div>
                 )}
@@ -505,149 +410,127 @@ export default function ProfileEditPage() {
                 accept="image/*"
                 className="hidden"
               />
-
-              {profileImagePreview && (
-                <button
-                  onClick={handleImageRemove}
-                  className="mt-3 text-sm text-red-400 hover:text-red-300 transition-colors"
-                >
-                  이미지 제거
-                </button>
-              )}
             </div>
           </div>
 
           {/* 닉네임 */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
-              닉네임 <span className="text-red-400">*</span>
+              닉네임
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
-                value={nickname}
-                onChange={(e) => handleNicknameChange(e.target.value)}
-                placeholder="2-15자 사이로 입력해주세요"
-                maxLength={15}
+                value={formData.nickname}
+                onChange={(e) => handleInputChange('nickname', e.target.value)}
+                placeholder="2-10자 사이로 입력해주세요"
+                maxLength={10}
                 className={`flex-1 h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white placeholder-gray-500 ${
-                  nicknameError ? 'border border-red-400' : ''
+                  errors.nickname ? 'border border-red-400' : ''
                 }`}
+                disabled={isLoading}
               />
               <button
                 type="button"
                 onClick={checkNickname}
                 disabled={
-                  !nickname.trim() ||
-                  nickname === originalNickname ||
-                  checkNicknameMutation.isLoading
+                  !formData.nickname.trim() ||
+                  formData.nickname === originalNickname ||
+                  checkNicknameMutation.isLoading ||
+                  isLoading
                 }
-                className="px-4 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-24 h-12 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
               >
                 {checkNicknameMutation.isLoading ? '확인중...' : '중복확인'}
               </button>
             </div>
-
-            {nicknameError && (
-              <p className="text-red-400 text-sm mt-1">{nicknameError}</p>
+            {errors.nickname && (
+              <p className="text-red-400 text-sm mt-1">{errors.nickname}</p>
             )}
+            {nicknameCheckResult === 'available' &&
+              !errors.nickname &&
+              formData.nickname !== originalNickname && (
+                <p className="text-green-400 text-sm mt-1">
+                  ✓ 사용 가능한 닉네임입니다
+                </p>
+              )}
+          </div>
 
-            {nicknameCheckResult === 'available' && !nicknameError && (
-              <p className="text-green-400 text-sm mt-1">
-                ✓ 사용 가능한 닉네임입니다
-              </p>
-            )}
-
-            {nicknameCheckResult === 'same' && !nicknameError && (
-              <p className="text-blue-400 text-sm mt-1">
-                ✓ 현재 사용 중인 닉네임입니다
-              </p>
-            )}
-
-            {nicknameCheckResult === 'unavailable' && (
-              <p className="text-red-400 text-sm mt-1">
-                이미 존재하는 닉네임입니다.
-              </p>
-            )}
-
-            {nicknameCheckResult === 'error' && !nicknameError && (
-              <p className="text-yellow-400 text-sm mt-1">
-                ⚠ 닉네임 중복 확인을 할 수 없습니다. 고유한 닉네임을
-                사용해주세요.
-              </p>
+          {/* 생년월일 */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              생년월일
+            </label>
+            <input
+              type="date"
+              value={formData.birthDate}
+              onChange={(e) => handleInputChange('birthDate', e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              className={`w-full h-12 px-3 bg-[#1D1D1D] rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white ${
+                errors.birthDate ? 'border border-red-400' : ''
+              }`}
+              disabled={isLoading}
+            />
+            {errors.birthDate && (
+              <p className="text-red-400 text-sm mt-1">{errors.birthDate}</p>
             )}
           </div>
 
-          {/* 수정 불가능한 정보 표시 */}
-          <div className="bg-[#1D1D1D] rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">
-              수정 불가능한 정보
-            </h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-400">이메일</span>
-                <span className="text-gray-300">
-                  {userInfo.email || '이메일 없음'}
-                </span>
-              </div>
-              {userInfo.birthDate && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">생년월일</span>
-                  <span className="text-gray-300">
-                    {new Date(userInfo.birthDate).toLocaleDateString('ko-KR')}
-                  </span>
-                </div>
-              )}
-              {userInfo.gender && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">성별</span>
-                  <span className="text-gray-300">
-                    {userInfo.gender === 'MAN'
-                      ? '남성'
-                      : userInfo.gender === 'WOMAN'
-                        ? '여성'
-                        : '선택안함'}
-                  </span>
-                </div>
-              )}
+          {/* 성별 */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              성별
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'MAN', label: '남성' },
+                { value: 'WOMAN', label: '여성' },
+                { value: 'UNKNOWN', label: '선택안함' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleInputChange('gender', option.value)}
+                  disabled={isLoading}
+                  className={`h-12 rounded-lg border transition-colors ${
+                    formData.gender === option.value
+                      ? 'bg-yellow-500 border-yellow-500 text-black font-medium'
+                      : 'bg-[#1D1D1D] border-gray-600 text-white hover:border-gray-500'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* 수정 버튼 */}
-          <div className="flex space-x-3">
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex-1 h-12 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-500 transition-colors"
-            >
-              취소
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={updateProfileMutation.isLoading}
-              className={`flex-1 h-12 rounded-lg font-medium transition-colors ${
-                updateProfileMutation.isLoading
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-yellow-500 text-black hover:bg-yellow-400'
-              }`}
-            >
-              {updateProfileMutation.isLoading ? '수정 중...' : '수정 완료'}
-            </button>
-          </div>
+          {/* 제출 버튼 */}
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className={`w-full h-14 rounded-lg font-bold text-lg transition-colors ${
+              isLoading
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-yellow-500 text-black hover:bg-yellow-400'
+            }`}
+          >
+            {isImageUploading
+              ? '이미지 업로드 중...'
+              : updateProfileMutation.isLoading
+                ? '수정중...'
+                : '수정 완료'}
+          </button>
         </div>
-
-        {/* 하단 여백 */}
-        <div className="h-10"></div>
       </div>
 
       {/* 성공 모달 */}
       {showSuccessModal && (
-        <ModalPotal>
+        <ModalPortal>
           <ProfileUpdateSuccessModal
-            onClose={handleCloseSuccessModal}
-            onNavigateToProfile={handleCloseSuccessModal}
+            onNavigateToProfile={() => navigate('/profile')}
           />
-        </ModalPotal>
+        </ModalPortal>
       )}
     </div>
   );
 }
-
