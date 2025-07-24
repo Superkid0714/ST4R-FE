@@ -134,15 +134,7 @@ leading-loose"
                     >
                       강퇴하기
                     </div>
-                    {banModal ? (
-                      <ModalPortal>
-                        <BanModal
-                          onClose={() => setBanModal(false)}
-                          userId={member.id}
-                          nickname={member.nickname}
-                        ></BanModal>
-                      </ModalPortal>
-                    ) : null}
+
                     <div className="text-xs text-[#bebebeff]">/</div>
                     <div
                       className="text-xs text-[#bebebeff] hover:cursor-pointer"
@@ -150,19 +142,28 @@ leading-loose"
                     >
                       모임장 위임하기
                     </div>
-                    {changeLeaderModal ? (
-                      <ModalPortal>
-                        <ChangeLeaderModal
-                          onClose={() => setChangeLeaderModal(false)}
-                          userId={member.id}
-                          nickname={member.nickname}
-                        ></ChangeLeaderModal>
-                      </ModalPortal>
-                    ) : null}
                   </div>
                 )}
               </div>
             ))}
+          {banModal ? (
+            <ModalPortal>
+              <BanModal
+                onClose={() => setBanModal(false)}
+                userId={member.id}
+                nickname={member.nickname}
+              ></BanModal>
+            </ModalPortal>
+          ) : null}
+          {changeLeaderModal ? (
+            <ModalPortal>
+              <ChangeLeaderModal
+                onClose={() => setChangeLeaderModal(false)}
+                userId={member.id}
+                nickname={member.nickname}
+              ></ChangeLeaderModal>
+            </ModalPortal>
+          ) : null}
         </div>
       </div>
       <div
@@ -182,4 +183,3 @@ leading-loose"
     </div>
   );
 }
-
