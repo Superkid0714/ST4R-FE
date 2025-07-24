@@ -20,6 +20,7 @@ export const usegroupEdit = ({setGroupEditSuccessModal}) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['mychats'] });
       setGroupEditSuccessModal(true);
     },
     onError: (error) => {

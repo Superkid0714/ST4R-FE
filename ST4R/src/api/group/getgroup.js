@@ -93,6 +93,7 @@ export const useSearchGroups = (searchQuery, options = {}) => {
       const response = await axios.get(requestUrl);
       return response.data;
     },
+    refetchInterval: 3000, 
     enabled: true,
     staleTime: 1000 * 60 * 5,
     onerror: (error) => {

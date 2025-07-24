@@ -1,17 +1,17 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import error2 from '../../assets/icons/error2.svg';
 
 // 모달 상세 내용
 export default function JoinModal({ onClose, hasPassword, isLogin }) {
   const passwordRef = useRef('');
-  // const [passwordInput, setPasswordInput] = useState(null); //사용자가 입력한 비밀번호
   const [passworderror, setPasswordError] = useState(false);
   const BASE_URL = 'https://eridanus.econo.mooo.com';
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   //모임 참가 요청
   const postJoin = async ({ password }) => {
@@ -30,6 +30,8 @@ export default function JoinModal({ onClose, hasPassword, isLogin }) {
   const useJoinMutation = useMutation({
     mutationFn: postJoin,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mychats'] });
+      queryClient.invalidateQueries({ queryKey: ['group'] });
       console.log('참가 완료');
       onClose(); // 모달창 닫기
       navigate(`/groups/${id}/chats`);

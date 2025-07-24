@@ -25,8 +25,6 @@ export default function ChatPage() {
   // 모임 상세 정보
   const { data: groupDetail } = useGetGroupDetail(id);
 
-  console.log(groupDetail);
-
   // 모임 구성원 정보
   const { data: members } = useGetGroupMembers(id);
 
@@ -48,7 +46,7 @@ export default function ChatPage() {
 
   // 모임 구성원의 가장 최근에 읽은 시간(최초 요청)
   const { data: initialLastReadTimes } = useGetInitialLastReadTimes(id);
-  console.log(initialLastReadTimes);
+
 
   useEffect(() => {
     if (initialLastReadTimes) {
@@ -237,6 +235,8 @@ export default function ChatPage() {
       return;
     }
     clientRef.current.send(`/markAsRead/${id}`, {}, '');
+    queryClient.invalidateQueries({ queryKey: ['initialChatPreviews'] });
+    queryClient.invalidateQueries({ queryKey: ['lastReadTimes'] });
   }
 
   //안읽은 사람 수 계산

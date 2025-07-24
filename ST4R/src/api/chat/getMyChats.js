@@ -15,6 +15,7 @@ export const useGetMyChats = () => {
       );
       return res.data;
     },
+    refetchInterval: 3000, //자동 갱신
   });
 };
 
@@ -32,6 +33,7 @@ export const useGetInitialChatPreviews = () => {
       );
       return res.data;
     },
+    refetchInterval: 3000, 
   });
 };
 

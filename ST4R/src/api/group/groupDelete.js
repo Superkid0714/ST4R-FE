@@ -20,6 +20,7 @@ export const usegroupDelete = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey : ['groups']});
+      queryClient.invalidateQueries({ queryKey: ['mychats'] });
       navigate('/groups');
     },
     onError: (error) => {
