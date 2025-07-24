@@ -79,6 +79,12 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ['userInfo'],
     queryFn: async () => {
+      // 토큰 재확인
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) {
+        throw new Error('No token available');
+      }
+
       // axios 인터셉터를 우회하기 위해 새로운 인스턴스 생성
       const apiClient = axios.create({
         baseURL: 'https://eridanus.econo.mooo.com',
@@ -87,7 +93,7 @@ export default function ProfilePage() {
 
       const response = await apiClient.get('/my', {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${currentToken}`,
         },
       });
 
@@ -97,7 +103,7 @@ export default function ProfilePage() {
     },
     enabled: isAuthenticated, // 로그인한 경우에만 실행
     staleTime: 1000 * 60 * 10,
-    retry: false,
+    retry: false, // 재시도하지 않음
     onError: (error) => {
       console.error('사용자 정보 조회 실패:', error);
       if (error?.response?.status === 401) {
@@ -163,7 +169,7 @@ export default function ProfilePage() {
 
   // 에러 상태 (401 에러 등)
   if (error && error?.response?.status === 401) {
-    // 토큰이 만료된 경우 다시 렌더링하여 GuestProfilePage 표시
+    // 토큰이 만료된 경우 GuestProfilePage 표시
     return <GuestProfilePage />;
   }
 
