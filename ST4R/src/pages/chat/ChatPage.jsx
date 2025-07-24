@@ -157,7 +157,6 @@ export default function ChatPage() {
         console.log('✅ STOMP 연결됨');
         clientRef.current = stompClient;
         stompClient.subscribe(`/subscribe/${id}`, (message) => {
-          // markAsRead(); //읽음 요청
           const data = JSON.parse(message.body);
           handleIncomingMessage(data); //받은 데이터 처리 함수
         });
@@ -264,7 +263,7 @@ export default function ChatPage() {
       {},
       JSON.stringify({ message: input })
     );
-
+    queryClient.invalidateQueries({ queryKey: ['initialChatPreviews'] });
     setInput(''); // 전송 후 다시 초기화
   };
 

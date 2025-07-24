@@ -6,7 +6,7 @@ const BASE_URL = 'https://eridanus.econo.mooo.com';
 // 게시글 검색 API (클라이언트 사이드 검색 - 백엔드 지원 시까지)
 export const useSearchGroups = (searchQuery, options = {}) => {
   return useQuery({
-    queryKey: ['searchGroups', searchQuery, options],
+    queryKey: ['groups', searchQuery, options],
     queryFn: async () => {
       const params = new URLSearchParams();
 

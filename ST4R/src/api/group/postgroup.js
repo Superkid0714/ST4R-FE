@@ -20,6 +20,7 @@ export const usePostGroupMutation = ({setGroupCreateSuccessModal}) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['mychats'] });
       setGroupCreateSuccessModal(true);
     },
     onError: (error) => {
