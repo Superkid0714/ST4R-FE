@@ -16,6 +16,7 @@ export const useGetGroupMembers= (id) => {
       );
       return res.data;
     },
+    refetchInterval: 3000,
   });
 };
 

@@ -49,10 +49,10 @@ export default function ChatMembersPage() {
   }, [navigate]);
 
   // 강퇴한 모임 구성원 정보
-  if (isLeader) {
-    const { data: bannedMembers, isLoading: bannedMembersLoading } =
-      useGetBannedMembers(id);
-  }
+  // if (isLeader) {
+  //   const { data: bannedMembers, isLoading: bannedMembersLoading } =
+  //     useGetBannedMembers(id);
+  // }
 
   if (!groupDetail) return null;
 

@@ -19,8 +19,9 @@ export const usegroupOut = () => {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey : ['groups']});
       queryClient.invalidateQueries({ queryKey: ['mychats'] });
+      queryClient.invalidateQueries({ queryKey: ['group'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
       navigate('/groups');
     },
     onError: (error) => {

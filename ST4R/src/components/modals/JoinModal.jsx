@@ -32,6 +32,7 @@ export default function JoinModal({ onClose, hasPassword, isLogin }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mychats'] });
       queryClient.invalidateQueries({ queryKey: ['group'] });
+      queryClient.invalidateQueries({ queryKey: ['members', id] });
       console.log('참가 완료');
       onClose(); // 모달창 닫기
       navigate(`/groups/${id}/chats`);

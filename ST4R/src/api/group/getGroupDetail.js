@@ -11,6 +11,7 @@ export const useGetGroupDetail = (id) => {
       const res = await axios.get(`${BASE_URL}/groups/${id}`, { headers });
       return res.data;
     },
+    refetchInterval: 3000,
   });
 };
 
