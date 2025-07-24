@@ -5,6 +5,7 @@ import axios from 'axios';
 import ModalPortal from '../components/common/ModalPortal';
 import LogoutModal from '../components/modals/LogoutModal';
 import DeleteMemberModal from '../components/modals/DeleteMemberModal';
+import GuestProfilePage from './profile/GuestProfilePage';
 
 // 프로필 아이콘 컴포넌트
 const ProfileIcon = ({ className = 'w-[18px] h-[18px]' }) => (
@@ -56,7 +57,7 @@ const CONSTELLATION_NAMES = {
 };
 
 // 사용자 정보 조회 API
-const useUserInfo = () => {
+const useUserInfo = (enabled) => {
   return useQuery({
     queryKey: ['userInfo'],
     queryFn: async () => {
@@ -65,20 +66,17 @@ const useUserInfo = () => {
         throw new Error('로그인이 필요합니다.');
       }
 
-      const response = await axios.get(
-        'https://eridanus.econo.mooo.com/my',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.get('https://eridanus.econo.mooo.com/my', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       console.log('사용자 정보 조회 성공:', response.data);
       localStorage.setItem('user', JSON.stringify(response.data));
       return response.data;
     },
-    enabled: !!localStorage.getItem('token'),
+    enabled: enabled && !!localStorage.getItem('token'),
     staleTime: 1000 * 60 * 10,
     retry: (failureCount, error) => {
       if (error?.response?.status === 401) return false;
@@ -97,6 +95,10 @@ const useUserInfo = () => {
 export default function ProfilePage() {
   const navigate = useNavigate();
 
+  // 로그인 상태 확인
+  const token = localStorage.getItem('token');
+  const isAuthenticated = !!token;
+
   // 모달 상태 관리
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteMemberModal, setShowDeleteMemberModal] = useState(false);
@@ -104,8 +106,18 @@ export default function ProfilePage() {
   // 로컬 상태로 프로필 이미지 관리
   const [localProfileImage, setLocalProfileImage] = useState('');
 
-  // API를 통해 사용자 정보 조회
-  const { data: userInfo, isLoading, error, refetch } = useUserInfo();
+  // API를 통해 사용자 정보 조회 (로그인한 경우에만)
+  const {
+    data: userInfo,
+    isLoading,
+    error,
+    refetch,
+  } = useUserInfo(isAuthenticated);
+
+  // 로그인하지 않은 경우 GuestProfilePage 표시
+  if (!isAuthenticated) {
+    return <GuestProfilePage />;
+  }
 
   // localStorage에서 프로필 이미지 확인
   useEffect(() => {
@@ -153,42 +165,6 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // 에러 상태 (로그인 필요)
-  if (
-    error?.response?.status === 401 ||
-    error?.message === '로그인이 필요합니다.'
-  ) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
-        <div className="text-center">
-          <svg
-            className="w-16 h-16 mx-auto mb-4 text-yellow-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-          <h2 className="text-xl font-bold text-white mb-2">
-            로그인이 필요합니다
-          </h2>
-          <p className="text-gray-400 mb-4">프로필을 보려면 로그인해주세요.</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
-          >
-            로그인
-          </button>
-        </div>
       </div>
     );
   }
@@ -439,4 +415,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
