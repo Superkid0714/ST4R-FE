@@ -12,6 +12,8 @@ import {
 import { connectChatPreview } from '../../hooks/useChatPreview';
 import MeetBetweenModal from '../../components/modals/MeetBetweenModal';
 import ModalPortal from '../../components/common/ModalPortal';
+import AddCircleIcon from '../../assets/icons/add_circle.svg?react';
+import FireIcon from '../../assets/icons/fire.svg?react';
 
 export default function GroupPage() {
   const navigate = useNavigate();
@@ -166,7 +168,7 @@ export default function GroupPage() {
           모임
         </div>
         <div className="right-0 top-0.5 hover:bg-[#2A2A2A] absolute px-2.5 py-1 bg-[#1D1D1D] rounded-[60px] flex items-center gap-1.5 ">
-          <img src="src/assets/icons/add_circle.svg" alt="모임 만들기" />
+          <AddCircleIcon className="w-6 h-6" />
           <div
             className="text-[#8F8F8F] hover:cursor-pointer text-lg font-normal font-['Pretendard']"
             onClick={() => {
@@ -200,13 +202,13 @@ export default function GroupPage() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              stroke-width="1.5"
+              strokeWidth="1.5"
               stroke="currentColor"
-              class="size-6"
+              className="size-6"
             >
               <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
               />
             </svg>
@@ -329,7 +331,7 @@ export default function GroupPage() {
               <div className="justify-start text-xl font-['Pretendard'] leading-normal">
                 인기 모임
               </div>
-              <img src="src\assets\icons\fire.svg" alt="인기" />
+              <FireIcon className="w-6 h-6" />
             </div>
             <FilterBar
               currentPeriod={currentPeriod}
@@ -405,72 +407,71 @@ export default function GroupPage() {
             displayGroups.map((group) => (
               <GroupCard key={group.id} group={group}></GroupCard>
             ))}
-          
+
           {/* 검색 결과가 없을 때 */}
           {!groupsError &&
-          !isGroupsLoading &&
-          !searchError &&
-          displayGroups.length === 0 && (
-            <div className="text-center mx-auto py-12">
-              {isMapSearchActive ? (
-                <div>
-                  <div className="text-gray-400 mb-4">
-                    <svg
-                      className="w-16 h-16 mx-auto mb-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+            !isGroupsLoading &&
+            !searchError &&
+            displayGroups.length === 0 && (
+              <div className="text-center mx-auto py-12">
+                {isMapSearchActive ? (
+                  <div>
+                    <div className="text-gray-400 mb-4">
+                      <svg
+                        className="w-16 h-16 mx-auto mb-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-gray-400 text-lg">
+                      {searchQuery
+                        ? `"${searchQuery}"에 대한 검색 결과가 이 지역에 없습니다`
+                        : `${mapSearchParams.locationName} 근처에 게시글이 없습니다`}
+                    </p>
+                    <p className="text-gray-500 text-sm mt-2">
+                      {searchQuery
+                        ? '다른 키워드로 검색하거나 검색 반경을 늘려보세요'
+                        : '검색 반경을 늘리거나 다른 지역을 선택해보세요'}
+                    </p>
+                    <button
+                      onClick={() => navigate('/map-search')}
+                      className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
+                      다른 지역 선택하기
+                    </button>
                   </div>
-                  <p className="text-gray-400 text-lg">
-                    {searchQuery
-                      ? `"${searchQuery}"에 대한 검색 결과가 이 지역에 없습니다`
-                      : `${mapSearchParams.locationName} 근처에 게시글이 없습니다`}
-                  </p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    {searchQuery
-                      ? '다른 키워드로 검색하거나 검색 반경을 늘려보세요'
-                      : '검색 반경을 늘리거나 다른 지역을 선택해보세요'}
-                  </p>
-                  <button
-                    onClick={() => navigate('/map-search')}
-                    className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
-                  >
-                    다른 지역 선택하기
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-gray-400 text-lg">
-                    {searchQuery
-                      ? `"${searchQuery}"에 대한 검색 결과가 없습니다`
-                      : '게시글이 없습니다'}
-                  </p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    {searchQuery
-                      ? '다른 키워드로 검색해보세요'
-                      : '첫 번째 게시글을 작성해보세요!'}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+                ) : (
+                  <div>
+                    <p className="text-gray-400 text-lg">
+                      {searchQuery
+                        ? `"${searchQuery}"에 대한 검색 결과가 없습니다`
+                        : '게시글이 없습니다'}
+                    </p>
+                    <p className="text-gray-500 text-sm mt-2">
+                      {searchQuery
+                        ? '다른 키워드로 검색해보세요'
+                        : '첫 번째 게시글을 작성해보세요!'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       </div>
     </div>
   );
 }
-
