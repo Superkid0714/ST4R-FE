@@ -164,8 +164,8 @@ export default function GroupPage() {
   return (
     <div>
       <div className="h-16 relative">
-        <div className="absolute justify-start text-3xl font-normal font-['Pretendard'] leading-normal">
-          모임
+        <div className="absolute justify-start text-2xl font-bold font-['Pretendard'] leading-normal">
+          Starlight
         </div>
         <div className="right-0 top-0.5 hover:bg-[#2A2A2A] absolute px-2.5 py-1 bg-[#1D1D1D] rounded-[60px] flex items-center gap-1.5 ">
           <AddCircleIcon className="w-6 h-6" />
