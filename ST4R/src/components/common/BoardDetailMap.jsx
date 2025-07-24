@@ -1,9 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  loadKakaoMapScript,
-  safeKakaoAccess,
-  checkKakaoMapStatus,
-} from '../../utils/kakaoMapLoader';
 
 export default function BoardDetailMap({ location }) {
   const mapContainer = useRef(null);
@@ -11,35 +6,75 @@ export default function BoardDetailMap({ location }) {
   const markerRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
+  const initializeRef = useRef(false);
 
   useEffect(() => {
-    if (!location?.marker || !mapContainer.current) return;
+    if (!location?.marker || !mapContainer.current || initializeRef.current)
+      return;
 
     const initMap = async () => {
       try {
         console.log('BoardDetailMap 초기화 시작');
 
-        // 새로운 카카오 맵 로더 사용
-        const kakao = await loadKakaoMapScript();
-        console.log('카카오 맵 로드 완료');
+        // 카카오 맵이 이미 로드되어 있는지 확인
+        if (window.kakao && window.kakao.maps) {
+          console.log('카카오 맵이 이미 로드되어 있음');
+          createMap();
+        } else {
+          console.log('카카오 맵 스크립트 로드 필요');
+          loadScript();
+        }
+      } catch (error) {
+        console.error('지도 초기화 실패:', error);
+        setMapError(error.message);
+        setMapLoaded(false);
+      }
+    };
 
+    const loadScript = () => {
+      const script = document.createElement('script');
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5efbd2f844cb3d8609377a11750272bb&libraries=services&autoload=false`;
+
+      script.onload = () => {
+        console.log('카카오 맵 스크립트 로드 완료');
+        window.kakao.maps.load(() => {
+          console.log('카카오 맵 초기화 완료');
+          createMap();
+        });
+      };
+
+      script.onerror = () => {
+        console.error('카카오 맵 스크립트 로드 실패');
+        setMapError('지도를 불러올 수 없습니다');
+      };
+
+      document.head.appendChild(script);
+    };
+
+    const createMap = () => {
+      if (!mapContainer.current || initializeRef.current) return;
+
+      try {
         const { latitude, longitude, locationName, roadAddress } =
           location.marker;
         const zoomLevel = location.zoomLevel || 3;
 
         // 지도 옵션
         const options = {
-          center: new kakao.maps.LatLng(latitude, longitude),
+          center: new window.kakao.maps.LatLng(latitude, longitude),
           level: zoomLevel,
         };
 
         // 지도 생성
-        const map = new kakao.maps.Map(mapContainer.current, options);
+        const map = new window.kakao.maps.Map(mapContainer.current, options);
         mapRef.current = map;
 
         // 마커 생성
-        const markerPosition = new kakao.maps.LatLng(latitude, longitude);
-        const marker = new kakao.maps.Marker({
+        const markerPosition = new window.kakao.maps.LatLng(
+          latitude,
+          longitude
+        );
+        const marker = new window.kakao.maps.Marker({
           position: markerPosition,
         });
         marker.setMap(map);
@@ -57,34 +92,36 @@ export default function BoardDetailMap({ location }) {
           </div>
         `;
 
-        const infowindow = new kakao.maps.InfoWindow({
+        const infowindow = new window.kakao.maps.InfoWindow({
           content: infowindowContent,
         });
 
         // 마커 클릭 이벤트
-        kakao.maps.event.addListener(marker, 'click', () => {
+        window.kakao.maps.event.addListener(marker, 'click', () => {
           infowindow.open(map, marker);
         });
 
         // 지도 클릭 이벤트 (인포윈도우 닫기)
-        kakao.maps.event.addListener(map, 'click', () => {
+        window.kakao.maps.event.addListener(map, 'click', () => {
           infowindow.close();
         });
 
+        initializeRef.current = true;
         setMapLoaded(true);
         setMapError(null);
-        console.log('BoardDetailMap 초기화 완료');
+        console.log('BoardDetailMap 생성 완료');
       } catch (error) {
-        console.error('지도 초기화 실패:', error);
-        setMapError(error.message);
-        setMapLoaded(false);
+        console.error('지도 생성 실패:', error);
+        setMapError('지도 생성 중 오류가 발생했습니다');
       }
     };
 
-    initMap();
+    // 초기화 타이머 설정
+    const timer = setTimeout(initMap, 100);
 
     // 컴포넌트 언마운트 시 정리
     return () => {
+      clearTimeout(timer);
       if (markerRef.current) {
         try {
           markerRef.current.setMap(null);
@@ -94,6 +131,7 @@ export default function BoardDetailMap({ location }) {
         markerRef.current = null;
       }
       mapRef.current = null;
+      initializeRef.current = false;
     };
   }, [location]);
 
@@ -135,46 +173,33 @@ export default function BoardDetailMap({ location }) {
               지도를 불러올 수 없습니다
             </div>
             <div className="text-xs text-gray-500 mb-3">{mapError}</div>
-
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => window.location.reload()}
-                className="px-3 py-2 bg-yellow-500 text-black rounded text-xs hover:bg-yellow-400"
-              >
-                새로고침
-              </button>
-
-              {/* 디버그 정보 */}
-              <details className="text-left">
-                <summary className="cursor-pointer text-xs text-gray-400">
-                  상태 정보
-                </summary>
-                <pre className="text-xs text-gray-500 mt-2">
-                  도메인: {window.location.hostname}
-                  {'\n'}상태: {JSON.stringify(checkKakaoMapStatus(), null, 2)}
-                </pre>
-              </details>
-            </div>
-          </div>
-        </div>
-      ) : !mapLoaded ? (
-        <div className="w-full h-48 bg-gray-800 rounded-lg flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-            <span className="text-sm text-gray-400">지도 로딩 중...</span>
-            <div className="mt-1 text-xs text-gray-500">
-              {checkKakaoMapStatus().retryCount > 0 && (
-                <span>재시도 중... ({checkKakaoMapStatus().retryCount}/3)</span>
-              )}
-            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-2 bg-yellow-500 text-black rounded text-xs hover:bg-yellow-400"
+            >
+              새로고침
+            </button>
           </div>
         </div>
       ) : (
-        <div
-          ref={mapContainer}
-          className="w-full h-48 bg-gray-800 rounded-lg"
-          style={{ height: '200px' }}
-        />
+        <>
+          {!mapLoaded && (
+            <div className="w-full h-48 bg-gray-800 rounded-lg flex items-center justify-center absolute">
+              <div className="flex flex-col items-center">
+                <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                <span className="text-sm text-gray-400">지도 로딩 중...</span>
+              </div>
+            </div>
+          )}
+          <div
+            ref={mapContainer}
+            className="w-full h-48 bg-gray-800 rounded-lg"
+            style={{
+              height: '200px',
+              visibility: mapLoaded ? 'visible' : 'hidden',
+            }}
+          />
+        </>
       )}
 
       <div className="mt-3 text-sm">
