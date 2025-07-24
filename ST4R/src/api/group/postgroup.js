@@ -2,7 +2,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-export const usePostGroupMutation = () => {
+export const usePostGroupMutation = ({setGroupCreateSuccessModal}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -20,6 +20,7 @@ export const usePostGroupMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      setGroupCreateSuccessModal(true);
     },
     onError: (error) => {
       console.error('요청 실패', error);

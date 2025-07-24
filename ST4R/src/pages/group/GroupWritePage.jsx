@@ -84,7 +84,7 @@ export default function GroupWritePage() {
     setRoadAddress(roadAddress);
   };
 
-  const postgroup = usePostGroupMutation();
+  const postgroup = usePostGroupMutation({setGroupCreateSuccessModal});
 
   const handlepost = async () => {
     if (!name.trim()) {
@@ -297,7 +297,6 @@ export default function GroupWritePage() {
         <div
           onClick={() => {
             handlepost();
-            setGroupCreateSuccessModal(true);
           }}
           className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >

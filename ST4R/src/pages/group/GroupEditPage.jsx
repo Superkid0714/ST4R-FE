@@ -148,7 +148,7 @@ export default function GroupEditPage() {
     setRoadAddress(roadAddress);
   };
 
-  const groupEditMutation = usegroupEdit();
+  const groupEditMutation = usegroupEdit({setGroupEditSuccessModal});
 
   const handleEdit = async () => {
     if (!name) {
@@ -405,7 +405,6 @@ export default function GroupEditPage() {
         <div
           onClick={() => {
             handleEdit();
-            setGroupEditSuccessModal(true);
           }}
           className="h-[60px] hover:cursor-pointer leading-[60px] font-['Pretendard'] text-center text-black text-lg font-bold bg-[#FFBB02] rounded-[10px]"
         >
