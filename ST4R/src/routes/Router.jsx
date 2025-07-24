@@ -208,11 +208,7 @@ const router = createBrowserRouter([
       // 프로필 조회 페이지
       {
         path: 'profile',
-        element: (
-          <AuthGuard>
-            <ProfilePage />
-          </AuthGuard>
-        ),
+        element: <ProfilePage />,
       },
     ],
   },

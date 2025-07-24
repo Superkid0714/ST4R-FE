@@ -21,7 +21,6 @@ export default function GuestProfilePage() {
 
   // 로그인이 필요한 기능 클릭 시 경고 표시
   const handleAuthRequired = () => {
-    alert('로그인이 필요한 기능입니다.');
     navigate('/login-alert');
   };
 

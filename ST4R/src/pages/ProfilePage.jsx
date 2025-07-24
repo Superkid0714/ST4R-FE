@@ -56,46 +56,10 @@ const CONSTELLATION_NAMES = {
   PISCES: '물고기자리',
 };
 
-// 사용자 정보 조회 API
-const useUserInfo = (enabled) => {
-  return useQuery({
-    queryKey: ['userInfo'],
-    queryFn: async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('로그인이 필요합니다.');
-      }
-
-      const response = await axios.get('https://eridanus.econo.mooo.com/my', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log('사용자 정보 조회 성공:', response.data);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      return response.data;
-    },
-    enabled: enabled && !!localStorage.getItem('token'),
-    staleTime: 1000 * 60 * 10,
-    retry: (failureCount, error) => {
-      if (error?.response?.status === 401) return false;
-      return failureCount < 2;
-    },
-    onError: (error) => {
-      console.error('사용자 정보 조회 실패:', error);
-      if (error?.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    },
-  });
-};
-
 export default function ProfilePage() {
   const navigate = useNavigate();
 
-  // 로그인 상태 확인
+  // 로그인 상태 확인 - 동기적으로 처리
   const token = localStorage.getItem('token');
   const isAuthenticated = !!token;
 
@@ -106,13 +70,42 @@ export default function ProfilePage() {
   // 로컬 상태로 프로필 이미지 관리
   const [localProfileImage, setLocalProfileImage] = useState('');
 
-  // API를 통해 사용자 정보 조회 (로그인한 경우에만)
+  // 사용자 정보 조회 API - 로그인한 경우에만
   const {
     data: userInfo,
     isLoading,
     error,
     refetch,
-  } = useUserInfo(isAuthenticated);
+  } = useQuery({
+    queryKey: ['userInfo'],
+    queryFn: async () => {
+      // axios 인터셉터를 우회하기 위해 새로운 인스턴스 생성
+      const apiClient = axios.create({
+        baseURL: 'https://eridanus.econo.mooo.com',
+        timeout: 10000,
+      });
+
+      const response = await apiClient.get('/my', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('사용자 정보 조회 성공:', response.data);
+      localStorage.setItem('user', JSON.stringify(response.data));
+      return response.data;
+    },
+    enabled: isAuthenticated, // 로그인한 경우에만 실행
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+    onError: (error) => {
+      console.error('사용자 정보 조회 실패:', error);
+      if (error?.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    },
+  });
 
   // 로그인하지 않은 경우 GuestProfilePage 표시
   if (!isAuthenticated) {
@@ -136,7 +129,6 @@ export default function ProfilePage() {
 
   // 프로필 이미지 가져오기 함수
   const getProfileImageUrl = () => {
-    // API 응답에서 확인하고, 없으면 localStorage에서 확인
     return userInfo?.profileImageUrl || localProfileImage;
   };
 
@@ -169,8 +161,14 @@ export default function ProfilePage() {
     );
   }
 
+  // 에러 상태 (401 에러 등)
+  if (error && error?.response?.status === 401) {
+    // 토큰이 만료된 경우 다시 렌더링하여 GuestProfilePage 표시
+    return <GuestProfilePage />;
+  }
+
   // 기타 에러 상태
-  if (error && error?.response?.status !== 401) {
+  if (error) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
         <div className="text-center">
@@ -201,10 +199,10 @@ export default function ProfilePage() {
               다시 시도
             </button>
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/home')}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-500 transition-colors"
             >
-              로그인
+              홈으로
             </button>
           </div>
         </div>
@@ -253,7 +251,6 @@ export default function ProfilePage() {
                     alt="프로필 이미지"
                     className="w-12 h-12 rounded-full object-cover"
                     onError={() => {
-                      // 에러 시 로컬 이미지 제거
                       setLocalProfileImage('');
                     }}
                   />
