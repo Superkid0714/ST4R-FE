@@ -1,5 +1,6 @@
 <img width="1267" height="707" alt="image" src="https://github.com/user-attachments/assets/3308e4bc-c748-4a51-b87c-714a6b772818" />
 
+<img width="1274" height="714" alt="image" src="https://github.com/user-attachments/assets/b634a8c5-84f1-4226-8123-3024b5086cd1" />
 
 ## 🌟 1. 프로젝트 개요
 
@@ -159,18 +160,13 @@ npm run dev
 npm run build
 ```
 
-## 🌱 7. 팀원 
-
-<img width="1274" height="714" alt="image" src="https://github.com/user-attachments/assets/b634a8c5-84f1-4226-8123-3024b5086cd1" />
-
-
-## 🥳 8. DEV & 기타
+## 🥳 7. DEV 
 
 <img width="1103" height="625" alt="image" src="https://github.com/user-attachments/assets/91f997c9-5cec-49e1-8c50-e34ef8bdb14f" />
 <img width="1280" height="960" alt="image" src="https://github.com/user-attachments/assets/a6594f89-4b07-49d8-a7ba-08a0b51bdce2" />
 
-[DEV 발표 영상](https://www.youtube.com/watch?v=Cnu_gPENZgs)
-[프로젝트 인터뷰](https://jnu-econovation.github.io/summer/winter_dev/2025/08/12/%EC%8D%B8%EB%A8%B8%EB%8D%B0%EB%B8%8C-%ED%9A%8C%EA%B3%A0%EB%A1%9D_ST4R.html)
+[DEV 발표 영상](https://www.youtube.com/watch?v=Cnu_gPENZgs)<br>
+[프로젝트 인터뷰](https://jnu-econovation.github.io/summer/winter_dev/2025/08/12/%EC%8D%B8%EB%A8%B8%EB%8D%B0%EB%B8%8C-%ED%9A%8C%EA%B3%A0%EB%A1%9D_ST4R.html)<br>
 [백엔드 저장소](https://github.com/rdme0/ST4R-BE?tab=readme-ov-file#-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D)
 
 
