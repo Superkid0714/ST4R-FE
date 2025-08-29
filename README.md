@@ -1,4 +1,9 @@
+<img width="1267" height="707" alt="image" src="https://github.com/user-attachments/assets/3308e4bc-c748-4a51-b87c-714a6b772818" />
+
+
 ## 1. 프로젝트 개요
+
+<img width="1260" height="703" alt="image" src="https://github.com/user-attachments/assets/78caafc1-89f3-4f06-b134-5ceb1b52760a" />
 
 ST4R-FE는 React와 Vite를 기반으로 구축된 웹 애플리케이션의 프론트엔드 저장소입니다
 사용자 인증, 게시판, 모임, 채팅, 프로필 관리 등 다양한 기능을 제공하며,
@@ -80,8 +85,11 @@ ST4R/
 ```
 
 ## 4. 주요 기능
+<img width="1265" height="709" alt="image" src="https://github.com/user-attachments/assets/301c300f-383d-439e-83c8-94675218d677" />
 
 ### 4.1. 인증 및 사용자 관리
+
+<img width="1264" height="706" alt="image" src="https://github.com/user-attachments/assets/4176eed0-e2a2-4f8d-ad36-6631c789c2d1" />
 
 - **로그인**: 카카오 소셜 로그인을 통해 간편하게 서비스에 접근할 수 있습니다
   `src/pages/login/LoginPage.jsx`와 `src/api/auth.js`를 통해 구현됩니다.
@@ -90,6 +98,9 @@ ST4R/
 - **인증 가드**: `src/guards/AuthGuard.jsx` 컴포넌트를 사용하여 로그인 사용자만 접근 가능한 페이지를 보호합니다. 미인증 사용자는 로그인 페이지로 리다이렉트됩니다
 
 ### 4.2. 게시판 기능
+<img width="1263" height="701" alt="image" src="https://github.com/user-attachments/assets/f9ff1eb5-9078-47eb-8be5-4a4d6a4c9c33" />
+<img width="1260" height="703" alt="image" src="https://github.com/user-attachments/assets/5fa04a44-e4b6-48db-babb-248ae2e45db4" />
+
 
 - **게시글 목록**: `src/pages/board/BoardPage.jsx`에서 다양한 필터링 옵션(위치, 카테고리, 검색어 등)을 통해 게시글을 조회할 수 있습니다 `src/components/PostCard.jsx`가 각 게시글을 표시합니다
 - **게시글 작성/수정/삭제**: `src/pages/board/BoardWritePage.jsx`에서 새로운 게시글을 작성하고, `src/pages/board/BoardEditPage.jsx`에서 기존 게시글을 수정할 수 있습니다 삭제 기능은 `src/components/modals/BoardDeleteModal.jsx`를 통해 제공됩니다. 관련 API는 `src/api/postboard.jsx`에 정의되어 있습니다
@@ -97,6 +108,8 @@ ST4R/
 - **지도 연동**: 게시글 작성 시 `src/components/common/Kakaomap.jsx`와 `src/pages/MapSearchPage.jsx`를 활용하여 카카오맵을 통해 특정 위치 정보를 추가할 수 있습니다
 
 ### 4.3. 모임 기능
+<img width="1283" height="712" alt="image" src="https://github.com/user-attachments/assets/d97bd373-8cfe-4340-8348-219ed84bfa71" />
+<img width="1263" height="711" alt="image" src="https://github.com/user-attachments/assets/b2e99a67-a344-471d-80bf-1a529072e002" />
 
 - **모임 목록**: `src/pages/group/GroupPage.jsx`에서 모임 목록을 조회하고 필터링할 수 있습니다 `src/components/GroupCard.jsx`가 각 모임을 표시합니다
 - **모임 생성/수정/삭제**: `src/pages/group/GroupWritePage.jsx`에서 모임을 생성하고, `src/pages/group/GroupEditPage.jsx`에서 수정할 수 있습니다 삭제는 `src/api/group/groupDelete.js`를 통해 이루어집니다
@@ -104,6 +117,7 @@ ST4R/
 - **모임 북마크**: `src/components/common/Bookmark.jsx` 컴포넌트를 사용하여 관심 있는 모임을 북마크할 수 있습니다
 
 ### 4.4. 채팅 기능
+<img width="1269" height="695" alt="image" src="https://github.com/user-attachments/assets/1ca7a197-e23c-4e03-8d4f-67d0f8f3e819" />
 
 - **실시간 채팅**: `src/pages/chat/ChatPage.jsx`에서 모임 내에서 실시간으로 메시지를 주고받을 수 있습니다 `SockJS-client`와 `Stompjs`를 사용하여 웹소켓 통신을 구현합니다
 - **멤버 관리**: `src/pages/chat/ChatMembersPage.jsx`에서 모임 멤버 목록을 조회하고, 리더 변경(`src/components/modals/ChangeLeaderModal.jsx`), 멤버 강퇴(`src/components/modals/BanModal.jsx`) 기능을 제공합니다 관련 API는 `src/api/chat/` 디렉토리에 있습니다
@@ -148,3 +162,12 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## 7. 팀원 
+
+<img width="1274" height="714" alt="image" src="https://github.com/user-attachments/assets/b634a8c5-84f1-4226-8123-3024b5086cd1" />
+
+
+
+
+
