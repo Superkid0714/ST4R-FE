@@ -168,7 +168,7 @@ npm run build
 [DEV 발표 영상](https://www.youtube.com/watch?v=Cnu_gPENZgs)<br>
 [프로젝트 인터뷰](https://jnu-econovation.github.io/summer/winter_dev/2025/08/12/%EC%8D%B8%EB%A8%B8%EB%8D%B0%EB%B8%8C-%ED%9A%8C%EA%B3%A0%EB%A1%9D_ST4R.html)<br>
 [백엔드 저장소](https://github.com/rdme0/ST4R-BE?tab=readme-ov-file#-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D)
-
+[Velog](https://velog.io/@newkid0714/%EB%B3%84%EC%9D%84-%EC%B0%BE%EB%8A%94-%EC%9D%B4%EB%93%A4%EC%9D%84-%EC%9C%84%ED%95%9C-%EC%84%9C%EB%B9%84%EC%8A%A4-StarLight-rwcigq8x)
 
 
 
